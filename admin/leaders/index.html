@@ -344,10 +344,62 @@
           <textarea id="biography"></textarea>
         </div>
 
-        <div class="form-group">
-          <label for="photo_url">Photo URL</label>
-          <input id="photo_url">
-        </div>
+       <div class="form-group">
+  <label for="leader_photo">Picha ya Kiongozi</label>
+
+  <input
+    id="leader_photo"
+    type="file"
+    accept="image/jpeg,image/png,image/webp"
+  >
+
+  <div
+    id="photoPreview"
+    style="
+      display:none;
+      margin-top:10px;
+      width:120px;
+      height:120px;
+      border-radius:12px;
+      overflow:hidden;
+      border:1px solid #d9e0e8;
+      background:#f5f7fa;
+    "
+  >
+    <img
+      id="photoPreviewImg"
+      alt="Preview ya picha"
+      style="
+        width:100%;
+        height:100%;
+        object-fit:cover;
+      "
+    >
+  </div>
+
+  <small
+    style="
+      display:block;
+      margin-top:7px;
+      color:#687386;
+    "
+  >
+    JPG, PNG au WebP. Picha itapunguzwa size automatically bila
+    kupunguza quality sana.
+  </small>
+
+  <div
+    id="photoUploadStatus"
+    style="
+      margin-top:7px;
+      font-size:13px;
+      color:#687386;
+    "
+  ></div>
+</div>
+
+<input type="hidden" id="photo_url">
+
 
         <div class="form-group">
           <label for="office_location">Office Location</label>
@@ -803,6 +855,90 @@
       }
     });
 
+    async function uploadLeaderPhoto() {
+    const input = document.getElementById("leader_photo");
+    const status = document.getElementById("photoUploadStatus");
+
+    if (!input.files || !input.files[0]) {
+      return null;
+    }
+
+    const file = input.files[0];
+
+    if (!file.type.startsWith("image/")) {
+      throw new Error("Tafadhali chagua picha halali.");
+    }
+
+    const maxSize = 8 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+      throw new Error(
+        "Picha ni kubwa sana. Chagua picha isiyozidi 8MB."
+      );
+    }
+
+    status.textContent = "Inapakia picha...";
+
+    const extension =
+      file.name.split(".").pop().toLowerCase() || "jpg";
+
+    const safeName =
+      "leader-" +
+      Date.now() +
+      "-" +
+      Math.random().toString(36).slice(2, 8) +
+      "." +
+      extension;
+
+    const path = "leaders/" + safeName;
+
+    const url = await window.RucusoAPI.uploadFile(
+      window.RucusoAPI.BUCKETS.photos,
+      path,
+      file
+    );
+
+    status.textContent = "Picha imepakiwa kikamilifu.";
+
+    return url;
+  }
+
+  document
+    .getElementById("leader_photo")
+    .addEventListener("change", function () {
+      const file = this.files && this.files[0];
+
+      const preview =
+        document.getElementById("photoPreview");
+
+      const image =
+        document.getElementById("photoPreviewImg");
+
+      if (!file) {
+        preview.style.display = "none";
+        image.removeAttribute("src");
+        return;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        this.value = "";
+        preview.style.display = "none";
+        image.removeAttribute("src");
+
+        showMessage(
+          "Tafadhali chagua picha halali.",
+          "error"
+        );
+
+        return;
+      }
+
+      const url = URL.createObjectURL(file);
+
+      image.src = url;
+      preview.style.display = "block";
+    });
+
   document
     .getElementById("leaderForm")
     .addEventListener("submit", async function (event) {
@@ -849,7 +985,7 @@
             document.getElementById("biography").value.trim() || null,
 
           photo_url:
-            document.getElementById("photo_url").value.trim() || null,
+            await uploadLeaderPhoto(),
 
           office_location:
             document.getElementById("office_location").value.trim() || null,
@@ -879,7 +1015,10 @@
 
       } catch (error) {
 
-        console.error("Create leader failed:", error);
+        console.error(
+          "Create leader failed:",
+          error
+        );
 
         showMessage(
           error.message,
@@ -892,6 +1031,7 @@
         saveBtn.textContent = "Unda Akaunti";
       }
     });
+
 
   document
     .getElementById("leadersBody")
