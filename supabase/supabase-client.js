@@ -1,140 +1,442 @@
-// RucusoAPI — a thin wrapper around supabase-js.
+// RucusoAPI — the only place that talks to Supabase.
+//
 // Load order in index.html must be:
 //   1. https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2  (UMD build, exposes window.supabase)
-//   2. config.js  (defines window.RUCUSO_CONFIG)
-//   3. this file  (defines window.RucusoAPI)
+//   2. js/config.js  (defines window.RUCUSO_CONFIG)
+//   3. this file    (defines window.RucusoAPI)
+//   4. js/data.js   (defines window.RucusoData — the app's data layer)
+//
+// Security notes:
+//   * Only the anon/publishable key is ever used here. The service_role key
+//     lives in Supabase secrets and is used by the OTP Edge Functions only.
+//   * Every permission decision is made by RLS in the database, not by this
+//     file. These functions never widen access; they only send requests.
+//   * There is no localStorage fallback anywhere in this file. If Supabase is
+//     unreachable the caller gets an error, never stale local data.
 (function () {
-  if (!window.RUCUSO_CONFIG) {
-    console.error("RUCUSO_CONFIG missing — copy supabase/config.example.js to supabase/config.js and fill in your Supabase URL/anon key.");
+  const cfg = window.RUCUSO_CONFIG;
+  if (!cfg || !cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) {
+    console.error("RUCUSO_CONFIG missing or incomplete — see js/config.example.js.");
+    window.RucusoAPI = null;
     return;
   }
-  const { createClient } = window.supabase; // global from the UMD build
-  const client = createClient(window.RUCUSO_CONFIG.SUPABASE_URL, window.RUCUSO_CONFIG.SUPABASE_ANON_KEY);
+  const { createClient } = window.supabase;
+  const client = createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true },
+  });
 
-  window.RucusoAPI = {
+  // ---------- error translation (one Kiswahili message per failure mode) ----------
+  const MESSAGES = {
+    NETWORK: "Imeshindikana kuwasiliana na database. Tafadhali jaribu tena.",
+    RLS: "Hakuna kibali cha kufanya kitendo hiki. Ingia kama msimamizi.",
+    AUTH: "Muda wa kuingia umeisha. Tafadhali ingia tena.",
+    PROFILE: "Akaunti hii haina profili ya msimamizi. Wasiliana na msimamizi mkuu.",
+    DISABLED: "Akaunti hii imezimwa. Wasiliana na msimamizi mkuu.",
+    BAD_LOGIN: "Barua pepe au nenosiri si sahihi.",
+    DUPLICATE: "Rekodi hii tayari ipo.",
+    NOT_FOUND: "Hakuna rekodi iliyopatikana.",
+  };
+
+  function friendlyError(err) {
+    if (!err) return new Error("Hitilafu isiyotarajiwa.");
+    const raw = `${err.message || err.code || err}`.trim();
+    const code = err.code || "";
+    // network / fetch failures
+    if (/fetch|network|failed to fetch|load failed|timeout/i.test(raw) && !code) {
+      return new Error(MESSAGES.NETWORK);
+    }
+    if (code === "42501" || /row-level security/i.test(raw)) return new Error(MESSAGES.RLS);
+    if (/JWT expired|invalid JWT|AuthSessionMissing|session not found|token is expired/i.test(raw)) {
+      return new Error(MESSAGES.AUTH);
+    }
+    if (code === "23505" || /duplicate key|already exists/i.test(raw)) return new Error(MESSAGES.DUPLICATE);
+    if (code === "PGRST116" || /no rows found|0 rows/i.test(raw)) return new Error(MESSAGES.NOT_FOUND);
+    if (code === "23503" || /foreign key|violates not-null|null value/i.test(raw)) {
+      return new Error("Taarifa hazijapitika kikamilifu. Hakiki sehemu zote za lazima.");
+    }
+    const e = new Error(raw);
+    e.raw = err;
+    return e;
+  }
+
+  // unwrap PostgREST / function responses into data-or-throw
+  function ok(res) {
+    if (res.error) throw friendlyError(res.error);
+    return res.data;
+  }
+
+  const BUCKETS = {
+    documents: "rucu-documents",
+    photos: "leader-photos",
+    attachments: "feedback-attachments",
+  };
+
+  function pathFromPublicUrl(url) {
+    if (!url) return null;
+    const marker = "/object/public/";
+    const i = url.indexOf(marker);
+    if (i === -1) return null;
+    return url.slice(i + marker.length);
+  }
+
+  const api = {
     client,
+    BUCKETS,
+    friendlyError,
+    pathFromPublicUrl,
 
-    // ---------------- Auth (real admin accounts) ----------------
+    // ---------------- Auth (real Supabase accounts, hashed passwords) ----------
     async adminLogin(email, password) {
-      const { data, error } = await client.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      const { data, error } = await client.auth.signInWithPassword({
+        email: String(email || "").trim(),
+        password,
+      });
+      if (error) {
+        throw /invalid login credentials/i.test(error.message)
+          ? new Error(MESSAGES.BAD_LOGIN)
+          : friendlyError(error);
+      }
       const { data: profile, error: perr } = await client
-        .from("profiles").select("*").eq("id", data.user.id).single();
-      if (perr) throw perr;
-      if (!profile.active) { await client.auth.signOut(); throw new Error("Account is disabled."); }
+        .from("profiles").select("*").eq("id", data.user.id).maybeSingle();
+      if (perr) throw friendlyError(perr);
+      if (!profile) {
+        await client.auth.signOut();
+        throw new Error(MESSAGES.PROFILE);
+      }
+      if (!profile.active) {
+        await client.auth.signOut();
+        throw new Error(MESSAGES.DISABLED);
+      }
       return { user: data.user, profile };
     },
-    async adminLogout() { await client.auth.signOut(); },
+
+    async adminLogout() {
+      await client.auth.signOut();
+    },
+
     async currentSession() {
       const { data: { session } } = await client.auth.getSession();
       if (!session) return null;
-      const { data: profile } = await client.from("profiles").select("*").eq("id", session.user.id).single();
+      const { data: profile } = await client
+        .from("profiles").select("*").eq("id", session.user.id).maybeSingle();
       return { user: session.user, profile };
     },
 
-    // ---------------- Student verification ----------------
-    // Calls the lookup_student() RPC (SECURITY DEFINER) — never selects
-    // the students table directly, so the full registry stays private.
-    async lookupStudent(regNumber) {
-      const { data, error } = await client.rpc("lookup_student", { p_reg: regNumber });
-      if (error) throw error;
-      return data && data.length ? data[0] : null;
+    onAuthChange(handler) {
+      client.auth.onAuthStateChange((_event, session) => {
+        // Yield first: anything the handler does with this client (signing out,
+        // re-reading the profile) must not run inside the auth callback's lock.
+        setTimeout(() => handler(session), 0);
+      });
     },
-    // Bulk import from the admin CSV screen. Uses upsert with
-    // ignoreDuplicates so existing registration numbers are never
-    // silently overwritten (matches the "never overwrite blindly" rule).
+
+    // ---------------- Students ----------------
+    // Public lookups go through the lookup_student() RPC; the students table
+    // itself has no public read policy, so the registry stays private.
+    async lookupStudent(regNumber) {
+      const rows = await ok(await client.rpc("lookup_student", { p_reg: regNumber }));
+      return rows && rows.length ? rows[0] : null;
+    },
+    // student_count() returns a scalar, so PostgREST replies with a bare number.
+    async studentCount() {
+      return Number((await ok(await client.rpc("student_count"))) || 0);
+    },
+    async listStudents() {
+      return ok(await client
+        .from("students")
+        .select("id, registration_number, first_name, middle_name, last_name, full_name, programme, year_of_study, phone_number, email")
+        .order("registration_number"));
+    },
+    async upsertStudent(row) {
+      return ok(await client.from("students").upsert(row, { onConflict: "registration_number" }).select());
+    },
     async bulkUpsertStudents(rows) {
-      const { data, error } = await client
+      if (!rows.length) return [];
+      return ok(await client
         .from("students")
         .upsert(rows, { onConflict: "registration_number", ignoreDuplicates: true })
-        .select();
-      if (error) throw error;
-      return data;
+        .select());
     },
-    // Real OTP sending must happen server-side (Edge Function) so the SMS
-    // provider's API key never reaches the browser. This calls a Supabase
-    // Edge Function named "send-otp" that you deploy separately — see
-    // supabase/edge-functions-README.md.
+    async deleteAllStudents() {
+      return ok(await client.from("students").delete().neq("id", "00000000-0000-0000-0000-000000000000"));
+    },
+
+    // ---------------- OTP (server-side Edge Functions) ----------------
+    // sendOtp() and verifyOtp() only ever receive a status back. The code, the
+    // hash and the SMS provider's key never leave the server.
     async sendOtp(phoneNumber, studentRegNumber) {
-      const { data, error } = await client.functions.invoke("send-otp", {
-        body: { phone: phoneNumber, reg: studentRegNumber }
-      });
-      if (error) throw error;
-      return data; // { ok: true } — the function itself stores the hashed OTP
+      return ok(await client.functions.invoke("send-otp", {
+        body: { phone: phoneNumber, reg: studentRegNumber },
+      }));
     },
     async verifyOtp(phoneNumber, code) {
-      const { data, error } = await client.functions.invoke("verify-otp", {
-        body: { phone: phoneNumber, code }
-      });
-      if (error) throw error;
-      return data; // { verified: true/false }
+      return ok(await client.functions.invoke("verify-otp", {
+        body: { phone: phoneNumber, code },
+      }));
     },
 
     // ---------------- Feedback ----------------
+    // Public submissions go through submit_feedback(): it mints the reference
+    // number, enforces anonymity and blocks duplicate spam inside the database.
     async submitFeedback(payload) {
-      // payload: { reference_number, submission_type, category_id, title,
-      //   description, priority, is_anonymous, student_id, student_name_snapshot, ... }
-      const { data, error } = await client.from("feedback").insert(payload).select().single();
-      if (error) throw error;
-      return data;
+      const ref = await ok(await client.rpc("submit_feedback", payload));
+      return ref;
     },
-    // Uses the track_feedback() RPC — only returns the fields a student
-    // is allowed to see, regardless of anonymity.
     async trackFeedback(ref) {
-      const { data, error } = await client.rpc("track_feedback", { p_ref: ref });
-      if (error) throw error;
-      return data && data.length ? data[0] : null;
+      const rows = await ok(await client.rpc("track_feedback", { p_ref: ref }));
+      return rows && rows.length ? rows[0] : null;
     },
     async listFeedback(filters = {}) {
-      let q = client.from("feedback").select("*").order("created_at", { ascending: false });
+      let q = client
+        .from("feedback")
+        .select("*, category:categories(name), ministry:ministries(name), assignee:profiles(full_name)")
+        .order("created_at", { ascending: false });
       if (filters.status) q = q.eq("status", filters.status);
       if (filters.category_id) q = q.eq("category_id", filters.category_id);
       if (filters.ministry_id) q = q.eq("ministry_id", filters.ministry_id);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data;
+      return ok(await q);
+    },
+    async getFeedback(id) {
+      const rows = await ok(await client
+        .from("feedback")
+        .select("*, category:categories(name), ministry:ministries(name), assignee:profiles(full_name)")
+        .eq("id", id).limit(1));
+      return rows && rows.length ? rows[0] : null;
     },
     async updateFeedback(id, patch) {
-      const { data, error } = await client.from("feedback").update(patch).eq("id", id).select().single();
-      if (error) throw error;
-      return data;
+      return ok(await client
+        .from("feedback")
+        .update({ ...patch, updated_at: new Date().toISOString() })
+        .eq("id", id).select());
     },
-    async addStatusHistory(feedback_id, old_status, new_status, changed_by) {
-      const { error } = await client.from("feedback_status_history")
-        .insert({ feedback_id, old_status, new_status, changed_by });
-      if (error) throw error;
+    async addStatusHistory(feedback_id, old_status, new_status) {
+      const { data: { user } } = await client.auth.getUser();
+      return ok(await client.from("feedback_status_history")
+        .insert({ feedback_id, old_status, new_status, changed_by: user?.id ?? null }));
     },
-    async addInternalNote(feedback_id, admin_id, note) {
-      const { error } = await client.from("internal_notes").insert({ feedback_id, admin_id, note });
-      if (error) throw error;
+    async listStatusHistory(feedback_id) {
+      return ok(await client
+        .from("feedback_status_history")
+        .select("*, who:profiles(full_name)")
+        .eq("feedback_id", feedback_id).order("created_at"));
+    },
+    async addInternalNote(feedback_id, note) {
+      const { data: { user } } = await client.auth.getUser();
+      return ok(await client.from("internal_notes")
+        .insert({ feedback_id, admin_id: user?.id ?? null, note }));
+    },
+    async listInternalNotes(feedback_id) {
+      return ok(await client
+        .from("internal_notes")
+        .select("*, who:profiles(full_name)")
+        .eq("feedback_id", feedback_id).order("created_at"));
+    },
+    async listAttachments(feedback_id) {
+      return ok(await client.from("attachments").select("*").eq("feedback_id", feedback_id));
     },
 
     // ---------------- Reference data ----------------
-    async listCategories() { const { data, error } = await client.from("categories").select("*").eq("active", true); if (error) throw error; return data; },
-    async listMinistries() { const { data, error } = await client.from("ministries").select("*").eq("active", true); if (error) throw error; return data; },
-    async listLeaders() { const { data, error } = await client.from("leaders").select("*").eq("active", true); if (error) throw error; return data; },
-    async listServices() { const { data, error } = await client.from("student_services").select("*").eq("active", true); if (error) throw error; return data; },
-    async listAnnouncements() {
-      const today = new Date().toISOString().slice(0, 10);
-      const { data, error } = await client.from("announcements").select("*")
-        .lte("publish_date", today).order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
+    async listCategories() {
+      return ok(await client.from("categories").select("*").eq("active", true).order("name"));
     },
-    async listDocuments() { const { data, error } = await client.from("documents").select("*").order("uploaded_at", { ascending: false }); if (error) throw error; return data; },
+    async listAllCategories() {
+      return ok(await client.from("categories").select("*").order("name"));
+    },
+    async createCategory(name) {
+      return ok(await client.from("categories").insert({ name }).select());
+    },
+    async updateCategory(id, patch) {
+      return ok(await client.from("categories").update(patch).eq("id", id).select());
+    },
+    async deleteCategory(id) {
+      return ok(await client.from("categories").delete().eq("id", id));
+    },
 
-    // ---------------- Storage (photos, documents) ----------------
+    async listMinistries() {
+      return ok(await client.from("ministries").select("*").eq("active", true).order("name"));
+    },
+    async listAllMinistries() {
+      return ok(await client.from("ministries").select("*").order("name"));
+    },
+    async createMinistry(payload) {
+      return ok(await client.from("ministries").insert(payload).select());
+    },
+    async updateMinistry(id, patch) {
+      return ok(await client.from("ministries").update(patch).eq("id", id).select());
+    },
+    async deleteMinistry(id) {
+      return ok(await client.from("ministries").delete().eq("id", id));
+    },
+
+    async listStaff() {
+      return ok(await client
+        .from("profiles").select("id, full_name, role, ministry_id, active")
+        .eq("active", true).order("full_name"));
+    },
+
+    // ---------------- Leaders ----------------
+    // Frontend names map to columns like this:
+    //   name -> full_name | phone -> phone_public | photo -> photo_url
+    //   ministry (name) -> ministry_id           | active -> active
+    // Anonymous visitors cannot select from `leaders` at all (that would expose
+    // registration_number and phone_private) — they read public_leaders.
+    // Public directory. Always the view, never the base table: the table has
+    // private columns (registration_number, phone_private) and RLS cannot
+    // hide columns, only rows.
+    async listLeaders() {
+      return ok(await client.from("public_leaders").select("*").order("created_at"));
+    },
+    // Admin screens only - the base table, including inactive rows and the
+    // private fields the edit form needs. RLS allows this for staff only.
+    async listAllLeaders() {
+      return ok(
+        await client.from("leaders").select("*, ministry:ministries(name)").order("created_at")
+      );
+    },
+    async createLeader(payload) {
+      return ok(await client.from("leaders").insert(payload).select());
+    },
+    async updateLeader(id, payload) {
+      return ok(await client.from("leaders").update(payload).eq("id", id).select());
+    },
+    async setLeaderActive(id, active) {
+      return ok(await client.from("leaders").update({ active }).eq("id", id).select());
+    },
+    async deleteLeader(id) {
+      return ok(await client.from("leaders").delete().eq("id", id));
+    },
+
+    // ---------------- Student services ----------------
+    async listServices() {
+      return ok(await client.from("student_services").select("*").eq("active", true).order("name"));
+    },
+    async listAllServices() {
+      return ok(await client.from("student_services").select("*").order("name"));
+    },
+    async createService(payload) {
+      return ok(await client.from("student_services").insert(payload).select());
+    },
+    async updateService(id, patch) {
+      return ok(await client.from("student_services").update(patch).eq("id", id).select());
+    },
+    async deleteService(id) {
+      return ok(await client.from("student_services").delete().eq("id", id));
+    },
+
+    // ---------------- Announcements ----------------
+    // RLS already hides anything not yet published or already expired, so the
+    // public list needs no date filter here.
+    async listAnnouncements() {
+      return ok(await client
+        .from("announcements")
+        .select("*, author:profiles(full_name)")
+        .order("created_at", { ascending: false }));
+    },
+    async listAllAnnouncements() {
+      return ok(await client
+        .from("announcements")
+        .select("*, author:profiles(full_name)")
+        .order("created_at", { ascending: false }));
+    },
+    async createAnnouncement(payload) {
+      return ok(await client.from("announcements").insert(payload).select());
+    },
+    async updateAnnouncement(id, patch) {
+      return ok(await client.from("announcements").update(patch).eq("id", id).select());
+    },
+    async deleteAnnouncement(id) {
+      return ok(await client.from("announcements").delete().eq("id", id));
+    },
+
+    // ---------------- Documents ----------------
+    async listDocuments() {
+      return ok(await client.from("documents").select("*").order("uploaded_at", { ascending: false }));
+    },
+    async createDocument(payload) {
+      return ok(await client.from("documents").insert(payload).select());
+    },
+    async deleteDocument(id) {
+      return ok(await client.from("documents").delete().eq("id", id));
+    },
+
+    // ---------------- Settings ----------------
+    async getSettings() {
+      const rows = await ok(await client.from("system_settings").select("*"));
+      const out = {};
+      (rows || []).forEach((r) => { out[r.key] = r.value; });
+      return out;
+    },
+    async setSetting(key, value) {
+      return ok(await client.from("system_settings")
+        .upsert({ key, value }, { onConflict: "key" }).select());
+    },
+
+    // ---------------- Programmes ----------------
+    async listProgrammes() {
+      return ok(await client.from("programmes").select("*").order("name"));
+    },
+    async createProgramme(name) {
+      return ok(await client.from("programmes").insert({ name }).select());
+    },
+    async deleteProgramme(id) {
+      return ok(await client.from("programmes").delete().eq("id", id));
+    },
+
+    // ---------------- Storage ----------------
+    // Public buckets (documents, leader photos): upload returns a shareable URL.
     async uploadFile(bucket, path, file) {
-      const { data, error } = await client.storage.from(bucket).upload(path, file, { upsert: true });
-      if (error) throw error;
-      const { data: pub } = client.storage.from(bucket).getPublicUrl(data.path);
+      const { error } = await client.storage.from(bucket).upload(path, file, { upsert: true });
+      if (error) throw friendlyError(error);
+      const { data: pub } = client.storage.from(bucket).getPublicUrl(path);
       return pub.publicUrl;
+    },
+    // Private bucket (feedback evidence): returns a path, read it with
+    // signedUrl() — only staff can.
+    async uploadPrivateFile(bucket, path, file) {
+      const { error } = await client.storage.from(bucket).upload(path, file, { upsert: false });
+      if (error) throw friendlyError(error);
+      return path;
+    },
+    async signedUrl(bucket, path, seconds = 600) {
+      const { data, error } = await client.storage.from(bucket).createSignedUrl(path, seconds);
+      if (error) throw friendlyError(error);
+      return data.signedUrl;
+    },
+    async removeFile(bucket, pathOrUrl) {
+      const path = pathOrUrl.startsWith("http") ? pathFromPublicUrl(pathOrUrl) : pathOrUrl;
+      if (!path) return;
+      const { error } = await client.storage.from(bucket).remove([path]);
+      if (error) console.warn("storage remove failed:", error.message);
     },
 
     // ---------------- Audit log ----------------
-    async logAction(actor_id, actor_label, action, details) {
-      const { error } = await client.from("audit_logs").insert({ actor_id, actor_label, action, details });
-      if (error) console.error("audit log write failed:", error);
-    }
+    // Two paths on purpose:
+    //   logAction()       — staff, writes audit_logs directly (RLS allows it)
+    //   logPublicAction() — anonymous visitors; audit_logs has no public INSERT
+    //                       policy on purpose, so a whitelisted RPC is used and
+    //                       it can only ever record the student verification.
+    async logPublicAction(action, details) {
+      const { error } = await client.rpc("log_public_action", {
+        p_action: action,
+        p_details: details,
+      });
+      if (error) console.warn("audit write failed:", error.message);
+    },
+    async logAction(action, details, actorLabel) {
+      const { data: { user } } = await client.auth.getUser();
+      const { error } = await client.from("audit_logs").insert({
+        actor_id: user?.id ?? null,
+        actor_label: actorLabel || user?.email || "System",
+        action,
+        details: details || null,
+      });
+      if (error) console.warn("audit log write failed:", error.message);
+    },
+    async listAudit(limit = 50) {
+      return ok(await client
+        .from("audit_logs").select("*").order("created_at", { ascending: false }).limit(limit));
+    },
   };
+
+  window.RucusoAPI = api;
 })();

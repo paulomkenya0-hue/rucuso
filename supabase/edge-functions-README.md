@@ -20,6 +20,18 @@ supabase secrets set SMS_API_SECRET=your_secret
 supabase secrets set SMS_SENDER_ID=RUCUSO
 ```
 
+Then generate the pepper. It is required by **both** functions — they refuse to
+run without it, because a plain SHA-256 of a 6-digit code is trivially
+reversible if someone ever gets hold of the `otp_verifications` table:
+
+```bash
+openssl rand -base64 48
+supabase secrets set OTP_PEPPER=<paste the output>
+```
+
+Keep that value somewhere safe. Rotating it invalidates every code that is
+currently pending, which is harmless.
+
 ## 2. `supabase/functions/send-otp/index.ts`
 
 ```ts

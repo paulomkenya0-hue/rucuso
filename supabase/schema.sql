@@ -3,6 +3,13 @@
 -- Run this once in your Supabase project's SQL Editor.
 -- Safe to re-run pieces individually if something fails partway —
 -- everything uses IF NOT EXISTS / OR REPLACE where possible.
+--
+-- NOTE: this file is migration 001 and is kept as the record of the original
+-- build. Later, additive migrations live in supabase/migrations/ — read those
+-- before touching this file. Migration 002 in particular closes four RLS gaps
+-- in this script (programmes/faculties/departments/academic_years had no RLS at
+-- all), replaces the public feedback INSERT with a hardened RPC, and adds the
+-- storage buckets. Running 001 on its own leaves those gaps open.
 -- ============================================================
 
 -- ---------- Extensions ----------
