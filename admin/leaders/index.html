@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Viongozi | RUCUSO</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="/css/portal.css">
+<style>
+  .toolbar {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom:18px;
+  }
+
+  .table-wrap {
+    overflow-x:auto;
+  }
+
+  table {
+    width:100%;
+    border-collapse:collapse;
+    min-width:850px;
+  }
+
+  th, td {
+    padding:12px 10px;
+    border-bottom:1px solid #e6eaf0;
+    text-align:left;
+    vertical-align:middle;
+  }
+
+  th {
+    font-size:12px;
+    color:#667085;
+    background:#f8fafc;
+  }
+
+  td {
+    font-size:13px;
+  }
+
+  .badge {
+    display:inline-block;
+    padding:4px 8px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:700;
+  }
+
+  .badge.active {
+    color:#067647;
+    background:#ecfdf3;
+  }
+
+  .badge.inactive {
+    color:#b42318;
+    background:#fef3f2;
+  }
+
+  .actions {
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+  }
+
+  .actions button {
+    font-size:11px;
+    padding:6px 9px;
+  }
+
+  .modal {
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,.6);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:1000;
+  }
+
+  .modal.hidden {
+    display:none;
+  }
+
+  .modal-card {
+    width:min(680px,100%);
+    max-height:90vh;
+    overflow:auto;
+    background:#fff;
+    border-radius:14px;
+    padding:22px;
+    box-shadow:0 20px 60px rgba(0,0,0,.25);
+  }
+
+  .form-grid {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+  }
+
+  .form-grid .full {
+    grid-column:1/-1;
+  }
+
+  label {
+    display:block;
+    font-size:12px;
+    font-weight:700;
+    margin-bottom:5px;
+  }
+
+  input, select, textarea {
+    width:100%;
+    box-sizing:border-box;
+    padding:10px;
+    border:1px solid #d0d5dd;
+    border-radius:8px;
+    font:inherit;
+  }
+
+  textarea {
+    min-height:90px;
+    resize:vertical;
+  }
+
+  .modal-actions {
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    margin-top:18px;
+  }
+
+  .password-box {
+    background:#f8fafc;
+    border:1px dashed #98a2b3;
+    border-radius:10px;
+    padding:14px;
+    margin-top:14px;
+  }
+
+  .password-box code {
+    display:block;
+    font-size:20px;
+    font-weight:800;
+    letter-spacing:1px;
+    margin-top:8px;
+    word-break:break-all;
+  }
+
+  .danger {
+    color:#b42318;
+  }
+
+  @media (max-width:700px) {
+    .form-grid {
+      grid-template-columns:1fr;
+    }
+
+    .form-grid .full {
+      grid-column:auto;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+<header class="top">
+  <div class="brand">
+    <b>RUCUSO</b>
+    <span>Leader Management</span>
+  </div>
+
+  <div>
+    <span id="whoami"
+          class="muted"
+          style="color:#cdd9ee;font-size:12px;margin-right:10px;"></span>
+
+    <button class="sec"
+            id="logoutBtn"
+            style="color:#fff;border-color:rgba(255,255,255,.4);">
+      Logout
+    </button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <nav class="sidebar">
+    <a href="/admin/dashboard/">Dashibodi</a>
+    <a href="/admin/leaders/" class="active">Viongozi</a>
+  </nav>
+
+  <main class="content">
+
+    <div id="gate" class="card">
+      <p class="muted">Inathibitisha akaunti...</p>
+    </div>
+
+    <div id="body" class="hidden">
+
+      <div class="toolbar">
+        <div>
+          <h2 style="margin:0">Viongozi</h2>
+          <p class="muted" style="margin:5px 0 0">
+            Usimamizi wa akaunti na taarifa za viongozi.
+          </p>
+        </div>
+
+        <button id="addBtn" class="primary">
+          + Ongeza Kiongozi
+        </button>
+      </div>
+
+      <div id="message"></div>
+
+      <div class="card">
+        <div class="table-wrap">
+
+          <table>
+            <thead>
+              <tr>
+                <th>Jina</th>
+                <th>Username</th>
+                <th>Nafasi</th>
+                <th>Wizara</th>
+                <th>Status</th>
+                <th>Password</th>
+                <th>Vitendo</th>
+              </tr>
+            </thead>
+
+            <tbody id="leadersBody">
+              <tr>
+                <td colspan="7" class="muted">
+                  Inapakia viongozi...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+
+<!-- CREATE MODAL -->
+
+<div id="createModal" class="modal hidden">
+
+  <div class="modal-card">
+
+    <h3 style="margin-top:0">Ongeza Kiongozi</h3>
+
+    <form id="createForm">
+
+      <div class="form-grid">
+
+        <div class="full">
+          <label for="full_name">Jina kamili *</label>
+          <input id="full_name" required>
+        </div>
+
+        <div>
+          <label for="username">Username *</label>
+          <input
+            id="username"
+            required
+            minlength="3"
+            maxlength="32"
+            pattern="[A-Za-z0-9._-]+"
+          >
+        </div>
+
+        <div>
+          <label for="position">Nafasi *</label>
+
+          <select id="position" required>
+            <option value="">-- Chagua --</option>
+            <option value="president">President</option>
+            <option value="secretary_general">Secretary General</option>
+            <option value="minister">Minister</option>
+            <option value="deputy_minister">Deputy Minister</option>
+            <option value="representative">Representative</option>
+            <option value="officer">Officer</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="ministry_id">Ministry ID</label>
+          <input id="ministry_id" placeholder="UUID ya wizara">
+        </div>
+
+        <div>
+          <label for="phone_number">Namba ya simu</label>
+          <input id="phone_number">
+        </div>
+
+        <div>
+          <label for="email">Email</label>
+          <input id="email" type="email">
+        </div>
+
+        <div>
+          <label for="programme">Programme</label>
+          <input id="programme">
+        </div>
+
+        <div>
+          <label for="year_of_study">Year of Study</label>
+          <input id="year_of_study">
+        </div>
+
+        <div>
+          <label for="photo_url">Photo URL</label>
+          <input id="photo_url">
+        </div>
+
+        <div class="full">
+          <label for="biography">Bio</label>
+          <textarea id="biography"></textarea>
+        </div>
+
+        <div>
+          <label>
+            <input type="checkbox" id="public_visibility" checked>
+            Aonekane public directory
+          </label>
+        </div>
+
+        <div>
+          <label>
+            <input type="checkbox" id="active_status" checked>
+            Akaunti iwe active
+          </label>
+        </div>
+
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="sec" id="cancelCreate">
+          Cancel
+        </button>
+
+        <button type="submit" class="primary" id="createSubmit">
+          Unda Akaunti
+        </button>
+      </div>
+
+    </form>
+
+    <div id="passwordResult" class="password-box hidden">
+      <b>Temporary Password</b>
+      <p class="muted">
+        Hii password ionyeshwe/kutunzwa sasa. Haijahifadhiwa plaintext.
+      </p>
+      <code id="temporaryPassword"></code>
+    </div>
+
+  </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase/config.js" onerror="console.warn('supabase/config.js haipo.')"></script>
+<script src="/supabase/supabase-client.js"></script>
+<script src="/js/auth-guard.js"></script>
+
+<script>
+(async function () {
+
+  const session = await window.RucusoGuard.requireRole(
+    ["super_admin"],
+    { loginUrl: "/admin/login/" }
+  );
+
+  if (!session) return;
+
+  const profile = session.profile;
+
+  document.getElementById("gate").classList.add("hidden");
+  document.getElementById("body").classList.remove("hidden");
+
+  document.getElementById("whoami").textContent =
+    profile.full_name + " (" + profile.role + ")";
+
+  document.getElementById("logoutBtn").addEventListener(
+    "click",
+    () => window.RucusoGuard.logout("/")
+  );
+
+  const supabase = window.RucusoAPI.client;
+
+  const functionUrl =
+    window.RucusoAPI.url.replace(/\/$/, "") +
+    "/functions/v1/leader-admin";
+
+  function showMessage(text, type = "success") {
+    const el = document.getElementById("message");
+
+    el.innerHTML =
+      '<div class="card" style="margin-bottom:14px;color:' +
+      (type === "error" ? "#b42318" : "#067647") +
+      '">' +
+      text +
+      '</div>';
+
+    setTimeout(() => {
+      el.innerHTML = "";
+    }, 6000);
+  }
+
+  async function callFunction(payload) {
+
+    const {
+      data: { session: currentSession }
+    } = await supabase.auth.getSession();
+
+    if (!currentSession?.access_token) {
+      throw new Error("Session imekwisha. Ingia tena.");
+    }
+
+    const response = await fetch(functionUrl, {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + currentSession.access_token
+      },
+
+      body: JSON.stringify(payload)
+    });
+
+    let result;
+
+    try {
+      result = await response.json();
+    } catch {
+      throw new Error("Server imerudisha response isiyo sahihi.");
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        result.detail ||
+        result.error ||
+        "Ombi limekataa."
+      );
+    }
+
+    return result;
+  }
+
+
+  async function loadLeaders() {
+
+    const tbody = document.getElementById("leadersBody");
+
+    tbody.innerHTML =
+      '<tr><td colspan="7" class="muted">Inapakia...</td></tr>';
+
+    try {
+
+      const result = await callFunction({
+        action: "list"
+      });
+
+      const leaders = result.leaders || [];
+
+      if (!leaders.length) {
+
+        tbody.innerHTML =
+          '<tr><td colspan="7" class="muted">' +
+          'Hakuna akaunti za viongozi bado.' +
+          '</td></tr>';
+
+        return;
+      }
+
+      tbody.innerHTML = leaders.map((leader) => {
+
+        const active =
+          leader.active && leader.leader_active;
+
+        const status =
+          active
+            ? '<span class="badge active">ACTIVE</span>'
+            : '<span class="badge inactive">INACTIVE</span>';
+
+        const passwordStatus =
+          leader.must_change_password
+            ? '<span class="badge inactive">Badili password</span>'
+            : '<span class="badge active">OK</span>';
+
+        return `
+          <tr>
+            <td>
+              <strong>${escapeHtml(leader.full_name || "—")}</strong>
+              ${
+                leader.email
+                  ? `<div class="muted">${escapeHtml(leader.email)}</div>`
+                  : ""
+              }
+            </td>
+
+            <td>${escapeHtml(leader.username || "—")}</td>
+
+            <td>${escapeHtml(formatPosition(leader.position))}</td>
+
+            <td>${escapeHtml(leader.ministry_name || "—")}</td>
+
+            <td>${status}</td>
+
+            <td>${passwordStatus}</td>
+
+            <td>
+              <div class="actions">
+
+                <button
+                  class="sec"
+                  data-action="password"
+                  data-id="${leader.profile_id}">
+                  Reset Password
+                </button>
+
+                ${
+                  active
+                    ? `
+                      <button
+                        class="sec"
+                        data-action="deactivate"
+                        data-id="${leader.profile_id}">
+                        Zima
+                      </button>
+                    `
+                    : `
+                      <button
+                        class="sec"
+                        data-action="activate"
+                        data-id="${leader.profile_id}">
+                        Activate
+                      </button>
+                    `
+                }
+
+                <button
+                  class="sec"
+                  style="color:#b42318;border-color:#f0b7b2"
+                  data-action="delete"
+                  data-id="${leader.profile_id}">
+                  Delete
+                </button>
+
+              </div>
+            </td>
+          </tr>
+        `;
+
+      }).join("");
+
+    } catch (error) {
+
+      tbody.innerHTML =
+        '<tr><td colspan="7" class="danger">' +
+        escapeHtml(error.message) +
+        '</td></tr>';
+    }
+  }
+
+
+  function formatPosition(position) {
+
+    const names = {
+      president: "President",
+      secretary_general: "Secretary General",
+      minister: "Minister",
+      deputy_minister: "Deputy Minister",
+      representative: "Representative",
+      officer: "Officer"
+    };
+
+    return names[position] || position || "—";
+  }
+
+
+  function escapeHtml(value) {
+
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+
+  document.getElementById("addBtn").addEventListener(
+    "click",
+    () => {
+
+      document.getElementById("createForm").reset();
+
+      document.getElementById("public_visibility").checked = true;
+      document.getElementById("active_status").checked = true;
+
+      document
+        .getElementById("passwordResult")
+        .classList.add("hidden");
+
+      document
+        .getElementById("createModal")
+        .classList.remove("hidden");
+    }
+  );
+
+
+  document.getElementById("cancelCreate").addEventListener(
+    "click",
+    () => {
+      document
+        .getElementById("createModal")
+        .classList.add("hidden");
+    }
+  );
+
+
+  document.getElementById("createForm").addEventListener(
+    "submit",
+    async function (event) {
+
+      event.preventDefault();
+
+      const button =
+        document.getElementById("createSubmit");
+
+      button.disabled = true;
+      button.textContent = "Inaunda...";
+
+      try {
+
+        const result = await callFunction({
+
+          action: "create",
+
+          full_name:
+            document.getElementById("full_name").value.trim(),
+
+          username:
+            document.getElementById("username").value.trim(),
+
+          position:
+            document.getElementById("position").value,
+
+          ministry_id:
+            document.getElementById("ministry_id").value.trim() || null,
+
+          phone_number:
+            document.getElementById("phone_number").value.trim() || null,
+
+          email:
+            document.getElementById("email").value.trim() || null,
+
+          programme:
+            document.getElementById("programme").value.trim() || null,
+
+          year_of_study:
+            document.getElementById("year_of_study").value.trim() || null,
+
+          biography:
+            document.getElementById("biography").value.trim() || null,
+
+          photo_url:
+            document.getElementById("photo_url").value.trim() || null,
+
+          public_visibility:
+            document.getElementById("public_visibility").checked,
+
+          active_status:
+            document.getElementById("active_status").checked
+        });
+
+
+        document.getElementById("temporaryPassword").textContent =
+          result.temporary_password || "—";
+
+        document
+          .getElementById("passwordResult")
+          .classList.remove("hidden");
+
+        showMessage(
+          "Akaunti ya " +
+          escapeHtml(result.username || "") +
+          " imeundwa."
+        );
+
+        await loadLeaders();
+
+      } catch (error) {
+
+        showMessage(error.message, "error");
+
+      } finally {
+
+        button.disabled = false;
+        button.textContent = "Unda Akaunti";
+      }
+    }
+  );
+
+
+  document.getElementById("leadersBody").addEventListener(
+    "click",
+    async function (event) {
+
+      const button =
+        event.target.closest("button[data-action]");
+
+      if (!button) return;
+
+      const action = button.dataset.action;
+      const profileId = button.dataset.id;
+
+      if (!profileId) return;
+
+
+      if (action === "password") {
+
+        if (!confirm(
+          "Unataka ku-reset password ya kiongozi huyu?"
+        )) return;
+
+        button.disabled = true;
+
+        try {
+
+          const result = await callFunction({
+            action: "reset_password",
+            profile_id: profileId
+          });
+
+          alert(
+            "Temporary password mpya:\n\n" +
+            result.temporary_password +
+            "\n\nMpe kiongozi password hii na amuru abadili baada ya kuingia."
+          );
+
+          await loadLeaders();
+
+        } catch (error) {
+
+          showMessage(error.message, "error");
+
+        } finally {
+
+          button.disabled = false;
+        }
+
+        return;
+      }
+
+
+      if (action === "deactivate") {
+
+        if (!confirm(
+          "Unataka kuzima akaunti ya kiongozi huyu?"
+        )) return;
+
+        button.disabled = true;
+
+        try {
+
+          await callFunction({
+            action: "deactivate",
+            profile_id: profileId
+          });
+
+          showMessage("Akaunti imezimwa.");
+
+          await loadLeaders();
+
+        } catch (error) {
+
+          showMessage(error.message, "error");
+
+        }
+
+        return;
+      }
+
+
+      if (action === "activate") {
+
+        if (!confirm(
+          "Unataka ku-activate akaunti hii?"
+        )) return;
+
+        button.disabled = true;
+
+        try {
+
+          await callFunction({
+            action: "activate",
+            profile_id: profileId
+          });
+
+          showMessage("Akaunti ime-activate.");
+
+          await loadLeaders();
+
+        } catch (error) {
+
+          showMessage(error.message, "error");
+
+        }
+
+        return;
+      }
+
+
+      if (action === "delete") {
+
+        if (!confirm(
+          "DIQQA!\n\n" +
+          "Hii itaondoa login ya kiongozi kabisa.\n\n" +
+          "Una uhakika?"
+        )) return;
+
+        button.disabled = true;
+
+        try {
+
+          await callFunction({
+            action: "delete",
+            profile_id: profileId
+          });
+
+          showMessage("Akaunti imefutwa.");
+
+          await loadLeaders();
+
+        } catch (error) {
+
+          showMessage(error.message, "error");
+
+        }
+
+        return;
+      }
+
+    }
+  );
+
+
+  await loadLeaders();
+
+})();
+</script>
+
+</body>
+</html>
