@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wanafunzi | RUCUSO</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      color: #172033;
+    }
+
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 240px;
+      background: #0b1f3a;
+      color: white;
+      padding: 22px 14px;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      font-size: 24px;
+      font-weight: 800;
+      padding: 0 10px 24px;
+    }
+
+    .nav a {
+      display: block;
+      color: #dbe7f5;
+      text-decoration: none;
+      padding: 12px 10px;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    .nav a:hover,
+    .nav a.active {
+      background: #17375f;
+      color: white;
+    }
+
+    .main {
+      flex: 1;
+      min-width: 0;
+      padding: 28px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .topbar h1 {
+      margin: 0 0 5px;
+      font-size: 28px;
+    }
+
+    .topbar p {
+      margin: 0;
+      color: #687386;
+    }
+
+    .user {
+      text-align: right;
+      color: #4d596b;
+      font-size: 14px;
+    }
+
+    .logout {
+      border: 0;
+      background: transparent;
+      color: #c62828;
+      cursor: pointer;
+      margin-top: 5px;
+      font-weight: 600;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.06);
+    }
+
+    .card small {
+      color: #687386;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .card strong {
+      font-size: 28px;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.06);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 18px;
+      border-bottom: 1px solid #e7ebf0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 19px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    input,
+    select {
+      border: 1px solid #ccd4df;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: #246bce;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .btn-primary {
+      background: #1261a0;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #edf2f7;
+      color: #26364a;
+    }
+
+    .btn-danger {
+      background: #feecec;
+      color: #b42318;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      min-width: 950px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 13px 15px;
+      border-bottom: 1px solid #edf0f4;
+      text-align: left;
+      font-size: 14px;
+      vertical-align: middle;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #596579;
+      font-size: 13px;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .status.active {
+      background: #e8f7ee;
+      color: #16834b;
+    }
+
+    .status.inactive {
+      background: #f1f3f5;
+      color: #697386;
+    }
+
+    .empty,
+    .loading,
+    .error {
+      padding: 30px;
+      text-align: center;
+      color: #687386;
+    }
+
+    .error {
+      color: #b42318;
+      background: #fff5f5;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 1000;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-card {
+      background: white;
+      width: min(760px, 100%);
+      max-height: 90vh;
+      overflow: auto;
+      border-radius: 14px;
+      padding: 22px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    }
+
+    .modal-card h2 {
+      margin-top: 0;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #455267;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .sidebar {
+        width: 205px;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .layout {
+        display: block;
+      }
+
+      .sidebar {
+        width: 100%;
+      }
+
+      .nav {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .main {
+        padding: 16px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .user {
+        text-align: left;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .field.full {
+        grid-column: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="brand">RUCUSO</div>
+
+    <nav class="nav">
+      <a href="/admin/dashboard/">Dashibodi</a>
+      <a href="/admin/students/" class="active">Wanafunzi</a>
+      <a href="/admin/leaders/" data-perm="__super_admin_only">Viongozi</a>
+      <a href="/admin/ministries/" data-perm="manage_ministries">Wizara</a>
+      <a href="/admin/feedback/" data-perm="view_feedback">Maoni &amp; Malalamiko</a>
+      <a href="/admin/services/" data-perm="manage_services">Huduma</a>
+      <a href="/admin/announcements/" data-perm="manage_announcements">Matangazo</a>
+      <a href="/admin/documents/" data-perm="manage_documents">Nyaraka</a>
+      <a href="/admin/reports/" data-perm="manage_reports">Ripoti</a>
+      <a href="/admin/ai/" data-perm="__super_admin_only">RUCUSO AI</a>
+      <a href="/admin/audit-logs/" data-perm="view_audit_logs">Audit Logs</a>
+      <a href="/admin/settings/" data-perm="__super_admin_only">Mipangilio</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <div class="topbar">
+      <div>
+        <h1>Wanafunzi</h1>
+        <p>Usimamizi wa taarifa za wanafunzi wa RUCUSO.</p>
+      </div>
+
+      <div class="user">
+        <div id="userName">RUCUSO Administrator</div>
+        <div id="userRole">super_admin</div>
+        <button class="logout" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+
+    <section class="cards">
+      <div class="card">
+        <small>Jumla ya Wanafunzi</small>
+        <strong id="studentCount">–</strong>
+      </div>
+
+      <div class="card">
+        <small>Wanafunzi Wanaoonekana</small>
+        <strong id="visibleCount">–</strong>
+      </div>
+
+      <div class="card">
+        <small>Status</small>
+        <strong style="font-size:18px;">Database Connected</strong>
+      </div>
+    </section>
+
+    <section class="panel">
+
+      <div class="panel-head">
+        <h2>Student Registry</h2>
+
+        <div class="actions">
+          <input
+            type="search"
+            id="searchInput"
+            placeholder="Tafuta registration, jina..."
+          >
+
+          <button class="btn-secondary" id="refreshBtn">
+            Refresh
+          </button>
+
+          <button class="btn-primary" id="addBtn">
+            + Ongeza Mwanafunzi
+          </button>
+        </div>
+      </div>
+
+      <div id="tableState" class="loading">
+        Inapakia wanafunzi...
+      </div>
+
+      <div class="table-wrap" id="tableWrap" style="display:none;">
+        <table>
+          <thead>
+            <tr>
+              <th>Registration</th>
+              <th>Jina Kamili</th>
+              <th>Programme</th>
+              <th>Year</th>
+              <th>Phone</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Vitendo</th>
+            </tr>
+          </thead>
+
+          <tbody id="studentsBody"></tbody>
+        </table>
+      </div>
+
+    </section>
+
+  </main>
+</div>
+
+
+<!-- ADD / EDIT MODAL -->
+
+<div class="modal" id="studentModal">
+  <div class="modal-card">
+
+    <h2 id="modalTitle">Ongeza Mwanafunzi</h2>
+
+    <form id="studentForm">
+
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Registration Number *</label>
+          <input id="registration_number" required>
+        </div>
+
+        <div class="field">
+          <label>First Name *</label>
+          <input id="first_name" required>
+        </div>
+
+        <div class="field">
+          <label>Middle Name</label>
+          <input id="middle_name">
+        </div>
+
+        <div class="field">
+          <label>Last Name *</label>
+          <input id="last_name" required>
+        </div>
+
+        <div class="field">
+          <label>Programme</label>
+          <input id="programme">
+        </div>
+
+        <div class="field">
+          <label>Faculty</label>
+          <input id="faculty">
+        </div>
+
+        <div class="field">
+          <label>Department</label>
+          <input id="department">
+        </div>
+
+        <div class="field">
+          <label>Year of Study</label>
+          <input id="year_of_study">
+        </div>
+
+        <div class="field">
+          <label>Academic Year</label>
+          <input id="academic_year" placeholder="2026/2027">
+        </div>
+
+        <div class="field">
+          <label>Phone Number</label>
+          <input id="phone_number">
+        </div>
+
+        <div class="field full">
+          <label>Email</label>
+          <input id="email" type="email">
+        </div>
+
+      </div>
+
+      <div id="formError" class="error" style="display:none;"></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="cancelBtn">
+          Cancel
+        </button>
+
+        <button type="submit" class="btn-primary" id="saveBtn">
+          Save Student
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase/config.js"></script>
+<script src="/supabase/supabase-client.js"></script>
+
+<script>
+(function () {
+
+  "use strict";
+
+  let students = [];
+  let editingId = null;
+
+  const $ = (id) => document.getElementById(id);
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function showState(message, type = "loading") {
+    $("tableState").className = type;
+    $("tableState").textContent = message;
+    $("tableState").style.display = "block";
+    $("tableWrap").style.display = "none";
+  }
+
+  function renderStudents(list) {
+
+    $("visibleCount").textContent = list.length;
+
+    if (!list.length) {
+      showState("Hakuna wanafunzi waliopatikana.", "empty");
+      return;
+    }
+
+    $("tableState").style.display = "none";
+    $("tableWrap").style.display = "block";
+
+    $("studentsBody").innerHTML = list.map(student => {
+
+      const fullName =
+        student.full_name ||
+        [
+          student.first_name,
+          student.middle_name,
+          student.last_name
+        ].filter(Boolean).join(" ");
+
+      const status = student.student_status || "active";
+      const isActive = status.toLowerCase() === "active";
+
+      return `
+        <tr>
+          <td><strong>${escapeHtml(student.registration_number)}</strong></td>
+
+          <td>${escapeHtml(fullName)}</td>
+
+          <td>${escapeHtml(student.programme || "—")}</td>
+
+          <td>${escapeHtml(student.year_of_study || "—")}</td>
+
+          <td>${escapeHtml(student.phone_number || "—")}</td>
+
+          <td>${escapeHtml(student.email || "—")}</td>
+
+          <td>
+            <span class="status ${isActive ? "active" : "inactive"}">
+              ${escapeHtml(status)}
+            </span>
+          </td>
+
+          <td>
+            <button
+              class="btn-secondary"
+              onclick="window.editStudent('${student.id}')">
+              Edit
+            </button>
+          </td>
+        </tr>
+      `;
+
+    }).join("");
+  }
+
+
+  async function loadStudents() {
+
+    if (!window.RucusoAPI) {
+      showState(
+        "RucusoAPI haikupatikana. Hakikisha config.js na supabase-client.js zime-load.",
+        "error"
+      );
+      return;
+    }
+
+    showState("Inapakia wanafunzi...", "loading");
+
+    try {
+
+      const [rows, count] = await Promise.all([
+        window.RucusoAPI.listStudents(),
+        window.RucusoAPI.studentCount()
+      ]);
+
+      students = rows || [];
+
+      $("studentCount").textContent = count;
+      renderStudents(students);
+
+    } catch (error) {
+
+      console.error(error);
+
+      showState(
+        error?.message || "Imeshindikana kupakia wanafunzi.",
+        "error"
+      );
+
+      $("studentCount").textContent = "—";
+      $("visibleCount").textContent = "—";
+    }
+  }
+
+
+  function openAddModal() {
+
+    editingId = null;
+
+    $("modalTitle").textContent = "Ongeza Mwanafunzi";
+    $("saveBtn").textContent = "Save Student";
+
+    $("studentForm").reset();
+    $("formError").style.display = "none";
+
+    $("studentModal").classList.add("show");
+  }
+
+
+  window.editStudent = function (id) {
+
+    const student = students.find(s => s.id === id);
+
+    if (!student) return;
+
+    editingId = id;
+
+    $("modalTitle").textContent = "Hariri Mwanafunzi";
+    $("saveBtn").textContent = "Update Student";
+
+    $("registration_number").value = student.registration_number || "";
+    $("first_name").value = student.first_name || "";
+    $("middle_name").value = student.middle_name || "";
+    $("last_name").value = student.last_name || "";
+    $("programme").value = student.programme || "";
+    $("faculty").value = student.faculty || "";
+    $("department").value = student.department || "";
+    $("year_of_study").value = student.year_of_study || "";
+    $("academic_year").value = student.academic_year || "";
+    $("phone_number").value = student.phone_number || "";
+    $("email").value = student.email || "";
+
+    $("formError").style.display = "none";
+
+    $("studentModal").classList.add("show");
+  };
+
+
+  function closeModal() {
+    $("studentModal").classList.remove("show");
+  }
+
+
+  $("studentForm").addEventListener("submit", async function (event) {
+
+    event.preventDefault();
+
+    $("formError").style.display = "none";
+    $("saveBtn").disabled = true;
+    $("saveBtn").textContent = "Inahifadhi...";
+
+    const row = {
+      registration_number: $("registration_number").value.trim(),
+      first_name: $("first_name").value.trim(),
+      middle_name: $("middle_name").value.trim() || null,
+      last_name: $("last_name").value.trim(),
+      programme: $("programme").value.trim() || null,
+      faculty: $("faculty").value.trim() || null,
+      department: $("department").value.trim() || null,
+      year_of_study: $("year_of_study").value.trim() || null,
+      academic_year: $("academic_year").value.trim() || null,
+      phone_number: $("phone_number").value.trim() || null,
+      email: $("email").value.trim() || null
+    };
+
+    try {
+
+      if (editingId) {
+
+        await window.RucusoAPI.upsertStudent({
+          ...row,
+          id: editingId
+        });
+
+      } else {
+
+        await window.RucusoAPI.upsertStudent(row);
+
+      }
+
+      closeModal();
+      await loadStudents();
+
+    } catch (error) {
+
+      console.error(error);
+
+      $("formError").textContent =
+        error?.message || "Imeshindikana kuhifadhi mwanafunzi.";
+
+      $("formError").style.display = "block";
+
+    } finally {
+
+      $("saveBtn").disabled = false;
+      $("saveBtn").textContent =
+        editingId ? "Update Student" : "Save Student";
+    }
+
+  });
+
+
+  $("searchInput").addEventListener("input", function () {
+
+    const q = this.value.trim().toLowerCase();
+
+    if (!q) {
+      renderStudents(students);
+      return;
+    }
+
+    const filtered = students.filter(student => {
+
+      const text = [
+        student.registration_number,
+        student.full_name,
+        student.first_name,
+        student.middle_name,
+        student.last_name,
+        student.programme,
+        student.year_of_study,
+        student.phone_number,
+        student.email
+      ].join(" ").toLowerCase();
+
+      return text.includes(q);
+    });
+
+    renderStudents(filtered);
+  });
+
+
+  $("addBtn").addEventListener("click", openAddModal);
+
+  $("cancelBtn").addEventListener("click", closeModal);
+
+  $("refreshBtn").addEventListener("click", loadStudents);
+
+
+  $("studentModal").addEventListener("click", function (event) {
+
+    if (event.target === $("studentModal")) {
+      closeModal();
+    }
+
+  });
+
+
+  $("logoutBtn").addEventListener("click", async function () {
+
+    try {
+      await window.RucusoAPI.adminLogout();
+    } finally {
+      window.location.href = "/admin/login/";
+    }
+
+  });
+
+
+  async function init() {
+
+    try {
+
+      const session = await window.RucusoAPI.currentSession();
+
+      if (!session || !session.user) {
+        window.location.href = "/admin/login/";
+        return;
+      }
+
+      if (session.profile) {
+
+        $("userName").textContent =
+          session.profile.full_name || "RUCUSO Administrator";
+
+        $("userRole").textContent =
+          session.profile.role || "";
+      }
+
+      await loadStudents();
+
+    } catch (error) {
+
+      console.error(error);
+
+      window.location.href = "/admin/login/";
+    }
+  }
+
+
+  init();
+
+})();
+</script>
+
+</body>
+</html>
