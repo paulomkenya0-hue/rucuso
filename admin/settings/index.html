@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Msimamizi | RUCUSO</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      color: #172033;
+    }
+
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 240px;
+      background: #0b1f3a;
+      color: white;
+      padding: 22px 14px;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      font-size: 24px;
+      font-weight: 800;
+      padding: 0 10px 24px;
+    }
+
+    .nav a {
+      display: block;
+      color: #dbe7f5;
+      text-decoration: none;
+      padding: 12px 10px;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    .nav a:hover,
+    .nav a.active {
+      background: #17375f;
+      color: white;
+    }
+
+    .main {
+      flex: 1;
+      min-width: 0;
+      padding: 28px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 15px;
+      margin-bottom: 24px;
+    }
+
+    .topbar h1 {
+      margin: 0 0 5px;
+      font-size: 28px;
+    }
+
+    .topbar p {
+      margin: 0;
+      color: #687386;
+    }
+
+    .user {
+      text-align: right;
+      color: #4d596b;
+      font-size: 14px;
+    }
+
+    .logout {
+      border: 0;
+      background: transparent;
+      color: #c62828;
+      cursor: pointer;
+      margin-top: 5px;
+      font-weight: 600;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.06);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 18px 20px;
+      border-bottom: 1px solid #e7ebf0;
+    }
+
+    .panel-head h2 {
+      margin: 0 0 5px;
+      font-size: 18px;
+    }
+
+    .panel-head p {
+      margin: 0;
+      color: #687386;
+      font-size: 13px;
+    }
+
+    .panel-body {
+      padding: 20px;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #39465a;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid #ccd4df;
+      border-radius: 8px;
+      padding: 11px 12px;
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: #246bce;
+    }
+
+    .actions {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .btn-primary {
+      background: #1261a0;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #edf2f7;
+      color: #26364a;
+    }
+
+    .btn-danger {
+      background: #feecec;
+      color: #b42318;
+    }
+
+    .btn-primary:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    .notice {
+      display: none;
+      padding: 12px 14px;
+      border-radius: 8px;
+      margin-bottom: 18px;
+      font-size: 14px;
+    }
+
+    .notice.show {
+      display: block;
+    }
+
+    .notice.success {
+      background: #e8f7ee;
+      color: #16834b;
+    }
+
+    .notice.error {
+      background: #fff0f0;
+      color: #b42318;
+    }
+
+    .profile-box {
+      background: #f8fafc;
+      border: 1px solid #e7ebf0;
+      border-radius: 10px;
+      padding: 15px;
+    }
+
+    .profile-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+      padding: 9px 0;
+      border-bottom: 1px solid #e7ebf0;
+      font-size: 14px;
+    }
+
+    .profile-row:last-child {
+      border-bottom: 0;
+    }
+
+    .profile-label {
+      color: #687386;
+    }
+
+    .profile-value {
+      font-weight: 700;
+      text-align: right;
+      word-break: break-word;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #e8f7ee;
+      color: #16834b;
+    }
+
+    .setting-help {
+      margin-top: 6px;
+      color: #8a94a6;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .loading {
+      color: #687386;
+      padding: 10px 0;
+    }
+
+    .danger-zone {
+      border: 1px solid #ffd4d4;
+      background: #fffafa;
+    }
+
+    .danger-zone .panel-head {
+      border-bottom-color: #ffdede;
+    }
+
+    .system-list {
+      margin: 0;
+      padding-left: 20px;
+      color: #596579;
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 650px) {
+      .layout {
+        display: block;
+      }
+
+      .sidebar {
+        width: 100%;
+        padding: 12px;
+      }
+
+      .brand {
+        padding-bottom: 12px;
+      }
+
+      .nav {
+        display: flex;
+        overflow-x: auto;
+        gap: 5px;
+      }
+
+      .nav a {
+        white-space: nowrap;
+      }
+
+      .main {
+        padding: 16px;
+      }
+
+      .user {
+        display: none;
+      }
+
+      .topbar {
+        margin-bottom: 18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="brand">RUCUSO</div>
+
+    <nav class="nav">
+      <a href="../dashboard/index.html">Dashibodi</a>
+      <a href="../students/index.html">Wanafunzi</a>
+      <a href="../leaders/index.html">Viongozi</a>
+      <a href="../ministries/index.html">Wizara</a>
+      <a href="../feedback/index.html">Maoni & Malalamiko</a>
+      <a href="../services/index.html">Huduma</a>
+      <a href="../announcements/index.html">Matangazo</a>
+      <a href="../documents/index.html">Nyaraka</a>
+      <a href="../reports/index.html">Ripoti</a>
+      <a href="../ai/index.html">RUCUSO AI</a>
+      <a href="./index.html" class="active">Msimamizi</a>
+      <a href="../audit/index.html">Audit Logs</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <div class="topbar">
+      <div>
+        <h1>Msimamizi</h1>
+        <p>Usimamizi wa taarifa na mipangilio ya mfumo wa RUCUSO.</p>
+      </div>
+
+      <div class="user">
+        <div id="userName">RUCUSO Administrator</div>
+        <div id="userRole">super_admin</div>
+        <button class="logout" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+
+    <div id="notice" class="notice"></div>
+
+    <div class="grid">
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Wasifu wa Msimamizi</h2>
+          <p>Taarifa za akaunti iliyopo kwenye mfumo.</p>
+        </div>
+
+        <div class="panel-body">
+
+          <div id="profileLoading" class="loading">
+            Inapakia taarifa...
+          </div>
+
+          <div id="profileBox" class="profile-box" style="display:none;">
+
+            <div class="profile-row">
+              <span class="profile-label">Jina</span>
+              <span class="profile-value" id="profileName">-</span>
+            </div>
+
+            <div class="profile-row">
+              <span class="profile-label">Barua pepe</span>
+              <span class="profile-value" id="profileEmail">-</span>
+            </div>
+
+            <div class="profile-row">
+              <span class="profile-label">Nafasi</span>
+              <span class="profile-value" id="profileRole">-</span>
+            </div>
+
+            <div class="profile-row">
+              <span class="profile-label">Hali</span>
+              <span class="profile-value">
+                <span class="badge" id="profileStatus">Active</span>
+              </span>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Mwaka wa Masomo</h2>
+          <p>Badilisha mwaka wa masomo unaoonyeshwa kwenye mfumo.</p>
+        </div>
+
+        <div class="panel-body">
+
+          <div class="field">
+            <label for="academicYear">Mwaka wa Masomo</label>
+            <input
+              id="academicYear"
+              type="text"
+              placeholder="Mfano: 2026/2027"
+              maxlength="20"
+            >
+            <div class="setting-help">
+              Thamani hii hutumiwa kama mwaka wa masomo wa mfumo.
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn-primary" id="saveAcademicYear">
+              Hifadhi
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Mawasiliano ya RUCUSO</h2>
+          <p>Weka taarifa za mawasiliano zinazoweza kuonyeshwa kwa watumiaji.</p>
+        </div>
+
+        <div class="panel-body">
+
+          <div class="field">
+            <label for="contactPhone">Namba ya Simu</label>
+            <input
+              id="contactPhone"
+              type="text"
+              placeholder="+255..."
+              maxlength="50"
+            >
+          </div>
+
+          <div class="field">
+            <label for="contactEmail">Barua Pepe</label>
+            <input
+              id="contactEmail"
+              type="email"
+              placeholder="rucuso@example.com"
+              maxlength="150"
+            >
+          </div>
+
+          <div class="actions">
+            <button class="btn-primary" id="saveContact">
+              Hifadhi Mawasiliano
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Muhtasari wa Mfumo</h2>
+          <p>Vipengele vinavyopatikana kwenye RUCUSO.</p>
+        </div>
+
+        <div class="panel-body">
+
+          <ul class="system-list">
+            <li>Usimamizi wa wanafunzi</li>
+            <li>Usimamizi wa viongozi</li>
+            <li>Usimamizi wa wizara</li>
+            <li>Maoni na malalamiko</li>
+            <li>Huduma za wanafunzi</li>
+            <li>Matangazo</li>
+            <li>Nyaraka</li>
+            <li>Ripoti</li>
+            <li>RUCUSO AI</li>
+            <li>Audit Logs</li>
+          </ul>
+
+        </div>
+      </section>
+
+
+      <section class="panel danger-zone">
+        <div class="panel-head">
+          <h2>Eneo la Usalama</h2>
+          <p>Vitendo vinavyohitaji tahadhari kabla ya kuendelea.</p>
+        </div>
+
+        <div class="panel-body">
+
+          <p style="margin-top:0;color:#687386;font-size:13px;line-height:1.55;">
+            Logout itaondoa session ya sasa ya Supabase kwenye browser hii.
+            Haitafuta akaunti wala taarifa za mfumo.
+          </p>
+
+          <div class="actions">
+            <button class="btn-danger" id="logoutDanger">
+              Toka kwenye Akaunti
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../js/config.js"></script>
+<script src="../../supabase/supabase-client.js"></script>
+
+<script>
+(function () {
+  "use strict";
+
+  const api = window.RucusoAPI;
+
+  const notice = document.getElementById("notice");
+
+  const userName = document.getElementById("userName");
+  const userRole = document.getElementById("userRole");
+
+  const profileLoading = document.getElementById("profileLoading");
+  const profileBox = document.getElementById("profileBox");
+
+  const profileName = document.getElementById("profileName");
+  const profileEmail = document.getElementById("profileEmail");
+  const profileRole = document.getElementById("profileRole");
+  const profileStatus = document.getElementById("profileStatus");
+
+  const academicYear = document.getElementById("academicYear");
+  const contactPhone = document.getElementById("contactPhone");
+  const contactEmail = document.getElementById("contactEmail");
+
+  const saveAcademicYear = document.getElementById("saveAcademicYear");
+  const saveContact = document.getElementById("saveContact");
+
+  const logoutBtn = document.getElementById("logoutBtn");
+  const logoutDanger = document.getElementById("logoutDanger");
+
+  if (!api) {
+    showNotice(
+      "RUCUSO API haipatikani. Hakikisha config.js na supabase-client.js zimepakiwa.",
+      "error"
+    );
+    return;
+  }
+
+  function showNotice(message, type) {
+    notice.textContent = message;
+    notice.className = "notice show " + (type || "success");
+
+    clearTimeout(showNotice.timer);
+
+    showNotice.timer = setTimeout(function () {
+      notice.className = "notice";
+    }, 5000);
+  }
+
+  function setButtonLoading(button, loading, loadingText, normalText) {
+    button.disabled = loading;
+    button.textContent = loading ? loadingText : normalText;
+  }
+
+  async function loadPage() {
+    try {
+      const session = await api.currentSession();
+
+      if (!session || !session.user) {
+        window.location.href = "../login/index.html";
+        return;
+      }
+
+      const profile = session.profile;
+
+      if (!profile || !profile.active) {
+        await api.adminLogout();
+        window.location.href = "../login/index.html";
+        return;
+      }
+
+      userName.textContent =
+        profile.full_name || "RUCUSO Administrator";
+
+      userRole.textContent =
+        profile.role || "staff";
+
+      profileName.textContent =
+        profile.full_name || "-";
+
+      profileEmail.textContent =
+        session.user.email || "-";
+
+      profileRole.textContent =
+        profile.role || "-";
+
+      profileStatus.textContent =
+        profile.active ? "Active" : "Inactive";
+
+      profileLoading.style.display = "none";
+      profileBox.style.display = "block";
+
+      await loadSettings();
+
+    } catch (err) {
+      console.error(err);
+
+      profileLoading.textContent =
+        err && err.message
+          ? err.message
+          : "Imeshindikana kupakia taarifa.";
+    }
+  }
+
+  async function loadSettings() {
+    try {
+      const settings = await api.getSettings();
+
+      academicYear.value =
+        settings.academic_year || "";
+
+      contactPhone.value =
+        settings.contact_phone || "";
+
+      contactEmail.value =
+        settings.contact_email || "";
+
+    } catch (err) {
+      console.error(err);
+
+      showNotice(
+        err && err.message
+          ? err.message
+          : "Imeshindikana kupakia mipangilio.",
+        "error"
+      );
+    }
+  }
+
+  async function saveSetting(key, value, button, loadingText, normalText) {
+    const cleanValue = String(value || "").trim();
+
+    if (!cleanValue) {
+      showNotice("Weka taarifa kwanza.", "error");
+      return;
+    }
+
+    setButtonLoading(button, true, loadingText, normalText);
+
+    try {
+      await api.setSetting(key, cleanValue);
+
+      showNotice(
+        "Taarifa imehifadhiwa kikamilifu.",
+        "success"
+      );
+
+    } catch (err) {
+      console.error(err);
+
+      showNotice(
+        err && err.message
+          ? err.message
+          : "Imeshindikana kuhifadhi taarifa.",
+        "error"
+      );
+
+    } finally {
+      setButtonLoading(button, false, loadingText, normalText);
+    }
+  }
+
+  saveAcademicYear.addEventListener("click", function () {
+    saveSetting(
+      "academic_year",
+      academicYear.value,
+      saveAcademicYear,
+      "Inahifadhi...",
+      "Hifadhi"
+    );
+  });
+
+  saveContact.addEventListener("click", async function () {
+
+    const phone = contactPhone.value.trim();
+    const email = contactEmail.value.trim();
+
+    if (!phone && !email) {
+      showNotice(
+        "Weka namba ya simu au barua pepe.",
+        "error"
+      );
+      return;
+    }
+
+    setButtonLoading(
+      saveContact,
+      true,
+      "Inahifadhi...",
+      "Hifadhi Mawasiliano"
+    );
+
+    try {
+
+      if (phone) {
+        await api.setSetting(
+          "contact_phone",
+          phone
+        );
+      } else {
+        await api.setSetting(
+          "contact_phone",
+          ""
+        );
+      }
+
+      if (email) {
+        await api.setSetting(
+          "contact_email",
+          email
+        );
+      } else {
+        await api.setSetting(
+          "contact_email",
+          ""
+        );
+      }
+
+      showNotice(
+        "Mawasiliano yamehifadhiwa kikamilifu.",
+        "success"
+      );
+
+    } catch (err) {
+      console.error(err);
+
+      showNotice(
+        err && err.message
+          ? err.message
+          : "Imeshindikana kuhifadhi mawasiliano.",
+        "error"
+      );
+
+    } finally {
+
+      setButtonLoading(
+        saveContact,
+        false,
+        "Inahifadhi...",
+        "Hifadhi Mawasiliano"
+      );
+
+    }
+  });
+
+  async function logout() {
+    try {
+      await api.adminLogout();
+    } catch (err) {
+      console.error(err);
+    }
+
+    window.location.href = "../login/index.html";
+  }
+
+  logoutBtn.addEventListener("click", logout);
+  logoutDanger.addEventListener("click", logout);
+
+  loadPage();
+
+})();
+</script>
+
+</body>
+</html>

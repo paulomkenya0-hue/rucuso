@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RUCUSO AI | RUCUSO</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      color: #172033;
+    }
+
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 240px;
+      background: #0b1f3a;
+      color: white;
+      padding: 22px 14px;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      font-size: 24px;
+      font-weight: 800;
+      padding: 0 10px 24px;
+    }
+
+    .nav a {
+      display: block;
+      color: #dbe7f5;
+      text-decoration: none;
+      padding: 12px 10px;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    .nav a:hover,
+    .nav a.active {
+      background: #17375f;
+      color: white;
+    }
+
+    .main {
+      flex: 1;
+      min-width: 0;
+      padding: 28px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 22px;
+    }
+
+    .topbar h1 {
+      margin: 0 0 5px;
+      font-size: 28px;
+    }
+
+    .topbar p {
+      margin: 0;
+      color: #687386;
+    }
+
+    .user {
+      text-align: right;
+      color: #4d596b;
+      font-size: 14px;
+    }
+
+    .logout {
+      border: 0;
+      background: transparent;
+      color: #c62828;
+      cursor: pointer;
+      margin-top: 5px;
+      font-weight: 600;
+    }
+
+    .ai-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.06);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 18px 20px;
+      border-bottom: 1px solid #e7ebf0;
+    }
+
+    .panel-head h2 {
+      margin: 0 0 5px;
+      font-size: 19px;
+    }
+
+    .panel-head p {
+      margin: 0;
+      color: #687386;
+      font-size: 13px;
+    }
+
+    .chat {
+      height: calc(100vh - 250px);
+      min-height: 500px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 22px;
+      background: #fbfcfe;
+    }
+
+    .message {
+      display: flex;
+      margin-bottom: 16px;
+    }
+
+    .message.user {
+      justify-content: flex-end;
+    }
+
+    .bubble {
+      max-width: 78%;
+      padding: 12px 15px;
+      border-radius: 13px;
+      line-height: 1.5;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+
+    .message.assistant .bubble {
+      background: white;
+      border: 1px solid #e4e9f0;
+      color: #26364a;
+    }
+
+    .message.user .bubble {
+      background: #1261a0;
+      color: white;
+    }
+
+    .message.error .bubble {
+      background: #fff4f4;
+      color: #b42318;
+      border: 1px solid #ffd5d5;
+    }
+
+    .composer {
+      padding: 15px;
+      border-top: 1px solid #e7ebf0;
+      background: white;
+    }
+
+    .composer-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    #question {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid #ccd4df;
+      border-radius: 9px;
+      padding: 12px;
+      font-size: 14px;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+    }
+
+    #question:focus {
+      border-color: #246bce;
+    }
+
+    #sendBtn {
+      background: #1261a0;
+      color: white;
+      min-width: 90px;
+    }
+
+    #sendBtn:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    .side-card {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.06);
+      margin-bottom: 18px;
+    }
+
+    .side-card h3 {
+      margin: 0 0 12px;
+      font-size: 17px;
+    }
+
+    .side-card p {
+      color: #687386;
+      line-height: 1.55;
+      font-size: 13px;
+      margin: 0 0 12px;
+    }
+
+    .quick-question {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: #f1f5f9;
+      color: #26364a;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .quick-question:hover {
+      background: #e5edf6;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      background: #e8f7ee;
+      color: #16834b;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .typing {
+      color: #687386;
+      font-size: 13px;
+      font-style: italic;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    .typing.show {
+      display: block;
+    }
+
+    .meta {
+      padding: 8px 22px;
+      color: #8a94a6;
+      font-size: 11px;
+      border-top: 1px solid #eef1f5;
+      background: white;
+    }
+
+    @media (max-width: 900px) {
+      .sidebar {
+        width: 200px;
+      }
+
+      .ai-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .chat {
+        height: 650px;
+      }
+    }
+
+    @media (max-width: 650px) {
+      .layout {
+        display: block;
+      }
+
+      .sidebar {
+        width: 100%;
+        padding: 12px;
+      }
+
+      .brand {
+        padding-bottom: 12px;
+      }
+
+      .nav {
+        display: flex;
+        overflow-x: auto;
+        gap: 5px;
+      }
+
+      .nav a {
+        white-space: nowrap;
+      }
+
+      .main {
+        padding: 16px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+      }
+
+      .user {
+        display: none;
+      }
+
+      .bubble {
+        max-width: 90%;
+      }
+
+      .composer-row {
+        flex-direction: column;
+      }
+
+      #sendBtn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="brand">RUCUSO</div>
+
+    <nav class="nav">
+      <a href="../dashboard/index.html">Dashibodi</a>
+      <a href="../students/index.html">Wanafunzi</a>
+      <a href="../leaders/index.html">Viongozi</a>
+      <a href="../ministries/index.html">Wizara</a>
+      <a href="../feedback/index.html">Maoni & Malalamiko</a>
+      <a href="../services/index.html">Huduma</a>
+      <a href="../announcements/index.html">Matangazo</a>
+      <a href="../documents/index.html">Nyaraka</a>
+      <a href="../reports/index.html">Ripoti</a>
+      <a href="./index.html" class="active">RUCUSO AI</a>
+      <a href="../settings/index.html">Mipangilio</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <div class="topbar">
+      <div>
+        <h1>RUCUSO AI</h1>
+        <p>Msaidizi wa akili wa mfumo wa RUCUSO.</p>
+      </div>
+
+      <div class="user">
+        <div id="userName">RUCUSO Administrator</div>
+        <div id="userRole">Msimamizi</div>
+        <button class="logout" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+
+    <div class="ai-layout">
+
+      <section class="panel chat">
+
+        <div class="panel-head">
+          <h2>Uliza RUCUSO AI</h2>
+          <p>Uliza kuhusu wanafunzi, wizara, huduma, matangazo, viongozi au takwimu za mfumo.</p>
+        </div>
+
+        <div class="messages" id="messages">
+
+          <div class="message assistant">
+            <div class="bubble">
+              Karibu kwenye RUCUSO AI. Naweza kukusaidia kuelewa taarifa na huduma za mfumo. Uliza swali lako hapa.
+            </div>
+          </div>
+
+        </div>
+
+        <div class="typing" id="typing">RUCUSO AI inaandika...</div>
+
+        <div class="composer">
+          <div class="composer-row">
+            <textarea
+              id="question"
+              rows="2"
+              maxlength="600"
+              placeholder="Andika swali lako hapa..."
+            ></textarea>
+
+            <button id="sendBtn">Tuma</button>
+          </div>
+        </div>
+
+        <div class="meta" id="meta">
+          RUCUSO AI
+        </div>
+
+      </section>
+
+      <aside>
+
+        <div class="side-card">
+          <h3>Hali ya AI</h3>
+          <span class="status" id="aiStatus">Inakagua...</span>
+        </div>
+
+        <div class="side-card">
+          <h3>Maswali ya haraka</h3>
+
+          <button
+            class="quick-question"
+            data-question="Niambie hali ya mfumo kwa sasa."
+          >
+            Hali ya mfumo ikoje?
+          </button>
+
+          <button
+            class="quick-question"
+            data-question="Ni huduma zipi za wanafunzi zinazopatikana?"
+          >
+            Huduma zilizopo
+          </button>
+
+          <button
+            class="quick-question"
+            data-question="Ni wizara zipi zipo kwenye mfumo?"
+          >
+            Wizara zilizopo
+          </button>
+
+          <button
+            class="quick-question"
+            data-question="Niambie viongozi waliopo."
+          >
+            Viongozi
+          </button>
+
+          <button
+            class="quick-question"
+            data-question="Niambie takwimu za maoni na malalamiko."
+          >
+            Takwimu za maoni
+          </button>
+        </div>
+
+        <div class="side-card">
+          <h3>Usalama</h3>
+          <p>
+            RUCUSO AI haitumii service role key kwenye browser.
+            Taarifa zinazotumwa kwa AI huamuliwa upande wa server kulingana
+            na role ya mtumiaji.
+          </p>
+        </div>
+
+      </aside>
+
+    </div>
+
+  </main>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../js/config.js"></script>
+<script src="../../supabase/supabase-client.js"></script>
+
+<script>
+(function () {
+  "use strict";
+
+  const api = window.RucusoAPI;
+
+  if (!api) {
+    document.getElementById("aiStatus").textContent = "API haipatikani";
+    document.getElementById("aiStatus").style.background = "#fff0f0";
+    document.getElementById("aiStatus").style.color = "#b42318";
+    return;
+  }
+
+  const messages = document.getElementById("messages");
+  const question = document.getElementById("question");
+  const sendBtn = document.getElementById("sendBtn");
+  const typing = document.getElementById("typing");
+  const meta = document.getElementById("meta");
+  const aiStatus = document.getElementById("aiStatus");
+  const userName = document.getElementById("userName");
+  const userRole = document.getElementById("userRole");
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  let history = [];
+  let sending = false;
+
+  function addMessage(role, text, error) {
+    const wrapper = document.createElement("div");
+    wrapper.className =
+      "message " +
+      (role === "user" ? "user" : "assistant") +
+      (error ? " error" : "");
+
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.textContent = text;
+
+    wrapper.appendChild(bubble);
+    messages.appendChild(wrapper);
+
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function setSending(value) {
+    sending = value;
+    sendBtn.disabled = value;
+    question.disabled = value;
+    typing.classList.toggle("show", value);
+
+    if (value) {
+      sendBtn.textContent = "Inatuma...";
+    } else {
+      sendBtn.textContent = "Tuma";
+      question.disabled = false;
+      question.focus();
+    }
+  }
+
+  async function loadSession() {
+    try {
+      const session = await api.currentSession();
+
+      if (!session || !session.user) {
+        window.location.href = "../login/index.html";
+        return;
+      }
+
+      if (session.profile) {
+        userName.textContent =
+          session.profile.full_name || "RUCUSO Administrator";
+
+        userRole.textContent =
+          session.profile.role || "Msimamizi";
+      }
+
+      aiStatus.textContent = "Tayari";
+    } catch (err) {
+      console.error(err);
+      aiStatus.textContent = "Haipatikani";
+      aiStatus.style.background = "#fff0f0";
+      aiStatus.style.color = "#b42318";
+    }
+  }
+
+  async function sendQuestion(text) {
+    const value = String(text || "").trim();
+
+    if (!value || sending) return;
+
+    addMessage("user", value);
+
+    question.value = "";
+    setSending(true);
+
+    const previousHistory = history.slice(-6);
+
+    try {
+      const result = await api.askAI(
+        value,
+        previousHistory,
+        "dashboard"
+      );
+
+      const answer =
+        result && result.answer
+          ? result.answer
+          : "RUCUSO AI haijarudisha jibu.";
+
+      addMessage("assistant", answer);
+
+      history.push({
+        role: "user",
+        content: value
+      });
+
+      history.push({
+        role: "assistant",
+        content: answer
+      });
+
+      history = history.slice(-6);
+
+      if (result) {
+        const facts =
+          typeof result.facts_used === "number"
+            ? result.facts_used
+            : null;
+
+        const latency =
+          typeof result.latency_ms === "number"
+            ? Math.round(result.latency_ms)
+            : null;
+
+        meta.textContent =
+          "RUCUSO AI" +
+          (facts !== null ? " • Taarifa zilizotumika: " + facts : "") +
+          (latency !== null ? " • " + latency + " ms" : "");
+      }
+
+    } catch (err) {
+      console.error(err);
+
+      const message =
+        err && err.message
+          ? err.message
+          : "RUCUSO AI haipatikani kwa sasa. Tafadhali jaribu tena.";
+
+      addMessage("assistant", message, true);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  sendBtn.addEventListener("click", function () {
+    sendQuestion(question.value);
+  });
+
+  question.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      sendQuestion(question.value);
+    }
+  });
+
+  document.querySelectorAll(".quick-question").forEach(function (button) {
+    button.addEventListener("click", function () {
+      sendQuestion(button.dataset.question || "");
+    });
+  });
+
+  logoutBtn.addEventListener("click", async function () {
+    try {
+      await api.adminLogout();
+    } catch (err) {
+      console.error(err);
+    }
+
+    window.location.href = "../login/index.html";
+  });
+
+  loadSession();
+
+})();
+</script>
+
+</body>
+</html>

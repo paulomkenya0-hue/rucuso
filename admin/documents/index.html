@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nyaraka | RUCUSO</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      color: #172033;
+    }
+
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 240px;
+      background: #0b1f3a;
+      color: white;
+      padding: 22px 14px;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      font-size: 24px;
+      font-weight: 800;
+      padding: 0 10px 24px;
+    }
+
+    .brand small {
+      display: block;
+      font-size: 11px;
+      font-weight: 400;
+      color: #9fb4ce;
+      margin-top: 4px;
+    }
+
+    .nav a {
+      display: block;
+      color: #dbe7f5;
+      text-decoration: none;
+      padding: 12px 10px;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    .nav a:hover,
+    .nav a.active {
+      background: #17375f;
+      color: white;
+    }
+
+    .main {
+      flex: 1;
+      min-width: 0;
+      padding: 28px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .topbar h1 {
+      margin: 0 0 5px;
+      font-size: 28px;
+    }
+
+    .topbar p {
+      margin: 0;
+      color: #687386;
+    }
+
+    .user {
+      text-align: right;
+      color: #4d596b;
+      font-size: 14px;
+    }
+
+    .logout {
+      border: 0;
+      background: transparent;
+      color: #c62828;
+      cursor: pointer;
+      margin-top: 5px;
+      font-weight: 600;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.06);
+    }
+
+    .card small {
+      color: #687386;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .card strong {
+      font-size: 28px;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.06);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .panel-head {
+      padding: 18px;
+      border-bottom: 1px solid #e7ebf0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 19px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    input,
+    select,
+    textarea {
+      border: 1px solid #ccd4df;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+      background: white;
+      width: 100%;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #246bce;
+      box-shadow: 0 0 0 2px rgba(36,107,206,.08);
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: #1261a0;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #0d548e;
+    }
+
+    .btn-secondary {
+      background: #edf2f7;
+      color: #26364a;
+    }
+
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+
+    .btn-danger {
+      background: #feecec;
+      color: #b42318;
+    }
+
+    .btn-danger:hover {
+      background: #fbdada;
+    }
+
+    .btn-view {
+      background: #e9f2ff;
+      color: #125aa0;
+    }
+
+    .btn-download {
+      background: #eaf8f0;
+      color: #18794e;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 1fr 220px;
+      gap: 10px;
+      width: min(600px, 100%);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      min-width: 850px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 13px 15px;
+      border-bottom: 1px solid #edf0f4;
+      text-align: left;
+      font-size: 14px;
+      vertical-align: middle;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #596579;
+      font-size: 13px;
+    }
+
+    tr:hover td {
+      background: #fbfcfe;
+    }
+
+    .doc-title {
+      font-weight: 700;
+      color: #172033;
+    }
+
+    .doc-file {
+      color: #687386;
+      font-size: 12px;
+      margin-top: 4px;
+      word-break: break-word;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #edf2f7;
+      color: #526174;
+    }
+
+    .badge.pdf {
+      background: #fff0f0;
+      color: #b42318;
+    }
+
+    .badge.doc {
+      background: #eaf2ff;
+      color: #175ca8;
+    }
+
+    .badge.image {
+      background: #f2edff;
+      color: #6941c6;
+    }
+
+    .badge.other {
+      background: #f2f4f7;
+      color: #475467;
+    }
+
+    .empty,
+    .loading,
+    .error {
+      padding: 35px;
+      text-align: center;
+      color: #687386;
+    }
+
+    .error {
+      color: #b42318;
+      background: #fff5f5;
+    }
+
+    .notice {
+      padding: 13px 15px;
+      border-radius: 9px;
+      margin-bottom: 15px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .notice.show {
+      display: block;
+    }
+
+    .notice.success {
+      background: #eaf8f0;
+      color: #18794e;
+    }
+
+    .notice.error {
+      background: #fff0f0;
+      color: #b42318;
+      padding: 13px 15px;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.48);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 1000;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-card {
+      background: white;
+      width: min(650px, 100%);
+      max-height: 90vh;
+      overflow: auto;
+      border-radius: 14px;
+      padding: 22px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .modal-head h2 {
+      margin: 0;
+      font-size: 21px;
+    }
+
+    .close {
+      background: #f1f3f5;
+      color: #475467;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      font-size: 20px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .field {
+      margin-bottom: 0;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: #344054;
+      margin-bottom: 6px;
+    }
+
+    .file-box {
+      border: 2px dashed #ccd4df;
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+      background: #fafbfc;
+    }
+
+    .file-box input {
+      border: 0;
+      padding: 0;
+      background: transparent;
+    }
+
+    .file-help {
+      font-size: 12px;
+      color: #687386;
+      margin-top: 8px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .preview {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 15px;
+      background: #fafbfc;
+      margin-top: 15px;
+    }
+
+    .preview strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .preview a {
+      color: #1261a0;
+      word-break: break-all;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 15px;
+      height: 15px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: -2px;
+      margin-right: 6px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .sidebar {
+        width: 200px;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .filters {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .layout {
+        display: block;
+      }
+
+      .sidebar {
+        width: 100%;
+        padding: 12px;
+      }
+
+      .brand {
+        padding-bottom: 12px;
+      }
+
+      .nav {
+        display: flex;
+        overflow-x: auto;
+        gap: 5px;
+      }
+
+      .nav a {
+        white-space: nowrap;
+      }
+
+      .main {
+        padding: 16px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .user {
+        text-align: left;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .field.full {
+        grid-column: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="brand">
+      RUCUSO
+      <small>Admin Portal</small>
+    </div>
+
+    <nav class="nav">
+      <a href="../dashboard/">Dashboard</a>
+      <a href="../students/">Wanafunzi</a>
+      <a href="../ministries/">Wizara</a>
+      <a href="../services/">Huduma</a>
+      <a href="../announcements/">Matangazo</a>
+      <a href="./" class="active">Nyaraka</a>
+      <a href="../leaders/">Viongozi</a>
+      <a href="../issues/">Maoni & Malalamiko</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <div class="topbar">
+      <div>
+        <h1>Nyaraka</h1>
+        <p>Simamia nyaraka zinazopatikana kwenye portal ya wanafunzi.</p>
+      </div>
+
+      <div class="user">
+        <div id="userName">Inapakia...</div>
+        <button class="logout" id="logoutBtn">Toka</button>
+      </div>
+    </div>
+
+    <div id="notice" class="notice"></div>
+
+    <section class="cards">
+      <div class="card">
+        <small>Jumla ya nyaraka</small>
+        <strong id="totalDocuments">0</strong>
+      </div>
+
+      <div class="card">
+        <small>PDF</small>
+        <strong id="pdfDocuments">0</strong>
+      </div>
+
+      <div class="card">
+        <small>Nyaraka za hivi karibuni</small>
+        <strong id="recentDocuments">0</strong>
+      </div>
+    </section>
+
+    <section class="panel">
+
+      <div class="panel-head">
+        <div>
+          <h2>Document Library</h2>
+        </div>
+
+        <div class="actions">
+          <button class="btn-primary" id="addBtn">
+            + Ongeza Nyaraka
+          </button>
+
+          <button class="btn-secondary" id="refreshBtn">
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <div class="panel-head">
+        <div class="filters">
+          <input
+            type="search"
+            id="searchInput"
+            placeholder="Tafuta kwa jina la nyaraka..."
+          >
+
+          <select id="categoryFilter">
+            <option value="">Makundi yote</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="tableState" class="loading">
+        Inapakia nyaraka...
+      </div>
+
+      <div class="table-wrap" id="tableWrap" style="display:none;">
+        <table>
+          <thead>
+            <tr>
+              <th>Nyaraka</th>
+              <th>Kundi</th>
+              <th>Aina</th>
+              <th>Aliyeweka</th>
+              <th>Tarehe</th>
+              <th>Vitendo</th>
+            </tr>
+          </thead>
+
+          <tbody id="documentsBody"></tbody>
+        </table>
+      </div>
+
+    </section>
+
+  </main>
+</div>
+
+
+<!-- ADD DOCUMENT MODAL -->
+
+<div class="modal" id="documentModal">
+
+  <div class="modal-card">
+
+    <div class="modal-head">
+      <h2>Ongeza Nyaraka</h2>
+      <button class="close" id="closeModal">&times;</button>
+    </div>
+
+    <form id="documentForm">
+
+      <div class="form-grid">
+
+        <div class="field full">
+          <label for="title">Jina la nyaraka *</label>
+
+          <input
+            id="title"
+            type="text"
+            maxlength="180"
+            required
+            placeholder="Mfano: Academic Calendar 2026/2027"
+          >
+        </div>
+
+        <div class="field">
+          <label for="category">Kundi</label>
+
+          <select id="category">
+            <option value="">Chagua kundi</option>
+            <option value="Academic">Academic</option>
+            <option value="Finance">Finance</option>
+            <option value="Administration">Administration</option>
+            <option value="Student Welfare">Student Welfare</option>
+            <option value="Examinations">Examinations</option>
+            <option value="Registration">Registration</option>
+            <option value="Policies">Policies</option>
+            <option value="Forms">Forms</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="fileName">Jina la file</label>
+
+          <input
+            id="fileName"
+            type="text"
+            placeholder="Litaonekana moja kwa moja"
+            readonly
+          >
+        </div>
+
+        <div class="field full">
+
+          <label>File *</label>
+
+          <div class="file-box">
+
+            <input
+              id="fileInput"
+              type="file"
+              required
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.jpg,.jpeg,.png,.webp"
+            >
+
+            <div class="file-help">
+              Maximum size: 10 MB
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="preview" id="filePreview" style="display:none;">
+        <strong>File iliyochaguliwa</strong>
+        <span id="previewText"></span>
+      </div>
+
+      <div class="modal-actions">
+
+        <button
+          type="button"
+          class="btn-secondary"
+          id="cancelBtn"
+        >
+          Ghairi
+        </button>
+
+        <button
+          type="submit"
+          class="btn-primary"
+          id="saveBtn"
+        >
+          Hifadhi
+        </button>
+
+      </div>
+
+    </form>
+
+  </div>
+</div>
+
+
+<!-- VIEW MODAL -->
+
+<div class="modal" id="viewModal">
+
+  <div class="modal-card">
+
+    <div class="modal-head">
+      <h2>Maelezo ya Nyaraka</h2>
+      <button class="close" id="closeView">&times;</button>
+    </div>
+
+    <div id="viewContent"></div>
+
+    <div class="modal-actions">
+
+      <button
+        type="button"
+        class="btn-secondary"
+        id="closeViewBtn"
+      >
+        Funga
+      </button>
+
+      <button
+        type="button"
+        class="btn-primary"
+        id="openDocumentBtn"
+      >
+        Fungua
+      </button>
+
+    </div>
+
+  </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../supabase/config.js"></script>
+<script src="../../supabase/supabase-client.js"></script>
+
+
+<script>
+(function () {
+
+  "use strict";
+
+  const state = {
+    documents: [],
+    filtered: [],
+    selectedDocument: null
+  };
+
+  const $ = (id) => document.getElementById(id);
+
+  const elements = {
+    userName: $("userName"),
+    logoutBtn: $("logoutBtn"),
+
+    notice: $("notice"),
+
+    totalDocuments: $("totalDocuments"),
+    pdfDocuments: $("pdfDocuments"),
+    recentDocuments: $("recentDocuments"),
+
+    addBtn: $("addBtn"),
+    refreshBtn: $("refreshBtn"),
+
+    searchInput: $("searchInput"),
+    categoryFilter: $("categoryFilter"),
+
+    tableState: $("tableState"),
+    tableWrap: $("tableWrap"),
+    documentsBody: $("documentsBody"),
+
+    documentModal: $("documentModal"),
+    closeModal: $("closeModal"),
+    cancelBtn: $("cancelBtn"),
+
+    documentForm: $("documentForm"),
+    title: $("title"),
+    category: $("category"),
+    fileInput: $("fileInput"),
+    fileName: $("fileName"),
+
+    filePreview: $("filePreview"),
+    previewText: $("previewText"),
+
+    saveBtn: $("saveBtn"),
+
+    viewModal: $("viewModal"),
+    closeView: $("closeView"),
+    closeViewBtn: $("closeViewBtn"),
+    viewContent: $("viewContent"),
+    openDocumentBtn: $("openDocumentBtn")
+  };
+
+
+  function escapeHtml(value) {
+
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+
+  }
+
+
+  function showNotice(message, type) {
+
+    elements.notice.textContent = message;
+
+    elements.notice.className = "notice show " + (
+      type === "success"
+        ? "success"
+        : "error"
+    );
+
+    clearTimeout(showNotice.timer);
+
+    showNotice.timer = setTimeout(() => {
+
+      elements.notice.className = "notice";
+
+    }, 5000);
+
+  }
+
+
+  function formatDate(value) {
+
+    if (!value) return "—";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return "—";
+    }
+
+    return date.toLocaleDateString("sw-TZ", {
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    });
+
+  }
+
+
+  function formatFileType(fileName) {
+
+    const name = String(fileName || "").toLowerCase();
+
+    if (name.endsWith(".pdf")) return "pdf";
+
+    if (
+      name.endsWith(".doc") ||
+      name.endsWith(".docx")
+    ) {
+      return "doc";
+    }
+
+    if (
+      name.endsWith(".jpg") ||
+      name.endsWith(".jpeg") ||
+      name.endsWith(".png") ||
+      name.endsWith(".webp")
+    ) {
+      return "image";
+    }
+
+    return "other";
+
+  }
+
+
+  function getExtension(fileName) {
+
+    const name = String(fileName || "");
+
+    const index = name.lastIndexOf(".");
+
+    if (index === -1) {
+      return "";
+    }
+
+    return name.slice(index + 1).toUpperCase();
+
+  }
+
+
+  function formatFileSize(bytes) {
+
+    const size = Number(bytes || 0);
+
+    if (!size) return "";
+
+    if (size < 1024) {
+      return size + " B";
+    }
+
+    if (size < 1024 * 1024) {
+      return (size / 1024).toFixed(1) + " KB";
+    }
+
+    return (size / (1024 * 1024)).toFixed(1) + " MB";
+
+  }
+
+
+  function openModal() {
+
+    elements.documentModal.classList.add("show");
+
+    setTimeout(() => {
+      elements.title.focus();
+    }, 50);
+
+  }
+
+
+  function closeModal() {
+
+    elements.documentModal.classList.remove("show");
+
+    elements.documentForm.reset();
+
+    elements.fileName.value = "";
+
+    elements.filePreview.style.display = "none";
+
+    elements.previewText.textContent = "";
+
+  }
+
+
+  function openViewModal(documentRow) {
+
+    state.selectedDocument = documentRow;
+
+    const title = escapeHtml(documentRow.title || "Nyaraka");
+
+    const category = escapeHtml(documentRow.category || "—");
+
+    const fileName = escapeHtml(documentRow.file_name || "—");
+
+    const uploadedAt = formatDate(documentRow.uploaded_at);
+
+    const uploadedBy = escapeHtml(
+      documentRow.uploaded_by_name ||
+      documentRow.author_name ||
+      "Mfanyakazi"
+    );
+
+    elements.viewContent.innerHTML = `
+      <div class="preview">
+        <strong>${title}</strong>
+
+        <div style="margin-top:10px;">
+          <b>Kundi:</b> ${category}
+        </div>
+
+        <div style="margin-top:8px;">
+          <b>File:</b> ${fileName}
+        </div>
+
+        <div style="margin-top:8px;">
+          <b>Aina:</b> ${escapeHtml(getExtension(fileName))}
+        </div>
+
+        <div style="margin-top:8px;">
+          <b>Aliyeweka:</b> ${uploadedBy}
+        </div>
+
+        <div style="margin-top:8px;">
+          <b>Tarehe:</b> ${uploadedAt}
+        </div>
+      </div>
+    `;
+
+    elements.viewModal.classList.add("show");
+
+  }
+
+
+  function closeViewModal() {
+
+    elements.viewModal.classList.remove("show");
+
+    state.selectedDocument = null;
+
+  }
+
+
+  function updateStats() {
+
+    const docs = state.documents;
+
+    elements.totalDocuments.textContent = docs.length;
+
+    elements.pdfDocuments.textContent =
+      docs.filter((doc) => {
+        return String(doc.file_name || "")
+          .toLowerCase()
+          .endsWith(".pdf");
+      }).length;
+
+    const recentLimit = Date.now() - (30 * 24 * 60 * 60 * 1000);
+
+    elements.recentDocuments.textContent =
+      docs.filter((doc) => {
+
+        const time = new Date(doc.uploaded_at).getTime();
+
+        return !Number.isNaN(time) && time >= recentLimit;
+
+      }).length;
+
+  }
+
+
+  function populateCategoryFilter() {
+
+    const categories = new Set();
+
+    state.documents.forEach((doc) => {
+
+      if (doc.category) {
+        categories.add(doc.category);
+      }
+
+    });
+
+    const current = elements.categoryFilter.value;
+
+    elements.categoryFilter.innerHTML =
+      '<option value="">Makundi yote</option>';
+
+    Array.from(categories)
+      .sort((a, b) => a.localeCompare(b))
+      .forEach((category) => {
+
+        const option = document.createElement("option");
+
+        option.value = category;
+
+        option.textContent = category;
+
+        elements.categoryFilter.appendChild(option);
+
+      });
+
+    if (categories.has(current)) {
+      elements.categoryFilter.value = current;
+    }
+
+  }
+
+
+  function applyFilters() {
+
+    const search =
+      elements.searchInput.value
+        .trim()
+        .toLowerCase();
+
+    const category =
+      elements.categoryFilter.value;
+
+    state.filtered = state.documents.filter((doc) => {
+
+      const title =
+        String(doc.title || "").toLowerCase();
+
+      const fileName =
+        String(doc.file_name || "").toLowerCase();
+
+      const docCategory =
+        String(doc.category || "");
+
+      const matchesSearch =
+        !search ||
+        title.includes(search) ||
+        fileName.includes(search);
+
+      const matchesCategory =
+        !category ||
+        docCategory === category;
+
+      return matchesSearch && matchesCategory;
+
+    });
+
+    renderTable();
+
+  }
+
+
+  function renderTable() {
+
+    const docs = state.filtered;
+
+    if (!docs.length) {
+
+      elements.tableWrap.style.display = "none";
+
+      elements.tableState.style.display = "block";
+
+      elements.tableState.className =
+        state.documents.length
+          ? "empty"
+          : "empty";
+
+      elements.tableState.textContent =
+        state.documents.length
+          ? "Hakuna nyaraka inayolingana na utafutaji wako."
+          : "Hakuna nyaraka bado.";
+
+      return;
+
+    }
+
+    elements.tableState.style.display = "none";
+
+    elements.tableWrap.style.display = "block";
+
+    elements.documentsBody.innerHTML = docs.map((doc) => {
+
+      const type = formatFileType(doc.file_name);
+
+      const title =
+        escapeHtml(doc.title || "Nyaraka bila jina");
+
+      const fileName =
+        escapeHtml(doc.file_name || "—");
+
+      const category =
+        escapeHtml(doc.category || "—");
+
+      const uploader =
+        escapeHtml(
+          doc.uploaded_by_name ||
+          doc.author_name ||
+          "Mfanyakazi"
+        );
+
+      const url =
+        escapeHtml(doc.file_url || "");
+
+      return `
+        <tr>
+
+          <td>
+            <div class="doc-title">${title}</div>
+            <div class="doc-file">${fileName}</div>
+          </td>
+
+          <td>
+            ${category}
+          </td>
+
+          <td>
+            <span class="badge ${type}">
+              ${escapeHtml(getExtension(doc.file_name) || "FILE")}
+            </span>
+          </td>
+
+          <td>
+            ${uploader}
+          </td>
+
+          <td>
+            ${formatDate(doc.uploaded_at)}
+          </td>
+
+          <td>
+            <div class="actions">
+
+              <button
+                class="btn-view"
+                data-action="view"
+                data-id="${escapeHtml(doc.id)}"
+              >
+                Angalia
+              </button>
+
+              ${
+                url
+                  ? `
+                    <button
+                      class="btn-download"
+                      data-action="open"
+                      data-id="${escapeHtml(doc.id)}"
+                    >
+                      Fungua
+                    </button>
+                  `
+                  : ""
+              }
+
+              <button
+                class="btn-danger"
+                data-action="delete"
+                data-id="${escapeHtml(doc.id)}"
+              >
+                Futa
+              </button>
+
+            </div>
+          </td>
+
+        </tr>
+      `;
+
+    }).join("");
+
+  }
+
+
+  async function loadDocuments() {
+
+    elements.tableWrap.style.display = "none";
+
+    elements.tableState.style.display = "block";
+
+    elements.tableState.className = "loading";
+
+    elements.tableState.textContent =
+      "Inapakia nyaraka...";
+
+    try {
+
+      const rows =
+        await window.RucusoAPI.listDocuments();
+
+      state.documents =
+        Array.isArray(rows)
+          ? rows
+          : [];
+
+      updateStats();
+
+      populateCategoryFilter();
+
+      applyFilters();
+
+    } catch (error) {
+
+      console.error(error);
+
+      elements.tableWrap.style.display = "none";
+
+      elements.tableState.style.display = "block";
+
+      elements.tableState.className = "error";
+
+      elements.tableState.textContent =
+        error?.message ||
+        "Imeshindikana kupakia nyaraka.";
+
+    }
+
+  }
+
+
+  async function loadCurrentUser() {
+
+    try {
+
+      const session =
+        await window.RucusoAPI.currentSession();
+
+      if (!session) {
+
+        window.location.href = "../login/";
+
+        return;
+
+      }
+
+      const profile =
+        session.profile;
+
+      elements.userName.textContent =
+        profile?.full_name ||
+        session.user?.email ||
+        "Msimamizi";
+
+    } catch (error) {
+
+      console.error(error);
+
+      elements.userName.textContent =
+        "Msimamizi";
+
+    }
+
+  }
+
+
+  async function logout() {
+
+    try {
+
+      await window.RucusoAPI.adminLogout();
+
+    } finally {
+
+      window.location.href = "../login/";
+
+    }
+
+  }
+
+
+  function validateFile(file) {
+
+    if (!file) {
+
+      throw new Error(
+        "Chagua file kwanza."
+      );
+
+    }
+
+    const maxSize =
+      10 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+
+      throw new Error(
+        "File ni kubwa sana. Maximum ni 10 MB."
+      );
+
+    }
+
+    return true;
+
+  }
+
+
+  async function saveDocument(event) {
+
+    event.preventDefault();
+
+    const title =
+      elements.title.value.trim();
+
+    const category =
+      elements.category.value.trim();
+
+    const file =
+      elements.fileInput.files[0];
+
+    if (!title) {
+
+      showNotice(
+        "Weka jina la nyaraka.",
+        "error"
+      );
+
+      elements.title.focus();
+
+      return;
+
+    }
+
+    try {
+
+      validateFile(file);
+
+    } catch (error) {
+
+      showNotice(
+        error.message,
+        "error"
+      );
+
+      return;
+
+    }
+
+    elements.saveBtn.disabled = true;
+
+    elements.saveBtn.innerHTML =
+      '<span class="spinner"></span> Inapakia...';
+
+    try {
+
+      const safeName =
+        file.name
+          .replace(/[^a-zA-Z0-9._-]/g, "_");
+
+      const uniquePath =
+        `${crypto.randomUUID()}-${safeName}`;
+
+      const publicUrl =
+        await window.RucusoAPI.uploadFile(
+          window.RucusoAPI.BUCKETS.documents,
+          uniquePath,
+          file
+        );
+
+      const session =
+        await window.RucusoAPI.currentSession();
+
+      const payload = {
+
+        title,
+
+        category:
+          category || null,
+
+        file_url:
+          publicUrl,
+
+        file_name:
+          file.name,
+
+        uploaded_by:
+          session?.user?.id || null
+
+      };
+
+      await window.RucusoAPI.createDocument(
+        payload
+      );
+
+      await window.RucusoAPI.logAction(
+        "CREATE_DOCUMENT",
+        `Uploaded document: ${title}`,
+        session?.profile?.full_name ||
+        session?.user?.email ||
+        "System"
+      );
+
+      closeModal();
+
+      showNotice(
+        "Nyaraka imehifadhiwa kikamilifu.",
+        "success"
+      );
+
+      await loadDocuments();
+
+    } catch (error) {
+
+      console.error(error);
+
+      showNotice(
+        error?.message ||
+        "Imeshindikana kuhifadhi nyaraka.",
+        "error"
+      );
+
+    } finally {
+
+      elements.saveBtn.disabled = false;
+
+      elements.saveBtn.textContent =
+        "Hifadhi";
+
+    }
+
+  }
+
+
+  async function deleteDocument(id) {
+
+    const doc =
+      state.documents.find(
+        (item) => item.id === id
+      );
+
+    if (!doc) return;
+
+    const title =
+      doc.title ||
+      doc.file_name ||
+      "nyaraka hii";
+
+    const confirmed =
+      window.confirm(
+        `Una uhakika unataka kufuta "${title}"?`
+      );
+
+    if (!confirmed) return;
+
+    try {
+
+      await window.RucusoAPI.deleteDocument(
+        id
+      );
+
+      if (doc.file_url) {
+
+        await window.RucusoAPI.removeFile(
+          window.RucusoAPI.BUCKETS.documents,
+          doc.file_url
+        );
+
+      }
+
+      await window.RucusoAPI.logAction(
+        "DELETE_DOCUMENT",
+        `Deleted document: ${title}`
+      );
+
+      showNotice(
+        "Nyaraka imefutwa.",
+        "success"
+      );
+
+      await loadDocuments();
+
+    } catch (error) {
+
+      console.error(error);
+
+      showNotice(
+        error?.message ||
+        "Imeshindikana kufuta nyaraka.",
+        "error"
+      );
+
+    }
+
+  }
+
+
+  function findDocument(id) {
+
+    return state.documents.find(
+      (doc) => doc.id === id
+    );
+
+  }
+
+
+  function handleTableClick(event) {
+
+    const button =
+      event.target.closest(
+        "button[data-action]"
+      );
+
+    if (!button) return;
+
+    const action =
+      button.dataset.action;
+
+    const id =
+      button.dataset.id;
+
+    const doc =
+      findDocument(id);
+
+    if (!doc) return;
+
+    if (action === "view") {
+
+      openViewModal(doc);
+
+      return;
+
+    }
+
+    if (action === "open") {
+
+      if (!doc.file_url) {
+
+        showNotice(
+          "Nyaraka hii haina link ya kufungulia.",
+          "error"
+        );
+
+        return;
+
+      }
+
+      window.open(
+        doc.file_url,
+        "_blank",
+        "noopener,noreferrer"
+      );
+
+      return;
+
+    }
+
+    if (action === "delete") {
+
+      deleteDocument(id);
+
+    }
+
+  }
+
+
+  function handleFileChange() {
+
+    const file =
+      elements.fileInput.files[0];
+
+    if (!file) {
+
+      elements.fileName.value = "";
+
+      elements.filePreview.style.display =
+        "none";
+
+      return;
+
+    }
+
+    try {
+
+      validateFile(file);
+
+    } catch (error) {
+
+      elements.fileInput.value = "";
+
+      elements.fileName.value = "";
+
+      elements.filePreview.style.display =
+        "none";
+
+      showNotice(
+        error.message,
+        "error"
+      );
+
+      return;
+
+    }
+
+    elements.fileName.value =
+      file.name;
+
+    elements.previewText.textContent =
+      `${file.name} — ${formatFileSize(file.size)}`;
+
+    elements.filePreview.style.display =
+      "block";
+
+  }
+
+
+  elements.addBtn.addEventListener(
+    "click",
+    openModal
+  );
+
+  elements.closeModal.addEventListener(
+    "click",
+    closeModal
+  );
+
+  elements.cancelBtn.addEventListener(
+    "click",
+    closeModal
+  );
+
+  elements.closeView.addEventListener(
+    "click",
+    closeViewModal
+  );
+
+  elements.closeViewBtn.addEventListener(
+    "click",
+    closeViewModal
+  );
+
+  elements.logoutBtn.addEventListener(
+    "click",
+    logout
+  );
+
+  elements.refreshBtn.addEventListener(
+    "click",
+    loadDocuments
+  );
+
+  elements.searchInput.addEventListener(
+    "input",
+    applyFilters
+  );
+
+  elements.categoryFilter.addEventListener(
+    "change",
+    applyFilters
+  );
+
+  elements.fileInput.addEventListener(
+    "change",
+    handleFileChange
+  );
+
+  elements.documentForm.addEventListener(
+    "submit",
+    saveDocument
+  );
+
+  elements.documentsBody.addEventListener(
+    "click",
+    handleTableClick
+  );
+
+
+  elements.openDocumentBtn.addEventListener(
+    "click",
+    function () {
+
+      const doc =
+        state.selectedDocument;
+
+      if (!doc?.file_url) {
+
+        showNotice(
+          "Nyaraka hii haina link ya kufungulia.",
+          "error"
+        );
+
+        return;
+
+      }
+
+      window.open(
+        doc.file_url,
+        "_blank",
+        "noopener,noreferrer"
+      );
+
+    }
+  );
+
+
+  elements.documentModal.addEventListener(
+    "click",
+    function (event) {
+
+      if (event.target === elements.documentModal) {
+        closeModal();
+      }
+
+    }
+  );
+
+
+  elements.viewModal.addEventListener(
+    "click",
+    function (event) {
+
+      if (event.target === elements.viewModal) {
+        closeViewModal();
+      }
+
+    }
+  );
+
+
+  document.addEventListener(
+    "keydown",
+    function (event) {
+
+      if (event.key !== "Escape") return;
+
+      if (
+        elements.documentModal.classList.contains("show")
+      ) {
+        closeModal();
+      }
+
+      if (
+        elements.viewModal.classList.contains("show")
+      ) {
+        closeViewModal();
+      }
+
+    }
+  );
+
+
+  async function boot() {
+
+    if (!window.RucusoAPI) {
+
+      elements.tableState.className =
+        "error";
+
+      elements.tableState.textContent =
+        "RUCUSO API haijapatikana. Hakiki config na Supabase client.";
+
+      return;
+
+    }
+
+    await loadCurrentUser();
+
+    await loadDocuments();
+
+  }
+
+
+  boot();
+
+})();
+</script>
+
+</body>
+</html>

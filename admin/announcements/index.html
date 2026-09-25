@@ -1,0 +1,1760 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Announcements | RUCUSO</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      color: #172033;
+    }
+
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 240px;
+      background: #0b1f3a;
+      color: white;
+      padding: 22px 14px;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      font-size: 24px;
+      font-weight: 800;
+      padding: 0 10px 24px;
+    }
+
+    .brand span {
+      color: #55a7ff;
+    }
+
+    .nav a {
+      display: block;
+      color: #dbe7f5;
+      text-decoration: none;
+      padding: 12px 10px;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    .nav a:hover,
+    .nav a.active {
+      background: #17375f;
+      color: white;
+    }
+
+    .main {
+      flex: 1;
+      min-width: 0;
+      padding: 28px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .topbar h1 {
+      margin: 0 0 5px;
+      font-size: 28px;
+    }
+
+    .topbar p {
+      margin: 0;
+      color: #687386;
+    }
+
+    .user {
+      text-align: right;
+      color: #4d596b;
+      font-size: 14px;
+    }
+
+    .user strong {
+      display: block;
+      color: #172033;
+    }
+
+    .logout {
+      border: 0;
+      background: transparent;
+      color: #c62828;
+      cursor: pointer;
+      margin-top: 5px;
+      font-weight: 600;
+      padding: 4px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.06);
+    }
+
+    .card small {
+      color: #687386;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .card strong {
+      font-size: 28px;
+    }
+
+    .green { color: #16834b; }
+    .orange { color: #b86b00; }
+    .gray { color: #697386; }
+
+    .panel {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.06);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 18px;
+      border-bottom: 1px solid #e7ebf0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 19px;
+    }
+
+    .panel-head p {
+      margin: 4px 0 0;
+      color: #687386;
+      font-size: 13px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font-family: inherit;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: #1261a0;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #edf2f7;
+      color: #26364a;
+    }
+
+    .btn-danger {
+      background: #feecec;
+      color: #b42318;
+    }
+
+    .toolbar {
+      padding: 15px 18px;
+      border-bottom: 1px solid #edf0f4;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    input,
+    select,
+    textarea {
+      border: 1px solid #ccd4df;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #246bce;
+    }
+
+    .search {
+      flex: 1;
+      min-width: 220px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      min-width: 1050px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 13px 15px;
+      border-bottom: 1px solid #edf0f4;
+      text-align: left;
+      font-size: 14px;
+      vertical-align: middle;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #596579;
+      font-size: 13px;
+    }
+
+    tr:hover td {
+      background: #fbfcfe;
+    }
+
+    .announcement-title {
+      font-weight: 700;
+      color: #172033;
+      margin-bottom: 5px;
+    }
+
+    .announcement-description {
+      color: #687386;
+      line-height: 1.4;
+      max-width: 420px;
+      font-size: 13px;
+    }
+
+    .category {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      background: #edf4ff;
+      color: #175ea8;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .audience {
+      color: #405168;
+      font-size: 13px;
+    }
+
+    .date {
+      white-space: nowrap;
+      color: #596579;
+      font-size: 13px;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status.live {
+      background: #e8f7ee;
+      color: #16834b;
+    }
+
+    .status.scheduled {
+      background: #fff4db;
+      color: #a15c00;
+    }
+
+    .status.expired {
+      background: #f1f3f5;
+      color: #697386;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .row-actions button {
+      padding: 7px 10px;
+      font-size: 12px;
+    }
+
+    .empty,
+    .loading,
+    .error {
+      padding: 30px;
+      text-align: center;
+      color: #687386;
+    }
+
+    .error {
+      color: #b42318;
+      background: #fff5f5;
+    }
+
+    .notice {
+      display: none;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .notice.show {
+      display: block;
+    }
+
+    .notice.success {
+      background: #e8f7ee;
+      color: #126b3e;
+    }
+
+    .notice.error {
+      background: #fff0f0;
+      color: #a51d1d;
+      text-align: left;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 1000;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-card {
+      background: white;
+      width: min(760px, 100%);
+      max-height: 90vh;
+      overflow: auto;
+      border-radius: 14px;
+      padding: 22px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .modal-head h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .close {
+      background: #f1f3f5;
+      color: #465365;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      font-size: 20px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .field {
+      margin-bottom: 15px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 7px;
+      color: #334155;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 130px;
+      resize: vertical;
+    }
+
+    input,
+    select {
+      width: 100%;
+    }
+
+    .image-preview {
+      margin-top: 10px;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #f5f7fa;
+      max-height: 180px;
+      display: none;
+    }
+
+    .image-preview.show {
+      display: block;
+    }
+
+    .image-preview img {
+      display: block;
+      width: 100%;
+      max-height: 180px;
+      object-fit: cover;
+    }
+
+    .help {
+      margin-top: 5px;
+      color: #7a8595;
+      font-size: 12px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #edf0f4;
+    }
+
+    .confirm-text {
+      color: #596579;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1100px) {
+      .cards {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .sidebar {
+        width: 200px;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .layout {
+        display: block;
+      }
+
+      .sidebar {
+        width: 100%;
+        padding: 15px;
+      }
+
+      .brand {
+        padding-bottom: 12px;
+      }
+
+      .nav {
+        display: flex;
+        overflow-x: auto;
+        gap: 5px;
+      }
+
+      .nav a {
+        white-space: nowrap;
+      }
+
+      .main {
+        padding: 18px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+      }
+
+      .user {
+        text-align: left;
+      }
+
+      .cards {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .field.full {
+        grid-column: auto;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .cards {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="brand">RUCU<span>SO</span></div>
+
+    <nav class="nav">
+      <a href="../dashboard/">Dashboard</a>
+      <a href="../students/">Wanafunzi</a>
+      <a href="../ministries/">Ministries</a>
+      <a href="../leaders/">Viongozi</a>
+      <a href="../services/">Huduma</a>
+      <a href="./" class="active">Announcements</a>
+      <a href="../documents/">Documents</a>
+      <a href="../feedback/">Feedback</a>
+      <a href="../settings/">Settings</a>
+      <a href="../audit/">Audit Log</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <div class="topbar">
+      <div>
+        <h1>Announcements</h1>
+        <p>Dhibiti taarifa na matangazo yanayoonekana kwa wanafunzi.</p>
+      </div>
+
+      <div class="user">
+        <strong id="userName">Inapakia...</strong>
+        <button class="logout" id="logoutBtn">Toka</button>
+      </div>
+    </div>
+
+    <div id="notice" class="notice"></div>
+
+    <section class="cards">
+
+      <div class="card">
+        <small>Jumla ya Announcements</small>
+        <strong id="totalCount">0</strong>
+      </div>
+
+      <div class="card">
+        <small>Zinazoonekana Sasa</small>
+        <strong id="liveCount" class="green">0</strong>
+      </div>
+
+      <div class="card">
+        <small>Zilizopangwa</small>
+        <strong id="scheduledCount" class="orange">0</strong>
+      </div>
+
+      <div class="card">
+        <small>Zilizoisha</small>
+        <strong id="expiredCount" class="gray">0</strong>
+      </div>
+
+    </section>
+
+    <section class="panel">
+
+      <div class="panel-head">
+
+        <div>
+          <h2>Orodha ya Announcements</h2>
+          <p>
+            Public portal itaonyesha announcements ambazo tarehe zake zinaruhusu.
+          </p>
+        </div>
+
+        <div class="actions">
+          <button class="btn-primary" id="addBtn">
+            + Ongeza Announcement
+          </button>
+
+          <button class="btn-secondary" id="refreshBtn">
+            ↻ Refresh
+          </button>
+        </div>
+
+      </div>
+
+      <div class="toolbar">
+
+        <input
+          id="searchInput"
+          class="search"
+          type="search"
+          placeholder="Tafuta title, description au category..."
+          autocomplete="off"
+        >
+
+        <select id="statusFilter">
+          <option value="all">Hali zote</option>
+          <option value="live">Zinazoonekana</option>
+          <option value="scheduled">Zilizopangwa</option>
+          <option value="expired">Zilizoisha</option>
+        </select>
+
+        <select id="audienceFilter">
+          <option value="all">Audience zote</option>
+          <option value="All Students">All Students</option>
+          <option value="Student Leaders">Student Leaders</option>
+          <option value="Specific Students">Specific Students</option>
+        </select>
+
+      </div>
+
+      <div id="tableState" class="loading">
+        Inapakia announcements...
+      </div>
+
+      <div id="tableWrap" class="table-wrap" style="display:none;">
+
+        <table>
+
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Announcement</th>
+              <th>Category</th>
+              <th>Audience</th>
+              <th>Publish</th>
+              <th>Expiry</th>
+              <th>Hali</th>
+              <th>Vitendo</th>
+            </tr>
+          </thead>
+
+          <tbody id="announcementsBody"></tbody>
+
+        </table>
+
+      </div>
+
+    </section>
+
+  </main>
+
+</div>
+
+
+<!-- ADD / EDIT MODAL -->
+
+<div class="modal" id="announcementModal">
+
+  <div class="modal-card">
+
+    <div class="modal-head">
+      <h2 id="modalTitle">Ongeza Announcement</h2>
+
+      <button
+        type="button"
+        class="close"
+        id="closeModal"
+      >
+        &times;
+      </button>
+    </div>
+
+    <form id="announcementForm">
+
+      <input type="hidden" id="announcementId">
+
+      <div class="form-grid">
+
+        <div class="field full">
+          <label for="announcementTitle">
+            Kichwa cha Announcement *
+          </label>
+
+          <input
+            id="announcementTitle"
+            type="text"
+            maxlength="200"
+            required
+            placeholder="Mfano: Tangazo la Usajili"
+          >
+        </div>
+
+        <div class="field full">
+
+          <label for="announcementDescription">
+            Maelezo *
+          </label>
+
+          <textarea
+            id="announcementDescription"
+            maxlength="5000"
+            required
+            placeholder="Andika maelezo ya announcement..."
+          ></textarea>
+
+        </div>
+
+        <div class="field">
+
+          <label for="announcementCategory">
+            Category
+          </label>
+
+          <input
+            id="announcementCategory"
+            type="text"
+            maxlength="100"
+            placeholder="Mfano: Academic"
+          >
+
+        </div>
+
+        <div class="field">
+
+          <label for="announcementAudience">
+            Audience
+          </label>
+
+          <select id="announcementAudience">
+            <option value="All Students">All Students</option>
+            <option value="Student Leaders">Student Leaders</option>
+            <option value="Specific Students">Specific Students</option>
+          </select>
+
+        </div>
+
+        <div class="field">
+
+          <label for="publishDate">
+            Publish Date *
+          </label>
+
+          <input
+            id="publishDate"
+            type="date"
+            required
+          >
+
+        </div>
+
+        <div class="field">
+
+          <label for="expiryDate">
+            Expiry Date
+          </label>
+
+          <input
+            id="expiryDate"
+            type="date"
+          >
+
+          <div class="help">
+            Acha wazi kama announcement haina tarehe ya kuisha.
+          </div>
+
+        </div>
+
+        <div class="field full">
+
+          <label for="imageUrl">
+            Image URL
+          </label>
+
+          <input
+            id="imageUrl"
+            type="url"
+            maxlength="1000"
+            placeholder="https://..."
+          >
+
+          <div class="help">
+            Kwa sasa tuna-save public image URL kwenye image_url.
+          </div>
+
+          <div id="imagePreview" class="image-preview">
+            <img id="previewImage" alt="Announcement preview">
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="modal-actions">
+
+        <button
+          type="button"
+          class="btn-secondary"
+          id="cancelBtn"
+        >
+          Ghairi
+        </button>
+
+        <button
+          type="submit"
+          class="btn-primary"
+          id="saveBtn"
+        >
+          Hifadhi
+        </button>
+
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
+
+
+<!-- DELETE MODAL -->
+
+<div class="modal" id="deleteModal">
+
+  <div class="modal-card" style="max-width:480px;">
+
+    <div class="modal-head">
+
+      <h2>Futa Announcement</h2>
+
+      <button
+        type="button"
+        class="close"
+        id="closeDeleteModal"
+      >
+        &times;
+      </button>
+
+    </div>
+
+    <p class="confirm-text">
+      Una uhakika unataka kufuta announcement hii?
+      Kitendo hiki kitaondoa rekodi kwenye database.
+    </p>
+
+    <p>
+      <strong id="deleteAnnouncementName"></strong>
+    </p>
+
+    <div class="modal-actions">
+
+      <button
+        type="button"
+        class="btn-secondary"
+        id="cancelDeleteBtn"
+      >
+        Ghairi
+      </button>
+
+      <button
+        type="button"
+        class="btn-danger"
+        id="confirmDeleteBtn"
+      >
+        Futa
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../supabase/config.js"></script>
+<script src="../../supabase/supabase-client.js"></script>
+
+<script>
+(function () {
+
+  "use strict";
+
+  let announcements = [];
+  let deleteId = null;
+
+  const $ = id => document.getElementById(id);
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function showNotice(message, type = "success") {
+
+    const notice = $("notice");
+
+    notice.textContent = message;
+    notice.className = "notice show " + type;
+
+    clearTimeout(showNotice.timer);
+
+    showNotice.timer = setTimeout(() => {
+      notice.textContent = "";
+      notice.className = "notice";
+    }, 4500);
+
+  }
+
+  function todayString() {
+
+    const d = new Date();
+
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  }
+
+  function announcementStatus(item) {
+
+    const today = todayString();
+
+    const publish = item.publish_date;
+    const expiry = item.expiry_date;
+
+    if (publish && publish > today) {
+      return "scheduled";
+    }
+
+    if (expiry && expiry < today) {
+      return "expired";
+    }
+
+    return "live";
+  }
+
+  function statusLabel(status) {
+
+    if (status === "scheduled") {
+      return "Imeandaliwa";
+    }
+
+    if (status === "expired") {
+      return "Imeisha";
+    }
+
+    return "Inaonekana";
+  }
+
+  function formatDate(value) {
+
+    if (!value) {
+      return "—";
+    }
+
+    const parts = String(value).split("-");
+
+    if (parts.length !== 3) {
+      return value;
+    }
+
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+
+  function updateStats() {
+
+    let live = 0;
+    let scheduled = 0;
+    let expired = 0;
+
+    announcements.forEach(item => {
+
+      const status = announcementStatus(item);
+
+      if (status === "live") live++;
+      if (status === "scheduled") scheduled++;
+      if (status === "expired") expired++;
+
+    });
+
+    $("totalCount").textContent = announcements.length;
+    $("liveCount").textContent = live;
+    $("scheduledCount").textContent = scheduled;
+    $("expiredCount").textContent = expired;
+
+  }
+
+  function setLoading(message = "Inapakia announcements...") {
+
+    $("tableWrap").style.display = "none";
+    $("tableState").style.display = "block";
+    $("tableState").className = "loading";
+    $("tableState").textContent = message;
+
+  }
+
+  function setEmpty(message) {
+
+    $("tableWrap").style.display = "none";
+    $("tableState").style.display = "block";
+    $("tableState").className = "empty";
+    $("tableState").textContent =
+      message || "Hakuna announcement iliyopatikana.";
+
+  }
+
+  function setError(message) {
+
+    $("tableWrap").style.display = "none";
+    $("tableState").style.display = "block";
+    $("tableState").className = "error";
+    $("tableState").textContent = message;
+
+  }
+
+  function getFilteredAnnouncements() {
+
+    const search =
+      $("searchInput").value.trim().toLowerCase();
+
+    const status =
+      $("statusFilter").value;
+
+    const audience =
+      $("audienceFilter").value;
+
+    return announcements.filter(item => {
+
+      const itemStatus = announcementStatus(item);
+
+      if (status !== "all" && itemStatus !== status) {
+        return false;
+      }
+
+      if (audience !== "all" &&
+          String(item.audience || "All Students") !== audience) {
+        return false;
+      }
+
+      if (!search) {
+        return true;
+      }
+
+      const text = [
+        item.title,
+        item.description,
+        item.category,
+        item.audience
+      ]
+      .join(" ")
+      .toLowerCase();
+
+      return text.includes(search);
+
+    });
+
+  }
+
+  function renderAnnouncements() {
+
+    const rows = getFilteredAnnouncements();
+
+    if (!rows.length) {
+      setEmpty("Hakuna announcement inayolingana na filters zako.");
+      return;
+    }
+
+    $("tableState").style.display = "none";
+    $("tableWrap").style.display = "block";
+
+    $("announcementsBody").innerHTML =
+      rows.map((item, index) => {
+
+        const status = announcementStatus(item);
+
+        const statusClass = status;
+
+        const image = item.image_url
+          ? `<div style="margin-top:7px;color:#1261a0;font-size:12px;">🖼 Image attached</div>`
+          : "";
+
+        return `
+          <tr>
+
+            <td>${index + 1}</td>
+
+            <td>
+              <div class="announcement-title">
+                ${escapeHtml(item.title)}
+              </div>
+
+              <div class="announcement-description">
+                ${escapeHtml(item.description)}
+              </div>
+
+              ${image}
+            </td>
+
+            <td>
+              ${
+                item.category
+                  ? `<span class="category">${escapeHtml(item.category)}</span>`
+                  : "—"
+              }
+            </td>
+
+            <td>
+              <span class="audience">
+                ${escapeHtml(item.audience || "All Students")}
+              </span>
+            </td>
+
+            <td class="date">
+              ${formatDate(item.publish_date)}
+            </td>
+
+            <td class="date">
+              ${formatDate(item.expiry_date)}
+            </td>
+
+            <td>
+              <span class="status ${statusClass}">
+                ${statusLabel(status)}
+              </span>
+            </td>
+
+            <td>
+
+              <div class="row-actions">
+
+                <button
+                  class="btn-secondary"
+                  data-action="edit"
+                  data-id="${escapeHtml(item.id)}"
+                >
+                  Hariri
+                </button>
+
+                <button
+                  class="btn-danger"
+                  data-action="delete"
+                  data-id="${escapeHtml(item.id)}"
+                >
+                  Futa
+                </button>
+
+              </div>
+
+            </td>
+
+          </tr>
+        `;
+
+      }).join("");
+
+  }
+
+  async function loadAnnouncements() {
+
+    setLoading();
+
+    try {
+
+      if (!window.RucusoAPI) {
+        throw new Error("RucusoAPI haijapakiwa.");
+      }
+
+      announcements =
+        await window.RucusoAPI.listAllAnnouncements();
+
+      if (!Array.isArray(announcements)) {
+        announcements = [];
+      }
+
+      updateStats();
+      renderAnnouncements();
+
+    } catch (error) {
+
+      console.error("loadAnnouncements:", error);
+
+      setError(
+        error.message ||
+        "Imeshindikana kupakia announcements."
+      );
+
+    }
+
+  }
+
+  async function loadUser() {
+
+    try {
+
+      const session =
+        await window.RucusoAPI.currentSession();
+
+      if (!session || !session.user) {
+        window.location.href = "../login/";
+        return false;
+      }
+
+      if (!session.profile || !session.profile.active) {
+
+        await window.RucusoAPI.adminLogout();
+
+        window.location.href = "../login/";
+
+        return false;
+      }
+
+      $("userName").textContent =
+        session.profile.full_name ||
+        session.user.email ||
+        "Admin";
+
+      return true;
+
+    } catch (error) {
+
+      console.error("loadUser:", error);
+
+      window.location.href = "../login/";
+
+      return false;
+    }
+
+  }
+
+  function resetForm() {
+
+    $("announcementId").value = "";
+    $("announcementTitle").value = "";
+    $("announcementDescription").value = "";
+    $("announcementCategory").value = "";
+    $("announcementAudience").value = "All Students";
+    $("publishDate").value = todayString();
+    $("expiryDate").value = "";
+    $("imageUrl").value = "";
+
+    hideImagePreview();
+
+  }
+
+  function openAddModal() {
+
+    resetForm();
+
+    $("modalTitle").textContent =
+      "Ongeza Announcement";
+
+    $("announcementModal").classList.add("show");
+
+    setTimeout(() => {
+      $("announcementTitle").focus();
+    }, 50);
+
+  }
+
+  function openEditModal(item) {
+
+    $("announcementId").value = item.id || "";
+    $("announcementTitle").value = item.title || "";
+    $("announcementDescription").value = item.description || "";
+    $("announcementCategory").value = item.category || "";
+    $("announcementAudience").value =
+      item.audience || "All Students";
+    $("publishDate").value =
+      item.publish_date || todayString();
+    $("expiryDate").value =
+      item.expiry_date || "";
+    $("imageUrl").value =
+      item.image_url || "";
+
+    $("modalTitle").textContent =
+      "Hariri Announcement";
+
+    updateImagePreview();
+
+    $("announcementModal").classList.add("show");
+
+    setTimeout(() => {
+      $("announcementTitle").focus();
+    }, 50);
+
+  }
+
+  function closeModal() {
+
+    $("announcementModal").classList.remove("show");
+
+  }
+
+  function openDeleteModal(item) {
+
+    deleteId = item.id;
+
+    $("deleteAnnouncementName").textContent =
+      item.title || "";
+
+    $("deleteModal").classList.add("show");
+
+  }
+
+  function closeDeleteModal() {
+
+    deleteId = null;
+
+    $("deleteModal").classList.remove("show");
+
+  }
+
+  async function saveAnnouncement(event) {
+
+    event.preventDefault();
+
+    const id =
+      $("announcementId").value.trim();
+
+    const title =
+      $("announcementTitle").value.trim();
+
+    const description =
+      $("announcementDescription").value.trim();
+
+    const category =
+      $("announcementCategory").value.trim();
+
+    const audience =
+      $("announcementAudience").value;
+
+    const publishDate =
+      $("publishDate").value;
+
+    const expiryDate =
+      $("expiryDate").value;
+
+    const imageUrl =
+      $("imageUrl").value.trim();
+
+    if (!title) {
+      showNotice(
+        "Kichwa cha announcement kinahitajika.",
+        "error"
+      );
+      $("announcementTitle").focus();
+      return;
+    }
+
+    if (!description) {
+      showNotice(
+        "Maelezo ya announcement yanahitajika.",
+        "error"
+      );
+      $("announcementDescription").focus();
+      return;
+    }
+
+    if (!publishDate) {
+      showNotice(
+        "Publish date inahitajika.",
+        "error"
+      );
+      $("publishDate").focus();
+      return;
+    }
+
+    if (
+      expiryDate &&
+      expiryDate < publishDate
+    ) {
+      showNotice(
+        "Expiry date haiwezi kuwa kabla ya publish date.",
+        "error"
+      );
+      $("expiryDate").focus();
+      return;
+    }
+
+    const saveBtn = $("saveBtn");
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Inahifadhi...";
+
+    const payload = {
+      title,
+      description,
+      category: category || null,
+      publish_date: publishDate,
+      expiry_date: expiryDate || null,
+      audience: audience || "All Students",
+      image_url: imageUrl || null
+    };
+
+    try {
+
+      if (id) {
+
+        await window.RucusoAPI.updateAnnouncement(
+          id,
+          payload
+        );
+
+        showNotice(
+          "Announcement imehaririwa kikamilifu."
+        );
+
+      } else {
+
+        await window.RucusoAPI.createAnnouncement(
+          payload
+        );
+
+        showNotice(
+          "Announcement imeongezwa kikamilifu."
+        );
+
+      }
+
+      closeModal();
+
+      await loadAnnouncements();
+
+    } catch (error) {
+
+      console.error("saveAnnouncement:", error);
+
+      showNotice(
+        error.message ||
+        "Imeshindikana kuhifadhi announcement.",
+        "error"
+      );
+
+    } finally {
+
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Hifadhi";
+
+    }
+
+  }
+
+  async function deleteAnnouncement() {
+
+    if (!deleteId) {
+      return;
+    }
+
+    const button =
+      $("confirmDeleteBtn");
+
+    button.disabled = true;
+    button.textContent = "Inafuta...";
+
+    try {
+
+      await window.RucusoAPI.deleteAnnouncement(
+        deleteId
+      );
+
+      closeDeleteModal();
+
+      showNotice(
+        "Announcement imefutwa kikamilifu."
+      );
+
+      await loadAnnouncements();
+
+    } catch (error) {
+
+      console.error("deleteAnnouncement:", error);
+
+      showNotice(
+        error.message ||
+        "Imeshindikana kufuta announcement.",
+        "error"
+      );
+
+    } finally {
+
+      button.disabled = false;
+      button.textContent = "Futa";
+
+    }
+
+  }
+
+  function handleTableAction(event) {
+
+    const button =
+      event.target.closest(
+        "button[data-action]"
+      );
+
+    if (!button) {
+      return;
+    }
+
+    const action =
+      button.dataset.action;
+
+    const id =
+      button.dataset.id;
+
+    const item =
+      announcements.find(
+        announcement => announcement.id === id
+      );
+
+    if (!item) {
+
+      showNotice(
+        "Announcement haikupatikana.",
+        "error"
+      );
+
+      return;
+    }
+
+    if (action === "edit") {
+      openEditModal(item);
+      return;
+    }
+
+    if (action === "delete") {
+      openDeleteModal(item);
+    }
+
+  }
+
+  function hideImagePreview() {
+
+    $("imagePreview").classList.remove("show");
+
+    $("previewImage").removeAttribute("src");
+
+  }
+
+  function updateImagePreview() {
+
+    const url =
+      $("imageUrl").value.trim();
+
+    if (!url) {
+      hideImagePreview();
+      return;
+    }
+
+    $("previewImage").src = url;
+
+    $("imagePreview").classList.add("show");
+
+  }
+
+  function initEvents() {
+
+    $("addBtn").addEventListener(
+      "click",
+      openAddModal
+    );
+
+    $("refreshBtn").addEventListener(
+      "click",
+      loadAnnouncements
+    );
+
+    $("logoutBtn").addEventListener(
+      "click",
+      async () => {
+
+        try {
+          await window.RucusoAPI.adminLogout();
+        } catch (error) {
+          console.error("logout:", error);
+        }
+
+        window.location.href = "../login/";
+
+      }
+    );
+
+    $("announcementForm").addEventListener(
+      "submit",
+      saveAnnouncement
+    );
+
+    $("cancelBtn").addEventListener(
+      "click",
+      closeModal
+    );
+
+    $("closeModal").addEventListener(
+      "click",
+      closeModal
+    );
+
+    $("cancelDeleteBtn").addEventListener(
+      "click",
+      closeDeleteModal
+    );
+
+    $("closeDeleteModal").addEventListener(
+      "click",
+      closeDeleteModal
+    );
+
+    $("confirmDeleteBtn").addEventListener(
+      "click",
+      deleteAnnouncement
+    );
+
+    $("announcementsBody").addEventListener(
+      "click",
+      handleTableAction
+    );
+
+    $("searchInput").addEventListener(
+      "input",
+      renderAnnouncements
+    );
+
+    $("statusFilter").addEventListener(
+      "change",
+      renderAnnouncements
+    );
+
+    $("audienceFilter").addEventListener(
+      "change",
+      renderAnnouncements
+    );
+
+    $("imageUrl").addEventListener(
+      "input",
+      updateImagePreview
+    );
+
+    $("previewImage").addEventListener(
+      "error",
+      hideImagePreview
+    );
+
+    $("announcementModal").addEventListener(
+      "click",
+      event => {
+
+        if (
+          event.target ===
+          $("announcementModal")
+        ) {
+          closeModal();
+        }
+
+      }
+    );
+
+    $("deleteModal").addEventListener(
+      "click",
+      event => {
+
+        if (
+          event.target ===
+          $("deleteModal")
+        ) {
+          closeDeleteModal();
+        }
+
+      }
+    );
+
+    document.addEventListener(
+      "keydown",
+      event => {
+
+        if (event.key === "Escape") {
+          closeModal();
+          closeDeleteModal();
+        }
+
+      }
+    );
+
+  }
+
+  async function init() {
+
+    if (!window.RucusoAPI) {
+
+      setError(
+        "RucusoAPI haijapakiwa. Hakikisha config.js na supabase-client.js zipo."
+      );
+
+      return;
+    }
+
+    initEvents();
+
+    const authenticated =
+      await loadUser();
+
+    if (!authenticated) {
+      return;
+    }
+
+    await loadAnnouncements();
+
+  }
+
+  init();
+
+})();
+</script>
+
+</body>
+</html>

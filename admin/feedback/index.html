@@ -1,0 +1,1992 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maoni & Malalamiko | RUCUSO</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      color: #172033;
+    }
+
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 240px;
+      background: #0b1f3a;
+      color: white;
+      padding: 22px 14px;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      font-size: 24px;
+      font-weight: 800;
+      padding: 0 10px 24px;
+    }
+
+    .nav a {
+      display: block;
+      color: #dbe7f5;
+      text-decoration: none;
+      padding: 12px 10px;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    .nav a:hover,
+    .nav a.active {
+      background: #17375f;
+      color: white;
+    }
+
+    .main {
+      flex: 1;
+      min-width: 0;
+      padding: 28px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 24px;
+    }
+
+    .topbar h1 {
+      margin: 0 0 5px;
+      font-size: 28px;
+    }
+
+    .topbar p {
+      margin: 0;
+      color: #687386;
+    }
+
+    .user {
+      text-align: right;
+      color: #4d596b;
+      font-size: 14px;
+    }
+
+    .logout {
+      border: 0;
+      background: transparent;
+      color: #c62828;
+      cursor: pointer;
+      margin-top: 5px;
+      font-weight: 600;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 17px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.06);
+    }
+
+    .card small {
+      display: block;
+      color: #687386;
+      margin-bottom: 7px;
+      font-size: 12px;
+    }
+
+    .card strong {
+      font-size: 25px;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.06);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 18px;
+      border-bottom: 1px solid #e7ebf0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 19px;
+    }
+
+    .filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    input,
+    select,
+    textarea {
+      border: 1px solid #ccd4df;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #246bce;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: #1261a0;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #edf2f7;
+      color: #26364a;
+    }
+
+    .btn-danger {
+      background: #feecec;
+      color: #b42318;
+    }
+
+    .btn-success {
+      background: #e8f7ee;
+      color: #16834b;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      min-width: 1150px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 13px 14px;
+      border-bottom: 1px solid #edf0f4;
+      text-align: left;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #596579;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    tr:hover td {
+      background: #fafcff;
+    }
+
+    .ref {
+      color: #1261a0;
+      font-weight: 700;
+      font-family: monospace;
+    }
+
+    .title-cell {
+      max-width: 280px;
+    }
+
+    .title-main {
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .title-sub {
+      color: #7a8494;
+      font-size: 12px;
+    }
+
+    .status,
+    .priority,
+    .type {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status-new {
+      background: #eaf3ff;
+      color: #1261a0;
+    }
+
+    .status-review {
+      background: #fff5d9;
+      color: #9a6700;
+    }
+
+    .status-assigned {
+      background: #eee9ff;
+      color: #6941c6;
+    }
+
+    .status-progress {
+      background: #e7f5ff;
+      color: #087ea4;
+    }
+
+    .status-awaiting {
+      background: #fff0e6;
+      color: #b54708;
+    }
+
+    .status-resolved {
+      background: #e8f7ee;
+      color: #16834b;
+    }
+
+    .status-closed {
+      background: #edf0f4;
+      color: #596579;
+    }
+
+    .status-rejected {
+      background: #feecec;
+      color: #b42318;
+    }
+
+    .priority-low {
+      background: #edf7f0;
+      color: #287a4d;
+    }
+
+    .priority-medium {
+      background: #fff5d9;
+      color: #946200;
+    }
+
+    .priority-high {
+      background: #fff0e6;
+      color: #c2410c;
+    }
+
+    .priority-critical {
+      background: #feecec;
+      color: #b42318;
+    }
+
+    .type {
+      background: #f0f3f7;
+      color: #475467;
+    }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      padding: 7px 9px;
+      font-size: 11px;
+    }
+
+    .empty,
+    .loading,
+    .error {
+      padding: 35px;
+      text-align: center;
+      color: #687386;
+    }
+
+    .error {
+      color: #b42318;
+      background: #fff5f5;
+    }
+
+    .pagination {
+      padding: 14px 18px;
+      border-top: 1px solid #edf0f4;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      color: #687386;
+      font-size: 13px;
+    }
+
+    .pagination-actions {
+      display: flex;
+      gap: 7px;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.48);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 1000;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-card {
+      background: white;
+      width: min(900px, 100%);
+      max-height: 92vh;
+      overflow: auto;
+      border-radius: 14px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    }
+
+    .modal-head {
+      padding: 20px 22px;
+      border-bottom: 1px solid #e7ebf0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 15px;
+    }
+
+    .modal-head h2 {
+      margin: 0 0 5px;
+      font-size: 21px;
+    }
+
+    .modal-head p {
+      margin: 0;
+      color: #687386;
+      font-size: 13px;
+    }
+
+    .close {
+      background: #f1f3f5;
+      color: #475467;
+      font-size: 18px;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+    }
+
+    .modal-body {
+      padding: 22px;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .detail-box {
+      background: #f8fafc;
+      border: 1px solid #edf0f4;
+      border-radius: 9px;
+      padding: 13px;
+    }
+
+    .detail-box.full {
+      grid-column: 1 / -1;
+    }
+
+    .detail-label {
+      display: block;
+      color: #7a8494;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .detail-value {
+      font-size: 14px;
+      color: #26364a;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .section {
+      border-top: 1px solid #e7ebf0;
+      padding-top: 18px;
+      margin-top: 18px;
+    }
+
+    .section h3 {
+      margin: 0 0 12px;
+      font-size: 16px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #4d596b;
+    }
+
+    .field textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .timeline-item {
+      border-left: 3px solid #1261a0;
+      background: #f8fafc;
+      padding: 10px 13px;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .timeline-item strong {
+      font-size: 13px;
+    }
+
+    .timeline-item small {
+      display: block;
+      color: #7a8494;
+      margin-top: 4px;
+    }
+
+    .note {
+      background: #fffaf0;
+      border: 1px solid #f3dfad;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .note + .note {
+      margin-top: 8px;
+    }
+
+    .note-meta {
+      font-size: 11px;
+      color: #7a8494;
+      margin-bottom: 5px;
+    }
+
+    .attachment {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      border: 1px solid #e7ebf0;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .attachment-name {
+      font-size: 13px;
+      word-break: break-all;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 2000;
+      padding: 13px 17px;
+      border-radius: 9px;
+      color: white;
+      background: #26364a;
+      box-shadow: 0 8px 30px rgba(0,0,0,.2);
+      display: none;
+      max-width: 360px;
+      font-size: 13px;
+    }
+
+    .toast.show {
+      display: block;
+    }
+
+    .toast.success {
+      background: #16834b;
+    }
+
+    .toast.error {
+      background: #b42318;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid #d9e2ec;
+      border-top-color: #1261a0;
+      border-radius: 50%;
+      display: inline-block;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 7px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 1200px) {
+      .cards {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 850px) {
+      .layout {
+        display: block;
+      }
+
+      .sidebar {
+        width: 100%;
+        padding: 14px;
+      }
+
+      .brand {
+        padding-bottom: 12px;
+      }
+
+      .nav {
+        display: flex;
+        overflow-x: auto;
+        gap: 5px;
+      }
+
+      .nav a {
+        white-space: nowrap;
+      }
+
+      .main {
+        padding: 18px;
+      }
+
+      .cards {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .detail-grid,
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .detail-box.full,
+      .field.full {
+        grid-column: auto;
+      }
+
+      .topbar {
+        align-items: flex-start;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        flex-direction: column;
+      }
+
+      .user {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="brand">RUCUSO</div>
+
+    <nav class="nav">
+      <a href="../dashboard/">Dashibodi</a>
+      <a href="../students/">Wanafunzi</a>
+      <a href="../leaders/">Viongozi</a>
+      <a href="../ministries/">Wizara</a>
+      <a href="./" class="active">Maoni & Malalamiko</a>
+      <a href="../services/">Huduma</a>
+      <a href="../announcements/">Matangazo</a>
+      <a href="../documents/">Nyaraka</a>
+      <a href="../reports/">Ripoti</a>
+      <a href="../ai/">RUCUSO AI</a>
+      <a href="../settings/">Mipangilio</a>
+      <a href="../audit/">Audit Logs</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <div class="topbar">
+      <div>
+        <h1>Maoni & Malalamiko</h1>
+        <p>Usimamizi wa maoni, malalamiko, changamoto na mapendekezo ya wanafunzi.</p>
+      </div>
+
+      <div class="user">
+        <div id="userName">RUCUSO Administrator</div>
+        <div id="userRole">Administrator</div>
+        <button class="logout" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+
+    <section class="cards">
+      <div class="card">
+        <small>Jumla</small>
+        <strong id="countTotal">0</strong>
+      </div>
+
+      <div class="card">
+        <small>Mpya</small>
+        <strong id="countNew">0</strong>
+      </div>
+
+      <div class="card">
+        <small>Inapitiwa</small>
+        <strong id="countReview">0</strong>
+      </div>
+
+      <div class="card">
+        <small>Inaendelea</small>
+        <strong id="countProgress">0</strong>
+      </div>
+
+      <div class="card">
+        <small>Yaliyotatuliwa</small>
+        <strong id="countResolved">0</strong>
+      </div>
+
+      <div class="card">
+        <small>Critical</small>
+        <strong id="countCritical">0</strong>
+      </div>
+    </section>
+
+    <section class="panel">
+
+      <div class="panel-head">
+        <h2>Orodha ya Maoni & Malalamiko</h2>
+
+        <div class="filters">
+          <input
+            type="search"
+            id="searchInput"
+            placeholder="Tafuta reference, title..."
+          >
+
+          <select id="statusFilter">
+            <option value="">Status zote</option>
+            <option value="New">New</option>
+            <option value="Under Review">Under Review</option>
+            <option value="Assigned">Assigned</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Awaiting Information">Awaiting Information</option>
+            <option value="Resolved">Resolved</option>
+            <option value="Closed">Closed</option>
+            <option value="Rejected/Invalid">Rejected/Invalid</option>
+          </select>
+
+          <select id="priorityFilter">
+            <option value="">Priority zote</option>
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+            <option value="Critical">Critical</option>
+          </select>
+
+          <button class="btn-secondary" id="refreshBtn">Refresh</button>
+        </div>
+      </div>
+
+      <div id="tableState" class="loading">
+        <span class="spinner"></span>
+        Inapakia maoni...
+      </div>
+
+      <div class="table-wrap" id="tableWrap" style="display:none;">
+        <table>
+          <thead>
+            <tr>
+              <th>Reference</th>
+              <th>Title</th>
+              <th>Aina</th>
+              <th>Category</th>
+              <th>Wizara</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Tarehe</th>
+              <th>Vitendo</th>
+            </tr>
+          </thead>
+
+          <tbody id="feedbackBody"></tbody>
+        </table>
+      </div>
+
+      <div class="pagination">
+        <div id="pageInfo">0 records</div>
+
+        <div class="pagination-actions">
+          <button class="btn-secondary" id="prevBtn">← Nyuma</button>
+          <button class="btn-secondary" id="nextBtn">Mbele →</button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+</div>
+
+<!-- DETAILS MODAL -->
+<div class="modal" id="detailModal">
+  <div class="modal-card">
+
+    <div class="modal-head">
+      <div>
+        <h2 id="modalTitle">Feedback</h2>
+        <p id="modalRef"></p>
+      </div>
+
+      <button class="close" id="closeModal">×</button>
+    </div>
+
+    <div class="modal-body">
+
+      <div id="detailLoading" class="loading">
+        <span class="spinner"></span>
+        Inapakia taarifa...
+      </div>
+
+      <div id="detailContent" style="display:none;">
+
+        <div class="detail-grid">
+
+          <div class="detail-box">
+            <span class="detail-label">Aina</span>
+            <div class="detail-value" id="detailType"></div>
+          </div>
+
+          <div class="detail-box">
+            <span class="detail-label">Category</span>
+            <div class="detail-value" id="detailCategory"></div>
+          </div>
+
+          <div class="detail-box">
+            <span class="detail-label">Wizara</span>
+            <div class="detail-value" id="detailMinistry"></div>
+          </div>
+
+          <div class="detail-box">
+            <span class="detail-label">Priority</span>
+            <div class="detail-value" id="detailPriority"></div>
+          </div>
+
+          <div class="detail-box">
+            <span class="detail-label">Status</span>
+            <div class="detail-value" id="detailStatus"></div>
+          </div>
+
+          <div class="detail-box">
+            <span class="detail-label">Tarehe ya tukio</span>
+            <div class="detail-value" id="detailIncidentDate"></div>
+          </div>
+
+          <div class="detail-box full">
+            <span class="detail-label">Title</span>
+            <div class="detail-value" id="detailTitle"></div>
+          </div>
+
+          <div class="detail-box full">
+            <span class="detail-label">Maelezo</span>
+            <div class="detail-value" id="detailDescription"></div>
+          </div>
+
+          <div class="detail-box full">
+            <span class="detail-label">Suluhisho lililopendekezwa</span>
+            <div class="detail-value" id="detailSolution"></div>
+          </div>
+
+          <div class="detail-box">
+            <span class="detail-label">Location</span>
+            <div class="detail-value" id="detailLocation"></div>
+          </div>
+
+          <div class="detail-box">
+            <span class="detail-label">Satisfaction</span>
+            <div class="detail-value" id="detailRating"></div>
+          </div>
+
+        </div>
+
+        <div class="section">
+          <h3>Taarifa za Mwanafunzi</h3>
+
+          <div class="detail-grid">
+
+            <div class="detail-box">
+              <span class="detail-label">Jina</span>
+              <div class="detail-value" id="detailStudentName"></div>
+            </div>
+
+            <div class="detail-box">
+              <span class="detail-label">Registration Number</span>
+              <div class="detail-value" id="detailStudentReg"></div>
+            </div>
+
+            <div class="detail-box">
+              <span class="detail-label">Programme</span>
+              <div class="detail-value" id="detailStudentProgramme"></div>
+            </div>
+
+            <div class="detail-box">
+              <span class="detail-label">Year</span>
+              <div class="detail-value" id="detailStudentYear"></div>
+            </div>
+
+            <div class="detail-box">
+              <span class="detail-label">Phone</span>
+              <div class="detail-value" id="detailStudentPhone"></div>
+            </div>
+
+            <div class="detail-box">
+              <span class="detail-label">Email</span>
+              <div class="detail-value" id="detailStudentEmail"></div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>Usimamizi</h3>
+
+          <div class="form-grid">
+
+            <div class="field">
+              <label for="editStatus">Status</label>
+
+              <select id="editStatus">
+                <option value="New">New</option>
+                <option value="Under Review">Under Review</option>
+                <option value="Assigned">Assigned</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Awaiting Information">Awaiting Information</option>
+                <option value="Resolved">Resolved</option>
+                <option value="Closed">Closed</option>
+                <option value="Rejected/Invalid">Rejected/Invalid</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="editAssignee">Msimamizi / Assignee</label>
+
+              <select id="editAssignee">
+                <option value="">-- Hakuna --</option>
+              </select>
+            </div>
+
+            <div class="field full">
+              <label for="editResponse">Response kwa mwanafunzi</label>
+
+              <textarea
+                id="editResponse"
+                placeholder="Andika majibu yatakayoonekana kwenye tracking..."
+              ></textarea>
+            </div>
+
+          </div>
+
+          <div style="margin-top:12px;">
+            <button class="btn-primary" id="saveFeedbackBtn">
+              Hifadhi Mabadiliko
+            </button>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>Internal Notes</h3>
+
+          <div id="notesList"></div>
+
+          <div style="margin-top:12px;">
+            <textarea
+              id="newNote"
+              style="width:100%;"
+              placeholder="Andika note ya ndani..."
+            ></textarea>
+
+            <button
+              class="btn-secondary"
+              id="addNoteBtn"
+              style="margin-top:8px;"
+            >
+              + Ongeza Note
+            </button>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>Status History</h3>
+
+          <div class="timeline" id="historyList"></div>
+        </div>
+
+        <div class="section">
+          <h3>Attachments</h3>
+
+          <div id="attachmentsList"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../supabase/config.js"></script>
+<script src="../../supabase/supabase-client.js"></script>
+
+<script>
+(function () {
+  "use strict";
+
+  const state = {
+    feedback: [],
+    filtered: [],
+    staff: [],
+    current: null,
+    page: 1,
+    pageSize: 20,
+    loading: false
+  };
+
+  const $ = (id) => document.getElementById(id);
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function text(value, fallback = "—") {
+    const v = String(value ?? "").trim();
+    return v ? v : fallback;
+  }
+
+  function formatDate(value) {
+    if (!value) return "—";
+
+    const d = new Date(value);
+
+    if (Number.isNaN(d.getTime())) return text(value);
+
+    return d.toLocaleString("sw-TZ", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+
+  function showToast(message, type = "") {
+    const el = $("toast");
+
+    el.textContent = message;
+    el.className = "toast show " + type;
+
+    clearTimeout(showToast.timer);
+
+    showToast.timer = setTimeout(() => {
+      el.className = "toast";
+    }, 3500);
+  }
+
+  function statusClass(status) {
+    const map = {
+      "New": "status-new",
+      "Under Review": "status-review",
+      "Assigned": "status-assigned",
+      "In Progress": "status-progress",
+      "Awaiting Information": "status-awaiting",
+      "Resolved": "status-resolved",
+      "Closed": "status-closed",
+      "Rejected/Invalid": "status-rejected"
+    };
+
+    return map[status] || "status-closed";
+  }
+
+  function priorityClass(priority) {
+    const map = {
+      Low: "priority-low",
+      Medium: "priority-medium",
+      High: "priority-high",
+      Critical: "priority-critical"
+    };
+
+    return map[priority] || "priority-medium";
+  }
+
+  function categoryName(row) {
+    return row.category?.name || row.categories?.name || "—";
+  }
+
+  function ministryName(row) {
+    return row.ministry?.name || row.ministries?.name || "—";
+  }
+
+  function assigneeName(row) {
+    return row.assignee?.full_name || row.profiles?.full_name || "—";
+  }
+
+  async function requireSession() {
+    if (!window.RucusoAPI) {
+      throw new Error("RucusoAPI haijapakiwa.");
+    }
+
+    const session = await window.RucusoAPI.currentSession();
+
+    if (!session || !session.user) {
+      window.location.href = "../login/";
+      return null;
+    }
+
+    if (!session.profile || !session.profile.active) {
+      await window.RucusoAPI.adminLogout();
+      window.location.href = "../login/";
+      return null;
+    }
+
+    $("userName").textContent =
+      session.profile.full_name || session.user.email || "Administrator";
+
+    $("userRole").textContent =
+      session.profile.role || "Administrator";
+
+    return session;
+  }
+
+  async function loadStaff() {
+    try {
+      state.staff = await window.RucusoAPI.listStaff();
+
+      const select = $("editAssignee");
+
+      select.innerHTML =
+        '<option value="">-- Hakuna --</option>' +
+        (state.staff || []).map(person =>
+          `<option value="${escapeHtml(person.id)}">${escapeHtml(person.full_name)} (${escapeHtml(person.role)})</option>`
+        ).join("");
+
+    } catch (err) {
+      console.warn("Staff load failed:", err);
+    }
+  }
+
+  async function loadFeedback() {
+    state.loading = true;
+
+    $("tableState").style.display = "block";
+    $("tableState").className = "loading";
+    $("tableState").innerHTML =
+      '<span class="spinner"></span> Inapakia maoni...';
+
+    $("tableWrap").style.display = "none";
+
+    try {
+      const rows = await window.RucusoAPI.listFeedback();
+
+      state.feedback = Array.isArray(rows) ? rows : [];
+
+      updateCounters();
+      applyFilters();
+
+    } catch (err) {
+      console.error(err);
+
+      $("tableState").className = "error";
+      $("tableState").textContent =
+        err?.message || "Imeshindikana kupakia maoni.";
+
+    } finally {
+      state.loading = false;
+    }
+  }
+
+  function updateCounters() {
+    const rows = state.feedback;
+
+    $("countTotal").textContent = rows.length;
+
+    $("countNew").textContent =
+      rows.filter(r => r.status === "New").length;
+
+    $("countReview").textContent =
+      rows.filter(r => r.status === "Under Review").length;
+
+    $("countProgress").textContent =
+      rows.filter(r => r.status === "In Progress").length;
+
+    $("countResolved").textContent =
+      rows.filter(r =>
+        r.status === "Resolved" ||
+        r.status === "Closed"
+      ).length;
+
+    $("countCritical").textContent =
+      rows.filter(r => r.priority === "Critical").length;
+  }
+
+  function applyFilters() {
+    const search =
+      $("searchInput").value.trim().toLowerCase();
+
+    const status =
+      $("statusFilter").value;
+
+    const priority =
+      $("priorityFilter").value;
+
+    state.filtered = state.feedback.filter(row => {
+
+      if (status && row.status !== status) {
+        return false;
+      }
+
+      if (priority && row.priority !== priority) {
+        return false;
+      }
+
+      if (search) {
+        const haystack = [
+          row.reference_number,
+          row.title,
+          row.description,
+          row.submission_type,
+          categoryName(row),
+          ministryName(row),
+          row.student_name_snapshot,
+          row.student_reg_snapshot
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        if (!haystack.includes(search)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    const maxPage =
+      Math.max(
+        1,
+        Math.ceil(state.filtered.length / state.pageSize)
+      );
+
+    if (state.page > maxPage) {
+      state.page = maxPage;
+    }
+
+    renderTable();
+  }
+
+  function renderTable() {
+    const rows = state.filtered;
+
+    if (!rows.length) {
+      $("tableWrap").style.display = "none";
+      $("tableState").style.display = "block";
+      $("tableState").className = "empty";
+      $("tableState").textContent =
+        "Hakuna maoni au malalamiko yaliyopatikana.";
+
+      $("pageInfo").textContent = "0 records";
+      $("prevBtn").disabled = true;
+      $("nextBtn").disabled = true;
+
+      return;
+    }
+
+    $("tableState").style.display = "none";
+    $("tableWrap").style.display = "block";
+
+    const start =
+      (state.page - 1) * state.pageSize;
+
+    const end =
+      Math.min(start + state.pageSize, rows.length);
+
+    const pageRows =
+      rows.slice(start, end);
+
+    $("feedbackBody").innerHTML =
+      pageRows.map(row => {
+
+        const category =
+          categoryName(row);
+
+        const ministry =
+          ministryName(row);
+
+        const status =
+          text(row.status);
+
+        const priority =
+          text(row.priority);
+
+        return `
+          <tr>
+            <td>
+              <span class="ref">
+                ${escapeHtml(text(row.reference_number))}
+              </span>
+            </td>
+
+            <td class="title-cell">
+              <div class="title-main">
+                ${escapeHtml(text(row.title))}
+              </div>
+
+              <div class="title-sub">
+                ${escapeHtml(text(row.student_name_snapshot, row.is_anonymous ? "Anonymous" : "—"))}
+              </div>
+            </td>
+
+            <td>
+              <span class="type">
+                ${escapeHtml(text(row.submission_type))}
+              </span>
+            </td>
+
+            <td>${escapeHtml(category)}</td>
+
+            <td>${escapeHtml(ministry)}</td>
+
+            <td>
+              <span class="priority ${priorityClass(priority)}">
+                ${escapeHtml(priority)}
+              </span>
+            </td>
+
+            <td>
+              <span class="status ${statusClass(status)}">
+                ${escapeHtml(status)}
+              </span>
+            </td>
+
+            <td>
+              ${escapeHtml(formatDate(row.created_at))}
+            </td>
+
+            <td>
+              <div class="actions">
+                <button
+                  class="btn-primary action-btn"
+                  data-action="view"
+                  data-id="${escapeHtml(row.id)}"
+                >
+                  Angalia
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+    $("pageInfo").textContent =
+      `${start + 1}–${end} kati ya ${rows.length}`;
+
+    $("prevBtn").disabled =
+      state.page <= 1;
+
+    $("nextBtn").disabled =
+      end >= rows.length;
+  }
+
+  async function openFeedback(id) {
+    $("detailModal").classList.add("show");
+
+    $("detailLoading").style.display = "block";
+    $("detailContent").style.display = "none";
+
+    try {
+      const row =
+        await window.RucusoAPI.getFeedback(id);
+
+      if (!row) {
+        throw new Error("Rekodi haikupatikana.");
+      }
+
+      state.current = row;
+
+      renderDetails(row);
+
+      await Promise.all([
+        loadHistory(row.id),
+        loadNotes(row.id),
+        loadAttachments(row.id)
+      ]);
+
+    } catch (err) {
+      console.error(err);
+      showToast(
+        err?.message || "Imeshindikana kupakia taarifa.",
+        "error"
+      );
+
+      closeModal();
+
+    } finally {
+      $("detailLoading").style.display = "none";
+      $("detailContent").style.display = "block";
+    }
+  }
+
+  function renderDetails(row) {
+    $("modalTitle").textContent =
+      text(row.title);
+
+    $("modalRef").textContent =
+      text(row.reference_number);
+
+    $("detailType").textContent =
+      text(row.submission_type);
+
+    $("detailCategory").textContent =
+      categoryName(row);
+
+    $("detailMinistry").textContent =
+      ministryName(row);
+
+    $("detailPriority").innerHTML =
+      `<span class="priority ${priorityClass(row.priority)}">
+        ${escapeHtml(text(row.priority))}
+      </span>`;
+
+    $("detailStatus").innerHTML =
+      `<span class="status ${statusClass(row.status)}">
+        ${escapeHtml(text(row.status))}
+      </span>`;
+
+    $("detailIncidentDate").textContent =
+      text(row.incident_date);
+
+    $("detailTitle").textContent =
+      text(row.title);
+
+    $("detailDescription").textContent =
+      text(row.description);
+
+    $("detailSolution").textContent =
+      text(row.suggested_solution);
+
+    $("detailLocation").textContent =
+      text(row.location);
+
+    $("detailRating").textContent =
+      row.satisfaction_rating
+        ? `${row.satisfaction_rating}/5`
+        : "—";
+
+    $("detailStudentName").textContent =
+      row.is_anonymous
+        ? "Anonymous"
+        : text(row.student_name_snapshot);
+
+    $("detailStudentReg").textContent =
+      row.is_anonymous
+        ? "—"
+        : text(row.student_reg_snapshot);
+
+    $("detailStudentProgramme").textContent =
+      row.is_anonymous
+        ? "—"
+        : text(row.student_programme);
+
+    $("detailStudentYear").textContent =
+      row.is_anonymous
+        ? "—"
+        : text(row.student_year);
+
+    $("detailStudentPhone").textContent =
+      row.is_anonymous
+        ? "—"
+        : text(row.student_phone);
+
+    $("detailStudentEmail").textContent =
+      row.is_anonymous
+        ? "—"
+        : text(row.student_email);
+
+    $("editStatus").value =
+      row.status || "New";
+
+    $("editAssignee").value =
+      row.assigned_to || "";
+
+    $("editResponse").value =
+      row.response || "";
+
+    $("newNote").value = "";
+  }
+
+  async function saveFeedback() {
+    if (!state.current) return;
+
+    const row = state.current;
+
+    const newStatus =
+      $("editStatus").value;
+
+    const newAssignee =
+      $("editAssignee").value || null;
+
+    const response =
+      $("editResponse").value.trim();
+
+    const oldStatus =
+      row.status;
+
+    const patch = {
+      status: newStatus,
+      assigned_to: newAssignee,
+      response: response || null
+    };
+
+    $("saveFeedbackBtn").disabled = true;
+
+    try {
+      await window.RucusoAPI.updateFeedback(
+        row.id,
+        patch
+      );
+
+      if (oldStatus !== newStatus) {
+        await window.RucusoAPI.addStatusHistory(
+          row.id,
+          oldStatus,
+          newStatus
+        );
+      }
+
+      state.current = {
+        ...row,
+        ...patch
+      };
+
+      showToast(
+        "Mabadiliko yamehifadhiwa.",
+        "success"
+      );
+
+      await loadFeedback();
+
+      renderDetails(state.current);
+
+      await loadHistory(row.id);
+
+    } catch (err) {
+      console.error(err);
+
+      showToast(
+        err?.message ||
+        "Imeshindikana kuhifadhi mabadiliko.",
+        "error"
+      );
+
+    } finally {
+      $("saveFeedbackBtn").disabled = false;
+    }
+  }
+
+  async function loadHistory(feedbackId) {
+    const container =
+      $("historyList");
+
+    container.innerHTML =
+      '<div class="loading">Inapakia history...</div>';
+
+    try {
+      const rows =
+        await window.RucusoAPI.listStatusHistory(
+          feedbackId
+        );
+
+      if (!rows || !rows.length) {
+        container.innerHTML =
+          '<div class="empty">Hakuna status history bado.</div>';
+
+        return;
+      }
+
+      container.innerHTML =
+        rows.map(row => {
+
+          const who =
+            row.who?.full_name ||
+            "System";
+
+          return `
+            <div class="timeline-item">
+
+              <strong>
+                ${escapeHtml(text(row.old_status, "—"))}
+                →
+                ${escapeHtml(text(row.new_status))}
+              </strong>
+
+              <small>
+                ${escapeHtml(who)}
+                ·
+                ${escapeHtml(formatDate(row.created_at))}
+              </small>
+
+            </div>
+          `;
+        }).join("");
+
+    } catch (err) {
+      console.error(err);
+
+      container.innerHTML =
+        '<div class="error">Imeshindikana kupakia status history.</div>';
+    }
+  }
+
+  async function loadNotes(feedbackId) {
+    const container =
+      $("notesList");
+
+    container.innerHTML =
+      '<div class="loading">Inapakia notes...</div>';
+
+    try {
+      const rows =
+        await window.RucusoAPI.listInternalNotes(
+          feedbackId
+        );
+
+      if (!rows || !rows.length) {
+        container.innerHTML =
+          '<div class="empty">Hakuna internal notes bado.</div>';
+
+        return;
+      }
+
+      container.innerHTML =
+        rows.map(row => {
+
+          const who =
+            row.who?.full_name ||
+            "Administrator";
+
+          return `
+            <div class="note">
+
+              <div class="note-meta">
+                ${escapeHtml(who)}
+                ·
+                ${escapeHtml(formatDate(row.created_at))}
+              </div>
+
+              <div>
+                ${escapeHtml(text(row.note))}
+              </div>
+
+            </div>
+          `;
+        }).join("");
+
+    } catch (err) {
+      console.error(err);
+
+      container.innerHTML =
+        '<div class="error">Imeshindikana kupakia notes.</div>';
+    }
+  }
+
+  async function loadAttachments(feedbackId) {
+    const container =
+      $("attachmentsList");
+
+    container.innerHTML =
+      '<div class="loading">Inapakia attachments...</div>';
+
+    try {
+      const rows =
+        await window.RucusoAPI.listAttachments(
+          feedbackId
+        );
+
+      if (!rows || !rows.length) {
+        container.innerHTML =
+          '<div class="empty">Hakuna attachment.</div>';
+
+        return;
+      }
+
+      container.innerHTML =
+        rows.map(row => `
+          <div class="attachment">
+
+            <div>
+              <div class="attachment-name">
+                ${escapeHtml(
+                  text(row.file_name, "Attachment")
+                )}
+              </div>
+
+              <small>
+                ${escapeHtml(
+                  formatDate(row.created_at)
+                )}
+              </small>
+            </div>
+
+            <button
+              class="btn-secondary action-btn"
+              data-attachment="${escapeHtml(row.file_url)}"
+            >
+              Fungua
+            </button>
+
+          </div>
+        `).join("");
+
+    } catch (err) {
+      console.error(err);
+
+      container.innerHTML =
+        '<div class="error">Imeshindikana kupakia attachments.</div>';
+    }
+  }
+
+  async function addNote() {
+    if (!state.current) return;
+
+    const note =
+      $("newNote").value.trim();
+
+    if (!note) {
+      showToast(
+        "Andika note kwanza.",
+        "error"
+      );
+
+      return;
+    }
+
+    $("addNoteBtn").disabled = true;
+
+    try {
+      await window.RucusoAPI.addInternalNote(
+        state.current.id,
+        note
+      );
+
+      $("newNote").value = "";
+
+      await loadNotes(
+        state.current.id
+      );
+
+      showToast(
+        "Internal note imeongezwa.",
+        "success"
+      );
+
+    } catch (err) {
+      console.error(err);
+
+      showToast(
+        err?.message ||
+        "Imeshindikana kuongeza note.",
+        "error"
+      );
+
+    } finally {
+      $("addNoteBtn").disabled = false;
+    }
+  }
+
+  async function openAttachment(value) {
+    if (!value) return;
+
+    try {
+      let url = value;
+
+      /*
+       * New submissions should store a path for the private bucket.
+       * Older records may contain a full URL. For a private attachment
+       * we therefore try the stored value directly first.
+       */
+
+      if (
+        !/^https?:\/\//i.test(value)
+      ) {
+        url =
+          await window.RucusoAPI.signedUrl(
+            window.RucusoAPI.BUCKETS.attachments,
+            value,
+            600
+          );
+      }
+
+      window.open(
+        url,
+        "_blank",
+        "noopener,noreferrer"
+      );
+
+    } catch (err) {
+      console.error(err);
+
+      showToast(
+        "Imeshindikana kufungua attachment.",
+        "error"
+      );
+    }
+  }
+
+  function closeModal() {
+    $("detailModal").classList.remove("show");
+    state.current = null;
+  }
+
+  async function logout() {
+    try {
+      await window.RucusoAPI.adminLogout();
+    } finally {
+      window.location.href = "../login/";
+    }
+  }
+
+  $("searchInput").addEventListener(
+    "input",
+    () => {
+      state.page = 1;
+      applyFilters();
+    }
+  );
+
+  $("statusFilter").addEventListener(
+    "change",
+    () => {
+      state.page = 1;
+      applyFilters();
+    }
+  );
+
+  $("priorityFilter").addEventListener(
+    "change",
+    () => {
+      state.page = 1;
+      applyFilters();
+    }
+  );
+
+  $("refreshBtn").addEventListener(
+    "click",
+    loadFeedback
+  );
+
+  $("prevBtn").addEventListener(
+    "click",
+    () => {
+      if (state.page > 1) {
+        state.page--;
+        renderTable();
+      }
+    }
+  );
+
+  $("nextBtn").addEventListener(
+    "click",
+    () => {
+      const maxPage =
+        Math.ceil(
+          state.filtered.length /
+          state.pageSize
+        );
+
+      if (state.page < maxPage) {
+        state.page++;
+        renderTable();
+      }
+    }
+  );
+
+  $("feedbackBody").addEventListener(
+    "click",
+    event => {
+
+      const button =
+        event.target.closest(
+          "[data-action='view']"
+        );
+
+      if (!button) return;
+
+      openFeedback(
+        button.dataset.id
+      );
+    }
+  );
+
+  $("attachmentsList").addEventListener(
+    "click",
+    event => {
+
+      const button =
+        event.target.closest(
+          "[data-attachment]"
+        );
+
+      if (!button) return;
+
+      openAttachment(
+        button.dataset.attachment
+      );
+    }
+  );
+
+  $("closeModal").addEventListener(
+    "click",
+    closeModal
+  );
+
+  $("detailModal").addEventListener(
+    "click",
+    event => {
+      if (
+        event.target ===
+        $("detailModal")
+      ) {
+        closeModal();
+      }
+    }
+  );
+
+  $("saveFeedbackBtn").addEventListener(
+    "click",
+    saveFeedback
+  );
+
+  $("addNoteBtn").addEventListener(
+    "click",
+    addNote
+  );
+
+  $("logoutBtn").addEventListener(
+    "click",
+    logout
+  );
+
+  document.addEventListener(
+    "keydown",
+    event => {
+      if (
+        event.key === "Escape" &&
+        $("detailModal").classList.contains("show")
+      ) {
+        closeModal();
+      }
+    }
+  );
+
+  (async function init() {
+    try {
+      const session =
+        await requireSession();
+
+      if (!session) return;
+
+      await loadStaff();
+      await loadFeedback();
+
+    } catch (err) {
+      console.error(err);
+
+      $("tableState").className = "error";
+      $("tableState").textContent =
+        err?.message ||
+        "Imeshindikana kuanzisha ukurasa.";
+    }
+  })();
+
+})();
+</script>
+
+</body>
+</html>
