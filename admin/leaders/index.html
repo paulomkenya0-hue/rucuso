@@ -23,7 +23,7 @@
   table {
     width:100%;
     border-collapse:collapse;
-    min-width:850px;
+    min-width:950px;
   }
 
   th, td {
@@ -88,13 +88,13 @@
   }
 
   .modal-card {
-    width:min(680px,100%);
+    background:#fff;
+    width:min(760px,100%);
     max-height:90vh;
     overflow:auto;
-    background:#fff;
     border-radius:14px;
     padding:22px;
-    box-shadow:0 20px 60px rgba(0,0,0,.25);
+    box-shadow:0 20px 50px rgba(0,0,0,.2);
   }
 
   .form-grid {
@@ -103,27 +103,35 @@
     gap:14px;
   }
 
-  .form-grid .full {
-    grid-column:1/-1;
+  .form-group {
+    display:flex;
+    flex-direction:column;
+    gap:6px;
   }
 
-  label {
-    display:block;
+  .form-group.full {
+    grid-column:1 / -1;
+  }
+
+  .form-group label {
     font-size:12px;
     font-weight:700;
-    margin-bottom:5px;
+    color:#344054;
   }
 
-  input, select, textarea {
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
     width:100%;
     box-sizing:border-box;
-    padding:10px;
+    padding:10px 11px;
     border:1px solid #d0d5dd;
     border-radius:8px;
     font:inherit;
+    background:#fff;
   }
 
-  textarea {
+  .form-group textarea {
     min-height:90px;
     resize:vertical;
   }
@@ -132,28 +140,35 @@
     display:flex;
     justify-content:flex-end;
     gap:8px;
-    margin-top:18px;
+    margin-top:20px;
   }
 
   .password-box {
-    background:#f8fafc;
-    border:1px dashed #98a2b3;
-    border-radius:10px;
+    background:#fffaeb;
+    border:1px solid #fedf89;
+    color:#7a2e0b;
     padding:14px;
-    margin-top:14px;
+    border-radius:10px;
+    margin-bottom:15px;
   }
 
   .password-box code {
     display:block;
-    font-size:20px;
-    font-weight:800;
-    letter-spacing:1px;
-    margin-top:8px;
+    font-size:18px;
+    font-weight:700;
+    margin-top:7px;
     word-break:break-all;
   }
 
-  .danger {
-    color:#b42318;
+  .muted-small {
+    color:#667085;
+    font-size:12px;
+  }
+
+  .empty {
+    text-align:center;
+    color:#667085;
+    padding:30px;
   }
 
   @media (max-width:700px) {
@@ -161,7 +176,7 @@
       grid-template-columns:1fr;
     }
 
-    .form-grid .full {
+    .form-group.full {
       grid-column:auto;
     }
   }
@@ -191,9 +206,20 @@
 
 <div class="layout">
 
-  <nav class="sidebar">
+  <nav class="sidebar" id="sidebar">
     <a href="/admin/dashboard/">Dashibodi</a>
-    <a href="/admin/leaders/" class="active">Viongozi</a>
+    <a href="/admin/students/" data-perm="manage_students">Wanafunzi</a>
+    <a href="/admin/leaders/" class="active" data-perm="__super_admin_only">Viongozi</a>
+    <a href="/admin/ministries/" data-perm="manage_ministries">Wizara</a>
+    <a href="/admin/feedback/" data-perm="view_feedback">Maoni &amp; Malalamiko</a>
+    <a href="/admin/services/" data-perm="manage_services">Huduma</a>
+    <a href="/admin/announcements/" data-perm="manage_announcements">Matangazo</a>
+    <a href="/admin/documents/" data-perm="manage_documents">Nyaraka</a>
+    <a href="/admin/reports/" data-perm="manage_reports">Ripoti</a>
+    <a href="/admin/ai/" data-perm="__super_admin_only">RUCUSO AI</a>
+    <a href="/admin/admins/" data-perm="__super_admin_only">Msimamizi</a>
+    <a href="/admin/audit-logs/" data-perm="view_audit_logs">Audit Logs</a>
+    <a href="/admin/settings/" data-perm="__super_admin_only">Mipangilio</a>
   </nav>
 
   <main class="content">
@@ -206,13 +232,13 @@
 
       <div class="toolbar">
         <div>
-          <h2 style="margin:0">Viongozi</h2>
-          <p class="muted" style="margin:5px 0 0">
+          <h2 style="margin:0 0 5px;">Viongozi</h2>
+          <div class="muted-small">
             Usimamizi wa akaunti na taarifa za viongozi.
-          </p>
+          </div>
         </div>
 
-        <button id="addBtn" class="primary">
+        <button class="primary" id="addLeaderBtn">
           + Ongeza Kiongozi
         </button>
       </div>
@@ -221,7 +247,6 @@
 
       <div class="card">
         <div class="table-wrap">
-
           <table>
             <thead>
               <tr>
@@ -237,13 +262,12 @@
 
             <tbody id="leadersBody">
               <tr>
-                <td colspan="7" class="muted">
+                <td colspan="7" class="empty">
                   Inapakia viongozi...
                 </td>
               </tr>
             </tbody>
           </table>
-
         </div>
       </div>
 
@@ -251,40 +275,34 @@
   </main>
 </div>
 
-
 <!-- CREATE MODAL -->
-
-<div id="createModal" class="modal hidden">
-
+<div class="modal hidden" id="leaderModal">
   <div class="modal-card">
 
-    <h3 style="margin-top:0">Ongeza Kiongozi</h3>
+    <h3 style="margin-top:0;">Ongeza Kiongozi</h3>
 
-    <form id="createForm">
+    <form id="leaderForm">
 
       <div class="form-grid">
 
-        <div class="full">
+        <div class="form-group">
           <label for="full_name">Jina kamili *</label>
           <input id="full_name" required>
         </div>
 
-        <div>
+        <div class="form-group">
           <label for="username">Username *</label>
-          <input
-            id="username"
-            required
-            minlength="3"
-            maxlength="32"
-            pattern="[A-Za-z0-9._-]+"
-          >
+          <input id="username"
+                 required
+                 minlength="3"
+                 maxlength="32"
+                 pattern="[A-Za-z0-9._-]+">
         </div>
 
-        <div>
+        <div class="form-group">
           <label for="position">Nafasi *</label>
-
           <select id="position" required>
-            <option value="">-- Chagua --</option>
+            <option value="">Chagua nafasi</option>
             <option value="president">President</option>
             <option value="secretary_general">Secretary General</option>
             <option value="minister">Minister</option>
@@ -294,51 +312,62 @@
           </select>
         </div>
 
-        <div>
-          <label for="ministry_id">Ministry ID</label>
-          <input id="ministry_id" placeholder="UUID ya wizara">
+        <div class="form-group">
+          <label for="ministry_id">Wizara</label>
+          <select id="ministry_id">
+            <option value="">Hakuna / Haijawekwa</option>
+          </select>
         </div>
 
-        <div>
-          <label for="phone_number">Namba ya simu</label>
-          <input id="phone_number">
+        <div class="form-group">
+          <label for="phone_number">Simu</label>
+          <input id="phone_number" type="tel">
         </div>
 
-        <div>
+        <div class="form-group">
           <label for="email">Email</label>
           <input id="email" type="email">
         </div>
 
-        <div>
+        <div class="form-group">
           <label for="programme">Programme</label>
           <input id="programme">
         </div>
 
-        <div>
+        <div class="form-group">
           <label for="year_of_study">Year of Study</label>
           <input id="year_of_study">
         </div>
 
-        <div>
+        <div class="form-group full">
+          <label for="biography">Wasifu</label>
+          <textarea id="biography"></textarea>
+        </div>
+
+        <div class="form-group">
           <label for="photo_url">Photo URL</label>
           <input id="photo_url">
         </div>
 
-        <div class="full">
-          <label for="biography">Bio</label>
-          <textarea id="biography"></textarea>
+        <div class="form-group">
+          <label for="office_location">Office Location</label>
+          <input id="office_location">
         </div>
 
-        <div>
+        <div class="form-group">
           <label>
-            <input type="checkbox" id="public_visibility" checked>
-            Aonekane public directory
+            <input id="public_visibility"
+                   type="checkbox"
+                   checked>
+            Aonekane kwenye public directory
           </label>
         </div>
 
-        <div>
+        <div class="form-group">
           <label>
-            <input type="checkbox" id="active_status" checked>
+            <input id="active_status"
+                   type="checkbox"
+                   checked>
             Akaunti iwe active
           </label>
         </div>
@@ -346,41 +375,66 @@
       </div>
 
       <div class="modal-actions">
-        <button type="button" class="sec" id="cancelCreate">
-          Cancel
+        <button type="button" class="sec" id="cancelBtn">
+          Ghairi
         </button>
 
-        <button type="submit" class="primary" id="createSubmit">
+        <button type="submit" class="primary" id="saveBtn">
           Unda Akaunti
         </button>
       </div>
 
     </form>
+  </div>
+</div>
 
-    <div id="passwordResult" class="password-box hidden">
-      <b>Temporary Password</b>
-      <p class="muted">
-        Hii password ionyeshwe/kutunzwa sasa. Haijahifadhiwa plaintext.
-      </p>
+<!-- PASSWORD MODAL -->
+<div class="modal hidden" id="passwordModal">
+  <div class="modal-card">
+
+    <h3 style="margin-top:0;">Temporary Password</h3>
+
+    <div class="password-box">
+      Password ya muda imetengenezwa.
       <code id="temporaryPassword"></code>
+
+      <div class="muted-small" style="margin-top:10px;">
+        Mpe kiongozi password hii kwa usalama.
+        Ataombwa kubadilisha password baada ya kuingia.
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button"
+              class="sec"
+              id="copyPasswordBtn">
+        Copy Password
+      </button>
+
+      <button type="button"
+              class="primary"
+              id="closePasswordBtn">
+        Funga
+      </button>
     </div>
 
   </div>
 </div>
 
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase/config.js" onerror="console.warn('supabase/config.js haipo.')"></script>
+<script src="/supabase/config.js"
+        onerror="console.warn('supabase/config.js haipo.')"></script>
 <script src="/supabase/supabase-client.js"></script>
 <script src="/js/auth-guard.js"></script>
 
 <script>
 (async function () {
 
-  const session = await window.RucusoGuard.requireRole(
-    ["super_admin"],
-    { loginUrl: "/admin/login/" }
-  );
+  const session =
+    await window.RucusoGuard.requireRole(
+      ["super_admin"],
+      { loginUrl: "/admin/login/" }
+    );
 
   if (!session) return;
 
@@ -397,10 +451,36 @@
     () => window.RucusoGuard.logout("/")
   );
 
+  /*
+   * IMPORTANT:
+   * supabase-client.js exposes the URL as:
+   *
+   *   window.RUCUSO_CONFIG.SUPABASE_URL
+   *
+   * NOT:
+   *
+   *   window.RucusoAPI.url
+   *
+   * This fixes the previous:
+   * "Cannot read properties of undefined (reading 'replace')"
+   */
+
   const supabase = window.RucusoAPI.client;
 
+  const supabaseUrl =
+    window.RUCUSO_CONFIG &&
+    window.RUCUSO_CONFIG.SUPABASE_URL;
+
+  if (!supabaseUrl) {
+    showMessage(
+      "Supabase URL haijapatikana. Hakikisha /supabase/config.js ipo sawa.",
+      "error"
+    );
+    return;
+  }
+
   const functionUrl =
-    window.RucusoAPI.url.replace(/\/$/, "") +
+    supabaseUrl.replace(/\/$/, "") +
     "/functions/v1/leader-admin";
 
   function showMessage(text, type = "success") {
@@ -410,22 +490,29 @@
       '<div class="card" style="margin-bottom:14px;color:' +
       (type === "error" ? "#b42318" : "#067647") +
       '">' +
-      text +
-      '</div>';
+      escapeHtml(String(text)) +
+      "</div>";
+  }
 
-    setTimeout(() => {
-      el.innerHTML = "";
-    }, 6000);
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
   async function callFunction(payload) {
 
     const {
-      data: { session: currentSession }
+      data: {
+        session: currentSession
+      }
     } = await supabase.auth.getSession();
 
-    if (!currentSession?.access_token) {
-      throw new Error("Session imekwisha. Ingia tena.");
+    if (!currentSession || !currentSession.access_token) {
+      throw new Error("Muda wa kuingia umeisha. Tafadhali ingia tena.");
     }
 
     const response = await fetch(functionUrl, {
@@ -433,151 +520,70 @@
 
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer " + currentSession.access_token
+        "Authorization":
+          "Bearer " + currentSession.access_token
       },
 
       body: JSON.stringify(payload)
     });
 
-    let result;
+    let result = null;
 
     try {
       result = await response.json();
-    } catch {
-      throw new Error("Server imerudisha response isiyo sahihi.");
+    } catch (_) {
+      result = null;
     }
 
     if (!response.ok) {
+      const errorText =
+        result &&
+        (result.detail || result.error || result.message);
+
       throw new Error(
-        result.detail ||
-        result.error ||
-        "Ombi limekataa."
+        errorText ||
+        "Kitendo kimeshindwa. Tafadhali jaribu tena."
       );
     }
 
     return result;
   }
 
+  async function loadMinistries() {
 
-  async function loadLeaders() {
+    const select =
+      document.getElementById("ministry_id");
 
-    const tbody = document.getElementById("leadersBody");
+    select.innerHTML =
+      '<option value="">Hakuna / Haijawekwa</option>';
 
-    tbody.innerHTML =
-      '<tr><td colspan="7" class="muted">Inapakia...</td></tr>';
+    const { data, error } =
+      await supabase
+        .from("ministries")
+        .select("id, name")
+        .eq("active", true)
+        .order("name");
 
-    try {
-
-      const result = await callFunction({
-        action: "list"
-      });
-
-      const leaders = result.leaders || [];
-
-      if (!leaders.length) {
-
-        tbody.innerHTML =
-          '<tr><td colspan="7" class="muted">' +
-          'Hakuna akaunti za viongozi bado.' +
-          '</td></tr>';
-
-        return;
-      }
-
-      tbody.innerHTML = leaders.map((leader) => {
-
-        const active =
-          leader.active && leader.leader_active;
-
-        const status =
-          active
-            ? '<span class="badge active">ACTIVE</span>'
-            : '<span class="badge inactive">INACTIVE</span>';
-
-        const passwordStatus =
-          leader.must_change_password
-            ? '<span class="badge inactive">Badili password</span>'
-            : '<span class="badge active">OK</span>';
-
-        return `
-          <tr>
-            <td>
-              <strong>${escapeHtml(leader.full_name || "—")}</strong>
-              ${
-                leader.email
-                  ? `<div class="muted">${escapeHtml(leader.email)}</div>`
-                  : ""
-              }
-            </td>
-
-            <td>${escapeHtml(leader.username || "—")}</td>
-
-            <td>${escapeHtml(formatPosition(leader.position))}</td>
-
-            <td>${escapeHtml(leader.ministry_name || "—")}</td>
-
-            <td>${status}</td>
-
-            <td>${passwordStatus}</td>
-
-            <td>
-              <div class="actions">
-
-                <button
-                  class="sec"
-                  data-action="password"
-                  data-id="${leader.profile_id}">
-                  Reset Password
-                </button>
-
-                ${
-                  active
-                    ? `
-                      <button
-                        class="sec"
-                        data-action="deactivate"
-                        data-id="${leader.profile_id}">
-                        Zima
-                      </button>
-                    `
-                    : `
-                      <button
-                        class="sec"
-                        data-action="activate"
-                        data-id="${leader.profile_id}">
-                        Activate
-                      </button>
-                    `
-                }
-
-                <button
-                  class="sec"
-                  style="color:#b42318;border-color:#f0b7b2"
-                  data-action="delete"
-                  data-id="${leader.profile_id}">
-                  Delete
-                </button>
-
-              </div>
-            </td>
-          </tr>
-        `;
-
-      }).join("");
-
-    } catch (error) {
-
-      tbody.innerHTML =
-        '<tr><td colspan="7" class="danger">' +
-        escapeHtml(error.message) +
-        '</td></tr>';
+    if (error) {
+      console.warn("Ministries load failed:", error.message);
+      return;
     }
+
+    (data || []).forEach(function (ministry) {
+
+      const option =
+        document.createElement("option");
+
+      option.value = ministry.id;
+      option.textContent = ministry.name;
+
+      select.appendChild(option);
+    });
   }
 
+  function positionLabel(position) {
 
-  function formatPosition(position) {
-
-    const names = {
+    const labels = {
       president: "President",
       secretary_general: "Secretary General",
       minister: "Minister",
@@ -586,66 +592,232 @@
       officer: "Officer"
     };
 
-    return names[position] || position || "—";
+    return labels[position] || position || "—";
   }
 
+  function renderLeaders(leaders) {
 
-  function escapeHtml(value) {
+    const body =
+      document.getElementById("leadersBody");
 
-    return String(value)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
+    if (!leaders || !leaders.length) {
+
+      body.innerHTML =
+        '<tr><td colspan="7" class="empty">' +
+        "Hakuna viongozi waliopatikana." +
+        "</td></tr>";
+
+      return;
+    }
+
+    body.innerHTML =
+      leaders.map(function (leader) {
+
+        const active =
+          leader.active === true &&
+          leader.leader_active !== false;
+
+        const status =
+          active
+            ? '<span class="badge active">Active</span>'
+            : '<span class="badge inactive">Inactive</span>';
+
+        const passwordStatus =
+          leader.must_change_password
+            ? '<span class="badge" style="color:#b54708;background:#fffaeb;">Change Required</span>'
+            : '<span class="badge active">OK</span>';
+
+        let actions = "";
+
+        if (active) {
+
+          actions +=
+            '<button class="sec" data-action="deactivate" data-id="' +
+            escapeHtml(leader.profile_id) +
+            '">Deactivate</button>';
+
+        } else {
+
+          actions +=
+            '<button class="sec" data-action="activate" data-id="' +
+            escapeHtml(leader.profile_id) +
+            '">Activate</button>';
+        }
+
+        actions +=
+          '<button class="sec" data-action="reset_password" data-id="' +
+          escapeHtml(leader.profile_id) +
+          '">Reset Password</button>';
+
+        actions +=
+          '<button class="sec" data-action="delete" data-id="' +
+          escapeHtml(leader.profile_id) +
+          '" style="color:#b42318;">Delete</button>';
+
+        return (
+          "<tr>" +
+
+          "<td><strong>" +
+          escapeHtml(leader.full_name || "—") +
+          "</strong></td>" +
+
+          "<td>" +
+          escapeHtml(leader.username || "—") +
+          "</td>" +
+
+          "<td>" +
+          escapeHtml(positionLabel(leader.position)) +
+          "</td>" +
+
+          "<td>" +
+          escapeHtml(leader.ministry_name || "—") +
+          "</td>" +
+
+          "<td>" +
+          status +
+          "</td>" +
+
+          "<td>" +
+          passwordStatus +
+          "</td>" +
+
+          '<td><div class="actions">' +
+          actions +
+          "</div></td>" +
+
+          "</tr>"
+        );
+
+      }).join("");
   }
 
+  async function loadLeaders() {
 
-  document.getElementById("addBtn").addEventListener(
-    "click",
-    () => {
+    const body =
+      document.getElementById("leadersBody");
 
-      document.getElementById("createForm").reset();
+    body.innerHTML =
+      '<tr><td colspan="7" class="empty">' +
+      "Inapakia viongozi..." +
+      "</td></tr>";
 
-      document.getElementById("public_visibility").checked = true;
-      document.getElementById("active_status").checked = true;
+    try {
 
-      document
-        .getElementById("passwordResult")
-        .classList.add("hidden");
+      const result =
+        await callFunction({
+          action: "list"
+        });
 
-      document
-        .getElementById("createModal")
-        .classList.remove("hidden");
+      renderLeaders(result.leaders || []);
+
+    } catch (error) {
+
+      body.innerHTML =
+        '<tr><td colspan="7" class="empty" style="color:#b42318;">' +
+        escapeHtml(error.message) +
+        "</td></tr>";
+
+      console.error("Leader list failed:", error);
     }
-  );
+  }
 
+  function openCreateModal() {
 
-  document.getElementById("cancelCreate").addEventListener(
-    "click",
-    () => {
+    document
+      .getElementById("leaderModal")
+      .classList.remove("hidden");
+
+    document
+      .getElementById("full_name")
+      .focus();
+  }
+
+  function closeCreateModal() {
+
+    document
+      .getElementById("leaderModal")
+      .classList.add("hidden");
+
+    document
+      .getElementById("leaderForm")
+      .reset();
+
+    document
+      .getElementById("public_visibility")
+      .checked = true;
+
+    document
+      .getElementById("active_status")
+      .checked = true;
+  }
+
+  function showPassword(password) {
+
+    document
+      .getElementById("temporaryPassword")
+      .textContent = password || "";
+
+    document
+      .getElementById("passwordModal")
+      .classList.remove("hidden");
+  }
+
+  document
+    .getElementById("addLeaderBtn")
+    .addEventListener("click", openCreateModal);
+
+  document
+    .getElementById("cancelBtn")
+    .addEventListener("click", closeCreateModal);
+
+  document
+    .getElementById("closePasswordBtn")
+    .addEventListener("click", function () {
+
       document
-        .getElementById("createModal")
+        .getElementById("passwordModal")
         .classList.add("hidden");
-    }
-  );
+    });
 
+  document
+    .getElementById("copyPasswordBtn")
+    .addEventListener("click", async function () {
 
-  document.getElementById("createForm").addEventListener(
-    "submit",
-    async function (event) {
-
-      event.preventDefault();
-
-      const button =
-        document.getElementById("createSubmit");
-
-      button.disabled = true;
-      button.textContent = "Inaunda...";
+      const password =
+        document
+          .getElementById("temporaryPassword")
+          .textContent;
 
       try {
 
-        const result = await callFunction({
+        await navigator.clipboard.writeText(password);
+
+        showMessage("Password imenakiliwa.", "success");
+
+      } catch (_) {
+
+        showMessage(
+          "Imeshindikana kunakili password. Iandike manually.",
+          "error"
+        );
+      }
+    });
+
+  document
+    .getElementById("leaderForm")
+    .addEventListener("submit", async function (event) {
+
+      event.preventDefault();
+
+      const saveBtn =
+        document.getElementById("saveBtn");
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Inaunda...";
+
+      try {
+
+        const payload = {
 
           action: "create",
 
@@ -659,7 +831,7 @@
             document.getElementById("position").value,
 
           ministry_id:
-            document.getElementById("ministry_id").value.trim() || null,
+            document.getElementById("ministry_id").value || null,
 
           phone_number:
             document.getElementById("phone_number").value.trim() || null,
@@ -679,185 +851,182 @@
           photo_url:
             document.getElementById("photo_url").value.trim() || null,
 
+          office_location:
+            document.getElementById("office_location").value.trim() || null,
+
           public_visibility:
             document.getElementById("public_visibility").checked,
 
           active_status:
             document.getElementById("active_status").checked
-        });
+        };
 
+        const result =
+          await callFunction(payload);
 
-        document.getElementById("temporaryPassword").textContent =
-          result.temporary_password || "—";
-
-        document
-          .getElementById("passwordResult")
-          .classList.remove("hidden");
+        closeCreateModal();
 
         showMessage(
-          "Akaunti ya " +
-          escapeHtml(result.username || "") +
-          " imeundwa."
+          "Kiongozi ameundwa kikamilifu.",
+          "success"
         );
+
+        if (result.temporary_password) {
+          showPassword(result.temporary_password);
+        }
 
         await loadLeaders();
 
       } catch (error) {
 
-        showMessage(error.message, "error");
+        console.error("Create leader failed:", error);
+
+        showMessage(
+          error.message,
+          "error"
+        );
 
       } finally {
 
-        button.disabled = false;
-        button.textContent = "Unda Akaunti";
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Unda Akaunti";
       }
-    }
-  );
+    });
 
-
-  document.getElementById("leadersBody").addEventListener(
-    "click",
-    async function (event) {
+  document
+    .getElementById("leadersBody")
+    .addEventListener("click", async function (event) {
 
       const button =
         event.target.closest("button[data-action]");
 
       if (!button) return;
 
-      const action = button.dataset.action;
-      const profileId = button.dataset.id;
+      const action =
+        button.dataset.action;
 
-      if (!profileId) return;
+      const profileId =
+        button.dataset.id;
 
-
-      if (action === "password") {
-
-        if (!confirm(
-          "Unataka ku-reset password ya kiongozi huyu?"
-        )) return;
-
-        button.disabled = true;
-
-        try {
-
-          const result = await callFunction({
-            action: "reset_password",
-            profile_id: profileId
-          });
-
-          alert(
-            "Temporary password mpya:\n\n" +
-            result.temporary_password +
-            "\n\nMpe kiongozi password hii na amuru abadili baada ya kuingia."
-          );
-
-          await loadLeaders();
-
-        } catch (error) {
-
-          showMessage(error.message, "error");
-
-        } finally {
-
-          button.disabled = false;
-        }
-
+      if (!profileId) {
+        showMessage(
+          "Profile ID haijapatikana.",
+          "error"
+        );
         return;
       }
 
+      try {
 
-      if (action === "deactivate") {
+        if (action === "deactivate") {
 
-        if (!confirm(
-          "Unataka kuzima akaunti ya kiongozi huyu?"
-        )) return;
-
-        button.disabled = true;
-
-        try {
+          if (!confirm("Unataka ku-deactivate akaunti hii?")) {
+            return;
+          }
 
           await callFunction({
             action: "deactivate",
             profile_id: profileId
           });
 
-          showMessage("Akaunti imezimwa.");
+          showMessage(
+            "Akaunti ime-deactivate.",
+            "success"
+          );
 
           await loadLeaders();
-
-        } catch (error) {
-
-          showMessage(error.message, "error");
-
+          return;
         }
 
-        return;
-      }
+        if (action === "activate") {
 
-
-      if (action === "activate") {
-
-        if (!confirm(
-          "Unataka ku-activate akaunti hii?"
-        )) return;
-
-        button.disabled = true;
-
-        try {
+          if (!confirm("Unataka ku-activate akaunti hii?")) {
+            return;
+          }
 
           await callFunction({
             action: "activate",
             profile_id: profileId
           });
 
-          showMessage("Akaunti ime-activate.");
+          showMessage(
+            "Akaunti ime-activate.",
+            "success"
+          );
 
           await loadLeaders();
-
-        } catch (error) {
-
-          showMessage(error.message, "error");
-
+          return;
         }
 
-        return;
-      }
+        if (action === "reset_password") {
 
+          if (!confirm(
+            "Unataka ku-reset password ya akaunti hii?"
+          )) {
+            return;
+          }
 
-      if (action === "delete") {
+          const result =
+            await callFunction({
+              action: "reset_password",
+              profile_id: profileId
+            });
 
-        if (!confirm(
-          "DIQQA!\n\n" +
-          "Hii itaondoa login ya kiongozi kabisa.\n\n" +
-          "Una uhakika?"
-        )) return;
+          if (result.temporary_password) {
+            showPassword(result.temporary_password);
+          }
 
-        button.disabled = true;
-
-        try {
-
-          await callFunction({
-            action: "delete",
-            profile_id: profileId
-          });
-
-          showMessage("Akaunti imefutwa.");
+          showMessage(
+            "Password ime-reset.",
+            "success"
+          );
 
           await loadLeaders();
-
-        } catch (error) {
-
-          showMessage(error.message, "error");
-
+          return;
         }
 
-        return;
+        if (action === "delete") {
+
+          if (!confirm(
+            "TAHADHARI: Unataka kufuta akaunti hii kabisa? Kitendo hiki hakiwezi kutenduliwa."
+          )) {
+            return;
+          }
+
+          const result =
+            await callFunction({
+              action: "delete",
+              profile_id: profileId
+            });
+
+          if (result.ok) {
+
+            showMessage(
+              "Akaunti imefutwa.",
+              "success"
+            );
+
+            await loadLeaders();
+          }
+
+          return;
+        }
+
+      } catch (error) {
+
+        console.error(
+          "Leader action failed:",
+          error
+        );
+
+        showMessage(
+          error.message,
+          "error"
+        );
       }
+    });
 
-    }
-  );
-
-
+  await loadMinistries();
   await loadLeaders();
 
 })();
