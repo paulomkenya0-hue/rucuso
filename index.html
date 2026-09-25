@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RUCUSO | Ruaha Catholic University Students' Organization</title>
+<meta name="description" content="RUCUSO — jukwaa rasmi la uongozi wa wanafunzi, huduma za wanafunzi, na mfumo wa maoni/malalamiko wa Ruaha Catholic University (RUC). Toa maoni, fuatilia taarifa, ona uongozi na matangazo.">
+<link rel="canonical" href="https://rucuso.online/">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="RUCUSO — Ruaha Catholic University Students' Organization">
+<meta property="og:description" content="Jukwaa rasmi la uongozi wa wanafunzi, huduma za wanafunzi, na mfumo wa maoni wa Ruaha Catholic University.">
+<meta property="og:url" content="https://rucuso.online/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="RUCUSO — Ruaha Catholic University Students' Organization">
+<meta name="twitter:description" content="Jukwaa rasmi la uongozi wa wanafunzi, huduma za wanafunzi, na mfumo wa maoni wa Ruaha Catholic University.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
+<style>
+:root{
+  --navy:#0b2545; --navy2:#13315c; --gold:#c99a3c; --bg:#f4f6fa; --card:#ffffff;
+  --text:#1a2233; --muted:#5b6779; --border:#e1e6ee; --ok:#1e8a5f; --warn:#c97a1f;
+  --crit:#c23b3b; --info:#2563a6;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d1420; --card:#141d2e; --text:#e8ecf3; --muted:#93a0b4; --border:#243044;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d1420; --card:#141d2e; --text:#e8ecf3; --muted:#93a0b4; --border:#243044;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px); height:100%;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100%;}
+header.top{position:sticky;top:0;background:var(--navy);color:#fff;padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px;z-index:10;display:flex;align-items:center;justify-content:space-between;}
+header.top .brand{display:flex;flex-direction:column;}
+header.top .brand b{font-size:16px;letter-spacing:.5px;}
+header.top .brand span{font-size:11px;color:#cdd9ee;}
+nav.tabs{display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px;background:var(--navy2);}
+nav.tabs button{background:transparent;border:1px solid rgba(255,255,255,.25);color:#fff;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;}
+nav.tabs button.active{background:var(--gold);border-color:var(--gold);color:#26240f;font-weight:600;}
+main{max-width:960px;margin:0 auto;padding:16px;padding-bottom:60px;}
+.view{display:none;} .view.active{display:block;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;}
+.hero{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;border-radius:12px;padding:28px 18px;text-align:center;}
+.hero h1{margin:0 0 6px;font-size:22px;} .hero p{margin:4px 0 16px;color:#cdd9ee;font-size:14px;}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+button.pri{background:var(--gold);color:#26240f;border:none;padding:10px 16px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;}
+button.sec{background:transparent;border:1px solid #cdd9ee;color:#fff;padding:10px 16px;border-radius:8px;cursor:pointer;font-size:13px;}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:16px;}
+.grid3 .card h3{margin:0 0 6px;font-size:14px;color:var(--navy2);}
+.grid3 .card p{margin:0;font-size:13px;color:var(--muted);}
+label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px;}
+input,select,textarea{width:100%;padding:9px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:14px;}
+textarea{min-height:80px;resize:vertical;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:480px){.row2{grid-template-columns:1fr;}}
+.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.st-new{background:#e3ecf9;color:var(--info);} .st-review{background:#fdeecb;color:var(--warn);}
+.st-progress{background:#e1f0e8;color:var(--ok);} .st-resolved{background:#dbead9;color:#217a44;}
+.st-closed{background:#e6e6e6;color:#555;} .st-rejected{background:#f6dede;color:var(--crit);}
+.pr-low{background:#e6e6e6;color:#555;} .pr-medium{background:#fdeecb;color:var(--warn);}
+.pr-high{background:#f6dede;color:var(--crit);} .pr-critical{background:var(--crit);color:#fff;}
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--border);white-space:nowrap;}
+.twrap{overflow-x:auto;}
+.stat{display:flex;flex-direction:column;gap:2px;}
+.stat b{font-size:22px;} .stat span{font-size:11px;color:var(--muted);}
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;}
+.bar-row{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px;}
+.bar-track{flex:1;background:var(--border);border-radius:4px;height:10px;overflow:hidden;}
+.bar-fill{height:100%;background:var(--gold);}
+.hidden{display:none!important;}
+.muted{color:var(--muted);font-size:12px;}
+.err{color:var(--crit);font-size:12px;margin-top:6px;}
+.ok-msg{color:var(--ok);font-size:13px;}
+.fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--navy);color:#fff;border:none;border-radius:30px;padding:12px 16px;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer;z-index:20;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:30;}
+.modal-bg.active{display:flex;}
+.modal{background:var(--card);width:100%;max-width:480px;max-height:85vh;overflow-y:auto;border-radius:12px 12px 0 0;padding:16px;}
+@media(min-width:600px){.modal-bg{align-items:center;} .modal{border-radius:12px;}}
+.chatline{margin:8px 0;font-size:13px;} .chatline b{color:var(--navy2);}
+.demo{background:#fff3cd;color:#7a5c00;font-size:11px;padding:2px 6px;border-radius:4px;}
+footer{text-align:center;padding:20px 16px;font-size:11px;color:var(--muted);}
+a.link{color:var(--info);cursor:pointer;}
+.badge-close{float:right;cursor:pointer;font-size:18px;color:var(--muted);}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><b>RUCUSO</b><span>Ruaha Catholic University Students' Organization · 2026/2027</span></div>
+  <span id="loginState" class="muted" style="color:#cdd9ee;font-size:11px;"></span>
+</header>
+<nav class="tabs" id="tabs"></nav>
+<main>
+
+  <section class="view" id="view-home">
+    <div class="hero">
+      <h1>KARIBU RUCUSO</h1>
+      <p>Sauti yako inatusaidia kutambua changamoto, kuboresha huduma na kujenga uzoefu bora wa chuo.</p>
+      <div class="btnrow">
+        <button class="pri" onclick="go('submit')">Toa Maoni</button>
+        <button class="sec" onclick="go('submit','Challenge/Problem')">Ripoti Changamoto</button>
+        <button class="sec" onclick="go('track')">Fuatilia Taarifa</button>
+      </div>
+    </div>
+    <div class="grid3">
+      <div class="card"><h3>Toa Maoni</h3><p>Shiriki maoni yako kuhusu huduma za chuo.</p></div>
+      <div class="card"><h3>Ripoti Changamoto</h3><p>Tuambie kuhusu tatizo au changamoto unayokutana nayo.</p></div>
+      <div class="card"><h3>Pendekeza Uboreshaji</h3><p>Pendekeza njia ambazo chuo kinaweza kuboresha huduma zake.</p></div>
+    </div>
+    <div class="card muted">Taarifa za vitivo, shule, idara, mipango na uongozi zitasanidiwa na msimamizi wa mfumo.</div>
+  </section>
+
+  <section class="view" id="view-verify">
+    <div class="card" style="max-width:420px;margin:0 auto;">
+      <h2 style="margin-top:0">KARIBU RUCUSO</h2>
+      <div id="ver-step1">
+        <p class="muted">Ingiza Namba yako ya Usajili ili kuthibitisha kuwa wewe ni mwanafunzi wa Ruaha Catholic University.</p>
+        <label>Namba ya Usajili</label>
+        <input id="ver_reg" placeholder="RUCU/2024/01">
+        <div id="ver1_msg" style="margin-top:8px;"></div>
+        <div style="margin-top:12px;"><button class="pri" onclick="verifyStep1()">THIBITISHA</button></div>
+      </div>
+      <div id="ver-step2" class="hidden">
+        <h3 class="ok-msg">UTHIBITISHO UMEFANIKIWA</h3>
+        <p><b>Jina:</b> <span id="ver_name"></span><br><b>Programu:</b> <span id="ver_prog"></span><br><b>Mwaka:</b> <span id="ver_year"></span></p>
+        <label>THIBITISHA NAMBA YA SIMU</label>
+        <p class="muted">Ingiza namba yako ya simu ya Tanzania (mfano 07XXXXXXXX au +255XXXXXXXXX).</p>
+        <input id="ver_phone" placeholder="07XXXXXXXX">
+        <div id="ver2_msg" class="err" style="margin-top:6px;"></div>
+        <div style="margin-top:12px;"><button class="pri" onclick="sendOtp()">TUMA OTP</button></div>
+      </div>
+      <div id="ver-step3" class="hidden">
+        <p class="muted">Ingiza namba ya OTP ya tarakimu 6 iliyotumwa kwa <span id="ver_phone_out"></span>.</p>
+        <div class="card demo" style="display:inline-block;">DEMO: hakuna SMS halisi inayotumwa katika mazingira haya — OTP inaonyeshwa hapa: <b id="otpShown"></b></div>
+        <label style="margin-top:10px;">OTP</label>
+        <input id="ver_otp" inputmode="numeric" maxlength="6">
+        <div id="ver3_msg" class="err" style="margin-top:6px;"></div>
+        <div style="margin-top:12px;"><button class="pri" onclick="verifyOtp()">THIBITISHA OTP</button></div>
+        <p class="muted" style="margin-top:8px;"><a class="link" id="resendLink" onclick="sendOtp()">Tuma tena OTP</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-submit">
+    <div class="card">
+      <h2 style="margin-top:0">Submit Feedback</h2>
+      <div id="verifiedBanner" class="hidden ok-msg" style="margin-bottom:8px;">✓ Umethibitishwa kama <span id="vb_name"></span> (<span id="vb_reg"></span>) — <a class="link" onclick="studentLogout()">Toka</a></div>
+      <div id="privacyGate">
+        <p class="muted">Your feedback will be used to understand student experiences and identify areas for service improvement. If you choose anonymous submission, your identity should not be displayed to normal administrators.</p>
+        <label><input type="checkbox" id="agreeChk" onchange="document.getElementById('formArea').classList.toggle('hidden',!this.checked)"> I understand</label>
+      </div>
+      <div id="formArea" class="hidden">
+        <label>Submission Type</label>
+        <select id="f_type">
+          <option>General Feedback</option><option>Complaint</option><option>Challenge/Problem</option>
+          <option>Suggestion</option><option>Praise/Appreciation</option>
+        </select>
+        <label>Category</label>
+        <select id="f_category"></select>
+        <label>Subject / Title</label>
+        <input id="f_title" maxlength="120">
+        <label>Detailed Description</label>
+        <textarea id="f_desc"></textarea>
+        <div class="row2">
+          <div><label>Date of Incident (optional)</label><input type="date" id="f_date"></div>
+          <div><label>Location/Area (optional)</label><input id="f_loc"></div>
+        </div>
+        <label>Suggested Solution (optional)</label>
+        <input id="f_solution">
+        <div class="row2">
+          <div><label>Satisfaction Rating (1–5)</label>
+            <select id="f_rating"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+          <div><label>Priority</label>
+            <select id="f_priority"><option>Low</option><option selected>Medium</option><option>High</option><option>Critical</option></select></div>
+        </div>
+        <label>Attachment (optional, filename only — demo)</label>
+        <input type="file" id="f_file">
+        <label><input type="checkbox" id="f_anon"> Submit anonymously</label>
+        <div id="identBlock">
+          <div class="row2">
+            <div><label>Registration Number</label><input id="f_reg" oninput="lookupReg()"><div id="regLookupMsg" class="muted" style="font-size:11px;margin-top:2px;"></div></div>
+            <div><label>Full Name</label><input id="f_name"></div>
+          </div>
+          <div class="row2">
+            <div><label>Programme</label><input id="f_prog"><select id="f_prog_sel" class="hidden"></select></div>
+            <div><label>Year of Study</label><input id="f_year"></div>
+          </div>
+          <div class="row2">
+            <div><label>Phone Number</label><input id="f_phone"></div>
+            <div><label>Email</label><input id="f_email"></div>
+          </div>
+        </div>
+        <label id="captchaLabel"></label>
+        <input id="captchaAns" inputmode="numeric" placeholder="Answer">
+        <div id="submitErr" class="err"></div>
+        <div style="margin-top:14px;"><button class="pri" onclick="submitFeedback()">Submit</button></div>
+      </div>
+    </div>
+    <div class="card hidden" id="successCard">
+      <h3 class="ok-msg">Your feedback has been successfully submitted.</h3>
+      <p>Your Reference Number</p>
+      <h2 id="refOut" style="color:var(--navy2)"></h2>
+      <p class="muted">Keep this reference number if you want to track the progress of your submission.</p>
+      <button class="pri" onclick="go('track')">Track this report</button>
+    </div>
+  </section>
+
+  <section class="view" id="view-services">
+    <h2>Huduma za Wanafunzi</h2>
+    <div class="grid3" id="serviceGrid"></div>
+  </section>
+
+  <section class="view" id="view-announcements">
+    <h2>Matangazo ya RUCUSO</h2>
+    <div class="card hidden" id="annCreateCard">
+      <h3 style="margin-top:0">Chapisha Tangazo</h3>
+      <label>Kichwa</label><input id="an_title">
+      <label>Maelezo</label><textarea id="an_desc"></textarea>
+      <div class="row2">
+        <div><label>Kundi (Category)</label><input id="an_cat" placeholder="mfano: Mitihani"></div>
+        <div><label>Hadhira (Audience)</label><input id="an_audience" placeholder="Wanafunzi Wote" value="Wanafunzi Wote"></div>
+      </div>
+      <div class="row2">
+        <div><label>Tarehe ya Kuchapisha</label><input type="date" id="an_publish"></div>
+        <div><label>Tarehe ya Mwisho (hiari)</label><input type="date" id="an_expiry"></div>
+      </div>
+      <div style="margin-top:8px;"><button class="pri" onclick="addAnnouncement()">Chapisha</button></div>
+    </div>
+    <div id="annGrid"></div>
+  </section>
+
+  <section class="view" id="view-documents">
+    <h2>Nyaraka na Rasilimali</h2>
+    <div class="card hidden" id="docUploadCard">
+      <h3 style="margin-top:0">Pakia Hati</h3>
+      <label>Kichwa cha Hati</label><input id="doc_title">
+      <label>Aina (mfano: Katiba, Fomu, Taarifa)</label><input id="doc_cat">
+      <label>Faili (hadi 3MB katika hifadhi hii ya demo)</label><input type="file" id="doc_file">
+      <div style="margin-top:8px;"><button class="pri" onclick="addDocument()">Pakia</button></div>
+    </div>
+    <div id="docList"></div>
+  </section>
+
+  <section class="view" id="view-leadership">
+    <h2>Uongozi wa RUCUSO</h2>
+    <p class="muted">Wasiliana moja kwa moja na kiongozi wako. Namba za simu zinaonyeshwa kwa uwazi ili kurahisisha mawasiliano na uwazi wa uongozi.</p>
+    <div class="grid3" id="leaderGrid"></div>
+  </section>
+
+  <section class="view" id="view-track">
+    <div class="card">
+      <h2 style="margin-top:0">Track My Report</h2>
+      <label>Reference Number</label>
+      <input id="trackRef" placeholder="RUCU-2026-000001">
+      <div style="margin-top:10px;"><button class="pri" onclick="doTrack()">Track</button></div>
+      <div id="trackResult" style="margin-top:14px;"></div>
+    </div>
+  </section>
+
+  <section class="view" id="view-adminlogin">
+    <div class="card" style="max-width:360px;margin:0 auto;">
+      <h2 style="margin-top:0">Admin Login</h2>
+      <label>Email/Username</label><input id="loginUser">
+      <label>Password</label><input type="password" id="loginPass">
+      <div id="loginErr" class="err"></div>
+      <div style="margin-top:12px;"><button class="pri" onclick="doLogin()">Login</button></div>
+      <p class="muted" style="margin-top:10px;">Demo credentials — <span class="demo">DEMO</span><br>
+      Super Admin: admin@rucu.ac.tz / admin123<br>Officer: officer@rucu.ac.tz / officer123</p>
+    </div>
+  </section>
+
+  <section class="view" id="view-dashboard">
+    <h2>RUCU Student Voice — 2026/2027</h2>
+    <div class="statgrid" id="statCards"></div>
+    <div class="grid3">
+      <div class="card"><h3>Feedback by Category</h3><div id="chartCat"></div></div>
+      <div class="card"><h3>Status Breakdown</h3><div id="chartStatus"></div></div>
+      <div class="card"><h3>Masuala kwa Wizara</h3><div id="chartMinistry"></div></div>
+    </div>
+    <div class="card"><h3>Possible Recurring Issues</h3><div id="recurring" class="muted"></div></div>
+  </section>
+
+  <section class="view" id="view-issues">
+    <h2>Issue Management</h2>
+    <div class="row2" style="margin-bottom:10px;">
+      <select id="filterStatus" onchange="renderIssues()"><option value="">All Statuses</option></select>
+      <select id="filterCategory" onchange="renderIssues()"><option value="">All Categories</option></select>
+    </div>
+    <div class="row2" style="margin-bottom:10px;">
+      <select id="filterMinistry" onchange="renderIssues()"><option value="">Wizara Zote</option></select>
+    </div>
+    <div class="card twrap">
+      <table><thead><tr><th>Ref</th><th>Date</th><th>Category</th><th>Type</th><th>Subject</th><th>Student</th><th>Priority</th><th>Status</th><th>Wizara</th><th>Officer</th><th>Action</th></tr></thead>
+      <tbody id="issueRows"></tbody></table>
+    </div>
+  </section>
+
+  <section class="view" id="view-reports">
+    <h2>Institutional Reports</h2>
+    <div class="card">
+      <label>Period</label>
+      <select id="reportPeriod"><option>Academic Year</option><option>This Semester</option><option>This Month</option><option>This Week</option><option>Today</option></select>
+      <div style="margin-top:10px;"><button class="pri" onclick="renderReport()">Generate Report</button>
+      <button class="sec" style="background:var(--navy2);" onclick="exportCSV()">Export CSV</button>
+      <button class="sec" style="background:var(--navy2);" onclick="exportPDF()">Export PDF</button>
+      <button class="sec" style="background:var(--navy2);" onclick="window.print()">Print</button></div>
+    </div>
+    <div class="card" id="reportOut"></div>
+  </section>
+
+  <section class="view" id="view-settings">
+    <h2>Admin Settings</h2>
+    <div class="card">
+      <h3>Huduma za Wanafunzi</h3>
+      <p class="muted">Washa huduma na weka maelezo/mawasiliano kabla haijaonekana kwa wanafunzi.</p>
+      <div id="serviceAdminList"></div>
+      <div class="row2" style="margin-top:8px;">
+        <input id="sv_name" placeholder="Jina la huduma mpya">
+        <button class="pri" onclick="addService()">Ongeza</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Wizara/Ministries</h3>
+      <div id="ministryAdminList"></div>
+      <div class="row2">
+        <input id="mn_name" placeholder="Jina la wizara">
+        <input id="mn_desc" placeholder="Maelezo mafupi">
+      </div>
+      <div style="margin-top:8px;"><button class="pri" onclick="addMinistry()">Ongeza Wizara</button></div>
+    </div>
+    <div class="card">
+      <h3>Uongozi wa RUCUSO (Viongozi)</h3>
+      <div id="leaderAdminList"></div>
+      <div class="row2">
+        <input id="ld_name" placeholder="Jina kamili">
+        <input id="ld_position" placeholder="Nafasi (mfano: Rais)">
+      </div>
+      <div class="row2" style="margin-top:8px;">
+        <input id="ld_ministry" placeholder="Wizara/Ministry (hiari)">
+        <input id="ld_phone" placeholder="Namba ya simu, +255...">
+      </div>
+      <label>Maelezo mafupi (bio)</label>
+      <textarea id="ld_bio" placeholder="Maelezo mafupi kuhusu kiongozi na wajibu wake"></textarea>
+      <label>Picha (hiari, JPG/PNG, chini ya 500KB)</label>
+      <input type="file" id="ld_photo" accept="image/*">
+      <label><input type="checkbox" id="ld_active" checked> Onekane kwa wanafunzi (Active)</label>
+      <div style="margin-top:8px;"><button class="pri" onclick="addLeader()">Ongeza Kiongozi</button></div>
+    </div>
+    <div class="card">
+      <h3>Students Database <span class="muted" style="font-weight:400;">(registration number → name, for auto-fill)</span></h3>
+      <p class="muted">Students: <b id="studentCount"></b></p>
+      <div class="row2">
+        <input id="newStudName" placeholder="Full name">
+        <input id="newStudReg" placeholder="Registration number">
+      </div>
+      <div style="margin-top:8px;"><button class="pri" onclick="addStudent()">Add Student</button></div>
+      <label style="margin-top:14px;">Pakia CSV (safu: REGISTRATION NUMBER, FIRST NAME, MIDDLE NAME, LAST NAME, PROGRAMME, YEAR OF STUDY, PHONE, EMAIL) — hamisha Excel kuwa CSV kwanza</label>
+      <input type="file" id="csv_file" accept=".csv,text/csv">
+      <div style="margin-top:8px;"><button class="pri" onclick="importStudentsCSV()">Agiza CSV</button></div>
+      <label style="margin-top:14px;">Bulk import (one per line: <code>Name, RegistrationNumber</code> — paste from a list or copied from a PDF/Excel)</label>
+      <textarea id="bulkStudents" placeholder="John Mushi, RUCU/2024/0456&#10;Amina Juma, RUCU/2024/0457"></textarea>
+      <div style="margin-top:8px;"><button class="pri" onclick="bulkImportStudents()">Import List</button>
+      <button class="sec" style="background:var(--crit);color:#fff;" onclick="clearStudents()">Clear All</button></div>
+    </div>
+    <div class="card">
+      <h3>Categories</h3>
+      <div id="catList"></div>
+      <div class="row2" style="margin-top:8px;">
+        <input id="newCat" placeholder="New category name">
+        <button class="pri" onclick="addCategory()">Add</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>University Configuration</h3>
+      <p class="muted">University name: Ruaha Catholic University (RUCU)<br>Academic year:
+      <select id="acadYear" onchange="setAcadYear()"><option>2026/2027</option><option>2027/2028</option></select></p>
+      <p class="muted">Faculties, schools, departments and campuses: information will be configured by the system administrator.</p>
+    </div>
+    <div class="card">
+      <h3>Programmes</h3>
+      <div id="progList"></div>
+      <div class="row2" style="margin-top:8px;">
+        <input id="newProg" placeholder="New programme name">
+        <button class="pri" onclick="addProgramme()">Add</button>
+      </div>
+      <p class="muted" style="margin-top:6px;">Once added, programmes appear as a dropdown on the student submission form instead of free text.</p>
+    </div>
+    <div class="card">
+      <h3>Official Contact Information</h3>
+      <label>Contact Phone</label><input id="cfgPhone">
+      <label>Contact Email</label><input id="cfgEmail">
+      <div style="margin-top:8px;"><button class="pri" onclick="saveContacts()">Save Contacts</button></div>
+    </div>
+    <div class="card">
+      <h3>Audit Log <span class="muted" style="font-weight:400;">(matukio 50 ya hivi karibuni)</span></h3>
+      <div class="twrap"><table><thead><tr><th>Wakati</th><th>Kitendo</th><th>Na</th><th>Maelezo</th></tr></thead>
+      <tbody id="auditRows"></tbody></table></div>
+    </div>
+    <div class="card">
+      <h3>Demo Data</h3>
+      <button class="sec" style="background:var(--crit);color:#fff;" onclick="clearDemoData()">Clear Demo Data</button>
+    </div>
+  </section>
+
+</main>
+
+<button class="fab" onclick="openAI()">💬 Ask RUCUSO AI</button>
+
+<div class="modal-bg" id="issueModalBg"><div class="modal" id="issueModal"></div></div>
+
+<div class="modal-bg" id="aiModalBg">
+  <div class="modal">
+    <span class="badge-close" onclick="closeAI()">✕</span>
+    <h3 style="margin-top:0">RUCUSO AI <span class="muted" style="font-size:12px;">Your System Assistant</span></h3>
+    <div id="aiChat" style="max-height:280px;overflow-y:auto;"></div>
+    <div class="row2" style="margin-top:10px;">
+      <input id="aiInput" placeholder="Uliza swali... (e.g. Nianzie wapi?)" onkeydown="if(event.key==='Enter')askAI()">
+      <button class="pri" onclick="askAI()">Tuma</button>
+    </div>
+  </div>
+</div>
+
+<footer>RUCUSO — Ruaha Catholic University Students' Organization<br>Developed by Paulo Mkenya © Ruaha Catholic University</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase/config.js" onerror="console.warn('supabase/config.js haipo bado — mfumo unatumia hifadhi ya kivinjari (localStorage) kwa sasa.')"></script>
+<script src="supabase/supabase-client.js"></script>
+<script>
+const LS_KEY='rucu_v1';
+const DEFAULT_CATS=["Loans & Student Financing","Student Welfare","Academic Services","Registration","Examination Services","Accommodation","Food/Cafeteria","Library","ICT/Internet","Finance/Payments","Administration","Student Leadership","Campus Environment","Security","Health Services","Other"];
+const STATUSES=["New","Under Review","Assigned","In Progress","Awaiting Information","Resolved","Closed","Rejected/Invalid"];
+const STCLASS={"New":"st-new","Under Review":"st-review","Assigned":"st-review","In Progress":"st-progress","Awaiting Information":"st-review","Resolved":"st-resolved","Closed":"st-closed","Rejected/Invalid":"st-rejected"};
+const PRCLASS={"Low":"pr-low","Medium":"pr-medium","High":"pr-high","Critical":"pr-critical"};
+
+function load(){
+  let d=localStorage.getItem(LS_KEY);
+  if(!d){
+    const seed={categories:[...DEFAULT_CATS],programmes:[],contacts:{phone:"",email:""},
+      students:[{name:"Demo Student 1",reg:"RUCU/2024/01",programme:"BSc Computer Science",year:"2"},{name:"Demo Student 2",reg:"RUCU/2024/02",programme:"Accounting and Finance",year:"3"},{name:"Demo Student 3",reg:"RUCU/2024/03",programme:"Bachelor of Laws",year:"1"}],
+      studentSession:null,pendingOtp:null,
+      leaders:[
+        {id:1,demo:false,vacant:true,name:"Nafasi Wazi",position:"Rais",ministry:"",phone:"",bio:"Nafasi hii bado haijajazwa — msimamizi atengeneze wasifu wa kiongozi halisi.",photo:null,active:true},
+        {id:2,demo:false,vacant:true,name:"Nafasi Wazi",position:"Makamu wa Rais",ministry:"",phone:"",bio:"Nafasi hii bado haijajazwa — msimamizi atengeneze wasifu wa kiongozi halisi.",photo:null,active:true},
+        {id:3,demo:false,vacant:true,name:"Nafasi Wazi",position:"Katibu Mkuu",ministry:"",phone:"",bio:"Nafasi hii bado haijajazwa — msimamizi atengeneze wasifu wa kiongozi halisi.",photo:null,active:true},
+        {id:4,demo:false,vacant:true,name:"Nafasi Wazi",position:"Naibu Katibu Mkuu",ministry:"",phone:"",bio:"Nafasi hii bado haijajazwa — msimamizi atengeneze wasifu wa kiongozi halisi.",photo:null,active:true},
+        {id:5,demo:false,vacant:true,name:"Nafasi Wazi",position:"Waziri wa Wizara ya Mfano",ministry:"Wizara ya Mfano",phone:"",bio:"Nafasi hii bado haijajazwa — msimamizi atengeneze wasifu wa kiongozi halisi.",photo:null,active:true},
+        {id:6,demo:false,vacant:true,name:"Nafasi Wazi",position:"Naibu Waziri wa Wizara ya Mfano",ministry:"Wizara ya Mfano",phone:"",bio:"Nafasi hii bado haijajazwa — msimamizi atengeneze wasifu wa kiongozi halisi.",photo:null,active:true},
+        {id:7,demo:false,vacant:true,name:"Nafasi Wazi",position:"Katibu wa Wizara ya Mfano",ministry:"Wizara ya Mfano",phone:"",bio:"Nafasi hii bado haijajazwa — msimamizi atengeneze wasifu wa kiongozi halisi.",photo:null,active:true}
+      ],leaderCounter:7,
+      ministries:[{id:1,demo:true,name:"Wizara ya Mfano",description:"Hii ni wizara ya mfano — badilisha au ongeza wizara halisi.",active:true}],ministryCounter:1,
+      services:["Mikopo","Uwezeshaji","Masuala ya Masomo","Mitihani","Usajili","Fedha","Malazi","Chakula","Afya","Maktaba","ICT/Internet","Ushauri","Michezo","Clubs & Societies","Student Welfare","Other Services"]
+        .map((n,i)=>({id:i+1,name:n,description:"",contact:"",active:false})),serviceCounter:16,
+      announcements:[],announcementCounter:0,
+      documents:[],documentCounter:0,
+      auditLog:[],
+      counter:3,acadYear:"2026/2027",admin:null,
+      feedback:[
+        mkDemo(1,"Complaint","ICT/Internet","Wi-Fi disconnects in hostel B","Internet keeps disconnecting every evening in Hostel B, making it hard to study.","High","New",true),
+        mkDemo(2,"Challenge/Problem","Accommodation","No hot water in hostel showers","Hostel showers have had no hot water for two weeks.","Medium","Under Review",false),
+        mkDemo(3,"Suggestion","Library","Extend library hours during exams","Please extend library opening hours during examination period.","Low","Resolved",true)
+      ]};
+    localStorage.setItem(LS_KEY,JSON.stringify(seed));
+    return seed;
+  }
+  const parsed=JSON.parse(d);
+  if(!parsed.programmes) parsed.programmes=[];
+  if(!parsed.students) parsed.students=[];
+  if(!parsed.contacts) parsed.contacts={phone:"",email:""};
+  if(parsed.studentSession===undefined) parsed.studentSession=null;
+  if(parsed.pendingOtp===undefined) parsed.pendingOtp=null;
+  if(!parsed.leaders) parsed.leaders=[];
+  if(!parsed.leaderCounter) parsed.leaderCounter=parsed.leaders.length;
+  if(!parsed.ministries) parsed.ministries=[];
+  if(!parsed.ministryCounter) parsed.ministryCounter=parsed.ministries.length;
+  if(!parsed.services) parsed.services=[];
+  if(!parsed.serviceCounter) parsed.serviceCounter=parsed.services.length;
+  if(!parsed.announcements) parsed.announcements=[];
+  if(!parsed.announcementCounter) parsed.announcementCounter=parsed.announcements.length;
+  if(!parsed.documents) parsed.documents=[];
+  if(!parsed.documentCounter) parsed.documentCounter=parsed.documents.length;
+  if(!parsed.auditLog) parsed.auditLog=[];
+  return parsed;
+}
+function mkDemo(n,type,cat,title,desc,priority,status,anon){
+  const ref="RUCU-2026-"+String(n).padStart(6,"0");
+  return {ref,demo:true,type,category:cat,title,desc,date:"",loc:"",solution:"",rating:"",priority,anonymous:anon,
+    name:anon?"":"Demo Student "+n,reg:anon?"":"RUCU/2024/0"+n,programme:anon?"":"BSc CS",year:anon?"":"2",phone:"",email:"",
+    status,assignedTo:"",response:"",notes:[],history:[{from:"—",to:status,by:"System",at:new Date().toISOString()}],
+    createdAt:new Date(Date.now()-n*86400000).toISOString()};
+}
+function save(d){localStorage.setItem(LS_KEY,JSON.stringify(d));}
+function logAction(action,details){
+  const by=DB.session?DB.session.name+" ("+DB.session.role+")":(DB.studentSession?DB.studentSession.name+" (mwanafunzi)":"Mfumo");
+  DB.auditLog.unshift({action,details,by,at:new Date().toISOString()});
+  if(DB.auditLog.length>300) DB.auditLog.length=300;
+}
+let DB=load();
+
+// ---- Nav ----
+const TABS=[["home","Nyumbani",false],["submit","Toa Maoni",false],["track","Fuatilia Taarifa",false],["leadership","Uongozi",false],["services","Huduma",false],["announcements","Matangazo",false],["documents","Nyaraka",false],
+  ["dashboard","Dashibodi",true],["issues","Masuala",true],["reports","Ripoti",true],["settings","Mipangilio",true],
+  ["adminlogin","Ingia (Msimamizi)",false]];
+function renderTabs(){
+  const nav=document.getElementById("tabs"); nav.innerHTML="";
+  TABS.forEach(([id,label,needsAuth])=>{
+    if(needsAuth && !DB.session) return;
+    if(id==="adminlogin" && DB.session) return;
+    const b=document.createElement("button"); b.textContent=label; b.onclick=()=>go(id);
+    b.className=(id===currentView?"active":""); nav.appendChild(b);
+  });
+  if(DB.session){
+    const b=document.createElement("button"); b.textContent="Logout ("+DB.session.role+")"; b.onclick=logout;
+    nav.appendChild(b);
+  }
+  document.getElementById("loginState").textContent=DB.session?("Logged in: "+DB.session.name):"";
+}
+let currentView="home";
+let verifyTarget={preset:null};
+function go(id,presetType){
+  if(["dashboard","issues","reports","settings"].includes(id) && !DB.session){id="adminlogin";}
+  if(id==="submit" && !DB.studentSession){ verifyTarget={preset:presetType||null}; id="verify"; }
+  currentView=id;
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  document.getElementById("view-"+id).classList.add("active");
+  renderTabs();
+  if(id==="verify"){
+    document.getElementById("ver-step1").classList.remove("hidden");
+    document.getElementById("ver-step2").classList.add("hidden");
+    document.getElementById("ver-step3").classList.add("hidden");
+    document.getElementById("ver_reg").value=""; document.getElementById("ver1_msg").innerHTML="";
+  }
+  if(id==="submit"){ populateCategories(); newCaptcha(); document.getElementById("successCard").classList.add("hidden");
+    document.getElementById("regLookupMsg").textContent=""; document.getElementById("f_name").readOnly=false;
+    if(DB.studentSession){
+      const s=DB.studentSession;
+      document.getElementById("verifiedBanner").classList.remove("hidden");
+      document.getElementById("vb_name").textContent=s.name; document.getElementById("vb_reg").textContent=s.reg;
+      document.getElementById("f_reg").value=s.reg; document.getElementById("f_reg").readOnly=true;
+      document.getElementById("f_name").value=s.name; document.getElementById("f_name").readOnly=true;
+      document.getElementById("f_phone").value=s.phone;
+      if(DB.programmes.length){document.getElementById("f_prog_sel").value=s.programme;} else {document.getElementById("f_prog").value=s.programme;}
+    } else { document.getElementById("verifiedBanner").classList.add("hidden"); }
+    document.getElementById("agreeChk").checked=false; document.getElementById("formArea").classList.add("hidden");
+    if(presetType) setTimeout(()=>{document.getElementById("agreeChk").checked=true;document.getElementById("formArea").classList.remove("hidden");document.getElementById("f_type").value=presetType;},0);
+  }
+  if(id==="leadership") renderLeadership();
+  if(id==="services") renderServices();
+  if(id==="announcements") renderAnnouncements();
+  if(id==="documents") renderDocuments();
+  if(id==="dashboard") renderDashboard();
+  if(id==="issues") renderIssues();
+  if(id==="settings") renderSettings();
+  window.scrollTo(0,0);
+}
+document.getElementById("f_anon")?.addEventListener?.("change",function(){});
+document.addEventListener("change",e=>{ if(e.target.id==="f_anon"){document.getElementById("identBlock").classList.toggle("hidden",e.target.checked);} });
+
+function lookupReg(){
+  const reg=document.getElementById("f_reg").value.trim();
+  const msg=document.getElementById("regLookupMsg");
+  const nameInput=document.getElementById("f_name");
+  if(!reg){msg.textContent="";nameInput.readOnly=false;return;}
+  const match=DB.students.find(s=>s.reg.toLowerCase()===reg.toLowerCase());
+  if(match){
+    nameInput.value=match.name; nameInput.readOnly=true;
+    msg.innerHTML='<span class="ok-msg">✓ Namba hii tayari ipo kwenye database — jina limepatikana: '+match.name+'</span>';
+  } else {
+    nameInput.readOnly=false;
+    msg.innerHTML='<span class="err">Namba hii haipatikani kwenye database ya wanafunzi waliosajiliwa. Unaweza kuendelea kujaza jina mwenyewe.</span>';
+  }
+}
+function populateCategories(){
+  const sel=document.getElementById("f_category"); sel.innerHTML="";
+  DB.categories.forEach(c=>{const o=document.createElement("option");o.textContent=c;sel.appendChild(o);});
+  const pInput=document.getElementById("f_prog"), pSel=document.getElementById("f_prog_sel");
+  if(DB.programmes.length){
+    pSel.innerHTML=DB.programmes.map(p=>`<option>${p}</option>`).join("");
+    pSel.classList.remove("hidden"); pInput.classList.add("hidden");
+  } else { pSel.classList.add("hidden"); pInput.classList.remove("hidden"); }
+}
+
+// ---- Student verification (reg number -> phone -> OTP; demo only, no real SMS) ----
+let verifyMatch=null;
+async function verifyStep1(){
+  const reg=document.getElementById("ver_reg").value.trim();
+  const msg=document.getElementById("ver1_msg");
+  let match=null;
+  if(window.RucusoAPI && window.RucusoAPI.client){
+    try{
+      const r=await window.RucusoAPI.lookupStudent(reg);
+      if(r) match={reg,name:r.full_name,programme:r.programme,year:r.year_of_study};
+    }catch(e){ console.warn("Supabase lookup failed, falling back to local registry:",e.message); }
+  }
+  if(!match) match=DB.students.find(s=>s.reg.toLowerCase()===reg.toLowerCase());
+  if(!match){
+    msg.innerHTML='<p class="err">Samahani, Namba hii ya Usajili haijapatikana kwenye mfumo.</p><button class="sec" style="background:var(--navy2);" onclick="verifyStep1()">Jaribu tena</button> <button class="sec" style="background:var(--navy2);" onclick="openAI()">Wasiliana na RUCUSO</button>';
+    return;
+  }
+  verifyMatch=match;
+  document.getElementById("ver_name").textContent=match.name;
+  document.getElementById("ver_prog").textContent=match.programme||"—";
+  document.getElementById("ver_year").textContent=match.year?("Mwaka wa "+match.year):"—";
+  document.getElementById("ver-step1").classList.add("hidden");
+  document.getElementById("ver-step2").classList.remove("hidden");
+}
+function normalizeTzPhone(v){
+  v=v.replace(/[\s-]/g,"");
+  if(/^\+255\d{9}$/.test(v)) return v;
+  if(/^0\d{9}$/.test(v)) return "+255"+v.slice(1);
+  if(/^255\d{9}$/.test(v)) return "+"+v;
+  return null;
+}
+let otpTimer=null;
+function sendOtp(){
+  const raw=document.getElementById("ver_phone").value.trim();
+  const norm=normalizeTzPhone(raw);
+  const emsg=document.getElementById("ver2_msg");
+  if(!norm){emsg.textContent="Namba ya simu si sahihi. Tumia mfumo 07XXXXXXXX au +255XXXXXXXXX.";return;}
+  emsg.textContent="";
+  const otp=String(Math.floor(100000+Math.random()*900000));
+  DB.pendingOtp={phone:norm,otp,expiresAt:Date.now()+5*60*1000,attempts:0};
+  save(DB);
+  document.getElementById("ver_phone_out").textContent=norm;
+  document.getElementById("otpShown").textContent=otp;
+  document.getElementById("ver-step2").classList.add("hidden");
+  document.getElementById("ver-step3").classList.remove("hidden");
+  document.getElementById("ver3_msg").textContent="";
+  const link=document.getElementById("resendLink");
+  link.style.pointerEvents="none"; link.style.opacity=.5;
+  let secs=60; const base=link.textContent="Tuma tena baada ya "+secs+"s";
+  clearInterval(otpTimer);
+  otpTimer=setInterval(()=>{ secs--; if(secs<=0){clearInterval(otpTimer); link.style.pointerEvents="auto"; link.style.opacity=1; link.textContent="Tuma tena OTP";} else { link.textContent="Tuma tena baada ya "+secs+"s"; } },1000);
+}
+function verifyOtp(){
+  const code=document.getElementById("ver_otp").value.trim();
+  const msg=document.getElementById("ver3_msg");
+  const p=DB.pendingOtp;
+  if(!p){msg.textContent="Hakuna OTP iliyotumwa. Tuma tena.";return;}
+  if(Date.now()>p.expiresAt){msg.textContent="OTP imeisha muda wake. Bonyeza 'Tuma tena OTP'.";return;}
+  p.attempts=(p.attempts||0)+1;
+  if(p.attempts>5){msg.textContent="Umejaribu mara nyingi mno. Tuma OTP mpya.";save(DB);return;}
+  if(code!==p.otp){save(DB); msg.textContent="OTP si sahihi. Jaribio "+p.attempts+"/5.";return;}
+  DB.studentSession={reg:verifyMatch.reg,name:verifyMatch.name,programme:verifyMatch.programme||"",year:verifyMatch.year||"",phone:p.phone,verifiedAt:new Date().toISOString()};
+  DB.pendingOtp=null; logAction("Student Verification (OTP)",verifyMatch.reg+" — "+p.phone); save(DB);
+  go("submit",verifyTarget.preset);
+}
+function studentLogout(){ DB.studentSession=null; save(DB); go("home"); }
+
+// ---- Submit ----
+let captchaAnswer=0;
+function newCaptcha(){
+  const a=Math.floor(Math.random()*8)+1, b=Math.floor(Math.random()*8)+1;
+  captchaAnswer=a+b;
+  document.getElementById("captchaLabel").textContent=`Quick check: what is ${a} + ${b}?`;
+  document.getElementById("captchaAns").value="";
+}
+function submitFeedback(){
+  const err=document.getElementById("submitErr"); err.textContent="";
+  const title=document.getElementById("f_title").value.trim();
+  const desc=document.getElementById("f_desc").value.trim();
+  if(!title||!desc){err.textContent="Subject and description are required.";return;}
+  if(+document.getElementById("captchaAns").value!==captchaAnswer){err.textContent="Incorrect answer to the verification question above.";return;}
+  const anon=document.getElementById("f_anon").checked;
+  const progVal=DB.programmes.length?document.getElementById("f_prog_sel").value:document.getElementById("f_prog").value;
+  if(!anon){
+    const name=document.getElementById("f_name").value.trim();
+    const reg=document.getElementById("f_reg").value.trim();
+    if(!name||!reg){err.textContent="Please provide at least your name and registration number, or choose anonymous.";return;}
+  }
+  const category=document.getElementById("f_category").value;
+  const recentDup=DB.feedback.find(x=>x.title.toLowerCase()===title.toLowerCase() && x.category===category &&
+    (Date.now()-new Date(x.createdAt).getTime())<5*60*1000);
+  if(recentDup){err.textContent="A very similar report was just submitted (ref "+recentDup.ref+"). Please wait a few minutes before resubmitting, or track that report instead.";return;}
+
+  function finish(attachment){
+    DB.counter++;
+    const ref="RUCU-2026-"+String(DB.counter).padStart(6,"0");
+    const rec={ref,demo:false,type:document.getElementById("f_type").value,category,
+      title,desc,date:document.getElementById("f_date").value,loc:document.getElementById("f_loc").value,
+      solution:document.getElementById("f_solution").value,rating:document.getElementById("f_rating").value,
+      priority:document.getElementById("f_priority").value,anonymous:anon,
+      name:anon?"":document.getElementById("f_name").value,reg:anon?"":document.getElementById("f_reg").value,
+      programme:anon?"":progVal,year:anon?"":document.getElementById("f_year").value,
+      phone:anon?"":document.getElementById("f_phone").value,email:anon?"":document.getElementById("f_email").value,
+      attachment:attachment||null,
+      status:"New",assignedTo:"",response:"",notes:[],history:[{from:"—",to:"New",by:"System",at:new Date().toISOString()}],
+      createdAt:new Date().toISOString()};
+    DB.feedback.unshift(rec); save(DB);
+    document.getElementById("refOut").textContent=ref;
+    document.getElementById("successCard").classList.remove("hidden");
+    document.getElementById("formArea").classList.add("hidden");
+    document.getElementById("privacyGate").classList.add("hidden");
+  }
+  const file=document.getElementById("f_file").files[0];
+  if(file){
+    if(file.size>800*1024){err.textContent="Attachment is too large (max ~800KB in this demo storage).";return;}
+    const reader=new FileReader();
+    reader.onload=()=>finish({name:file.name,dataUrl:reader.result});
+    reader.onerror=()=>finish(null);
+    reader.readAsDataURL(file);
+  } else { finish(null); }
+}
+
+// ---- Track ----
+function doTrack(){
+  const ref=document.getElementById("trackRef").value.trim().toUpperCase();
+  const rec=DB.feedback.find(f=>f.ref===ref);
+  const out=document.getElementById("trackResult");
+  if(!rec){out.innerHTML='<p class="err">No submission found for that reference number.</p>';return;}
+  const steps=["New","Under Review","In Progress","Resolved"];
+  const idx=Math.max(steps.indexOf(rec.status),rec.status==="Assigned"?1:rec.status==="Closed"||rec.status==="Rejected/Invalid"?3:0);
+  out.innerHTML=`
+    <p><b>Submission Type:</b> ${rec.type}</p>
+    <p><b>Category:</b> ${rec.category}</p>
+    <p><b>Date Submitted:</b> ${new Date(rec.createdAt).toLocaleDateString()}</p>
+    <p><b>Current Status:</b> <span class="pill ${STCLASS[rec.status]}">${rec.status}</span></p>
+    <p><b>Latest Response:</b> ${rec.response?rec.response:'<span class="muted">No response yet.</span>'}</p>
+    <div class="muted" style="margin-top:8px;">${steps.map((s,i)=>(i<=idx?"✓ ":"○ ")+s).join("&nbsp;&nbsp;")}</div>`;
+}
+
+// ---- Admin auth ----
+const ADMIN_USERS=[
+  {email:"admin@rucu.ac.tz",pass:"admin123",role:"Super Admin",name:"Super Admin"},
+  {email:"officer@rucu.ac.tz",pass:"officer123",role:"Officer",name:"Officer Demo"}
+];
+async function doLogin(){
+  const u=document.getElementById("loginUser").value.trim();
+  const p=document.getElementById("loginPass").value;
+  const err=document.getElementById("loginErr"); err.textContent="";
+  if(window.RucusoAPI){
+    try{
+      const {profile}=await window.RucusoAPI.adminLogin(u,p);
+      DB.session={email:u,role:profile.role,name:profile.full_name,supabase:true}; save(DB);
+      go("dashboard"); return;
+    }catch(e){
+      // Fall through to local demo accounts only if Supabase itself isn't configured;
+      // if Supabase IS configured, a failed real login should not fall back silently.
+      if(window.RucusoAPI.client){ err.textContent="Imeshindwa kuingia: "+(e.message||"Taarifa si sahihi."); return; }
+    }
+  }
+  const found=ADMIN_USERS.find(a=>a.email===u.toLowerCase()&&a.pass===p);
+  if(!found){err.textContent="Invalid credentials.";return;}
+  DB.session={email:found.email,role:found.role,name:found.name}; logAction("Login",found.email); save(DB);
+  go("dashboard");
+}
+function logout(){logAction("Logout",DB.session.email); DB.session=null; save(DB); go("home");}
+
+// ---- Dashboard ----
+function renderDashboard(){
+  const f=DB.feedback;
+  const total=f.length;
+  const byStatus=s=>f.filter(x=>x.status===s).length;
+  const critical=f.filter(x=>x.priority==="Critical").length;
+  const ratings=f.filter(x=>x.rating).map(x=>+x.rating);
+  const avgSat=ratings.length?(ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1):"—";
+  document.getElementById("statCards").innerHTML=[
+    ["Total Submissions",total],["New",byStatus("New")],["Under Review",byStatus("Under Review")],
+    ["In Progress",byStatus("In Progress")],["Resolved",byStatus("Resolved")],
+    ["Critical Issues",critical],["Avg. Satisfaction",avgSat],
+    ["Wanafunzi Database",DB.students.length],
+    ["Resolution Rate",total?Math.round((byStatus("Resolved")+byStatus("Closed"))/total*100)+"%":"—"]
+  ].map(([l,v])=>`<div class="card stat"><b>${v}</b><span>${l.toUpperCase()}</span></div>`).join("");
+
+  const catCounts={}; DB.categories.forEach(c=>catCounts[c]=0);
+  f.forEach(x=>catCounts[x.category]=(catCounts[x.category]||0)+1);
+  const maxC=Math.max(1,...Object.values(catCounts));
+  document.getElementById("chartCat").innerHTML=Object.entries(catCounts).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1])
+    .map(([c,v])=>`<div class="bar-row"><span style="width:120px;">${c}</span><div class="bar-track"><div class="bar-fill" style="width:${(v/maxC*100)}%"></div></div><span>${v}</span></div>`).join("")||'<p class="muted">No data yet.</p>';
+
+  const stCounts={}; STATUSES.forEach(s=>stCounts[s]=0);
+  f.forEach(x=>stCounts[x.status]=(stCounts[x.status]||0)+1);
+  const maxS=Math.max(1,...Object.values(stCounts));
+  document.getElementById("chartStatus").innerHTML=Object.entries(stCounts).filter(([,v])=>v>0)
+    .map(([s,v])=>`<div class="bar-row"><span style="width:120px;">${s}</span><div class="bar-track"><div class="bar-fill" style="width:${(v/maxS*100)}%"></div></div><span>${v}</span></div>`).join("");
+
+  const mnCounts={}; DB.ministries.forEach(m=>mnCounts[m.name]=0); let noMinistry=0;
+  f.forEach(x=>{ if(x.ministry){mnCounts[x.ministry]=(mnCounts[x.ministry]||0)+1;} else noMinistry++; });
+  const maxM=Math.max(1,...Object.values(mnCounts),noMinistry);
+  document.getElementById("chartMinistry").innerHTML=(Object.entries(mnCounts).filter(([,v])=>v>0).map(([m,v])=>
+    `<div class="bar-row"><span style="width:120px;">${m}</span><div class="bar-track"><div class="bar-fill" style="width:${(v/maxM*100)}%"></div></div><span>${v}</span></div>`).join("")
+    +(noMinistry?`<div class="bar-row"><span style="width:120px;">Bila Wizara</span><div class="bar-track"><div class="bar-fill" style="width:${(noMinistry/maxM*100)}%"></div></div><span>${noMinistry}</span></div>`:""))
+    ||'<p class="muted">No data yet.</p>';
+
+  // recurring: group by category+keyword overlap in title (simple heuristic)
+  const rec={};
+  f.forEach(x=>{const key=x.category; rec[key]=(rec[key]||0)+1;});
+  const recurring=Object.entries(rec).filter(([,v])=>v>=2).sort((a,b)=>b[1]-a[1]);
+  document.getElementById("recurring").innerHTML=recurring.length?
+    recurring.map(([c,v])=>`<div class="card" style="margin-bottom:8px;"><b>POSSIBLE RECURRING ISSUE</b><br>${c}<br>Reports: ${v}<br><span class="muted">AI-generated grouping — requires administrator confirmation.</span></div>`).join("")
+    : "No recurring patterns detected yet.";
+}
+
+// ---- Issues ----
+function populateFilters(){
+  const fs=document.getElementById("filterStatus"); fs.innerHTML='<option value="">All Statuses</option>'+STATUSES.map(s=>`<option>${s}</option>`).join("");
+  const fc=document.getElementById("filterCategory"); fc.innerHTML='<option value="">All Categories</option>'+DB.categories.map(c=>`<option>${c}</option>`).join("");
+  const fm=document.getElementById("filterMinistry"); fm.innerHTML='<option value="">Wizara Zote</option>'+DB.ministries.map(m=>`<option>${m.name}</option>`).join("")+'<option value="__none__">Bila Wizara</option>';
+}
+function renderIssues(){
+  populateFilters();
+  const fs=document.getElementById("filterStatus").value, fc=document.getElementById("filterCategory").value, fm=document.getElementById("filterMinistry").value;
+  let list=DB.feedback.filter(x=>(!fs||x.status===fs)&&(!fc||x.category===fc)&&(!fm||(fm==="__none__"?!x.ministry:x.ministry===fm)));
+  document.getElementById("issueRows").innerHTML=list.map(x=>`
+    <tr>
+      <td>${x.ref}${x.demo?' <span class="demo">DEMO</span>':''}</td>
+      <td>${new Date(x.createdAt).toLocaleDateString()}</td>
+      <td>${x.category}</td><td>${x.type}</td><td>${x.title}</td>
+      <td>${x.anonymous?"Anonymous":(x.name||"—")}</td>
+      <td><span class="pill ${PRCLASS[x.priority]}">${x.priority}</span></td>
+      <td><span class="pill ${STCLASS[x.status]}">${x.status}</span></td>
+      <td>${x.ministry||"—"}</td>
+      <td>${x.assignedTo||"—"}</td>
+      <td><a class="link" onclick="openIssue('${x.ref}')">View</a></td>
+    </tr>`).join("") || `<tr><td colspan="10" class="muted">No issues match this filter.</td></tr>`;
+}
+function openIssue(ref){
+  const x=DB.feedback.find(f=>f.ref===ref);
+  const m=document.getElementById("issueModal");
+  m.innerHTML=`
+    <span class="badge-close" onclick="closeIssue()">✕</span>
+    <h3 style="margin-top:0">${x.ref} ${x.demo?'<span class="demo">DEMO</span>':''}</h3>
+    <p><b>Category:</b> ${x.category} &nbsp; <b>Type:</b> ${x.type} &nbsp; <span class="pill ${PRCLASS[x.priority]}">${x.priority}</span></p>
+    <p><b>Student:</b> ${x.anonymous?"Anonymous (identity protected)":(x.name+" · "+x.reg+" · "+x.programme+" Yr "+x.year)}</p>
+    <p><b>Description:</b><br>${x.desc}</p>
+    ${x.solution?`<p><b>Suggested Solution:</b> ${x.solution}</p>`:""}
+    ${x.attachment?`<p><b>Attachment:</b> <a class="link" href="${x.attachment.dataUrl}" download="${x.attachment.name}">${x.attachment.name}</a></p>`:""}
+    <label>Status</label>
+    <select id="modStatus">${STATUSES.map(s=>`<option ${s===x.status?"selected":""}>${s}</option>`).join("")}</select>
+    <label>Wizara (Ministry)</label>
+    <select id="modMinistry"><option value="">— Hakuna —</option>${DB.ministries.filter(m=>m.active).map(m=>`<option ${m.name===x.ministry?"selected":""}>${m.name}</option>`).join("")}</select>
+    <label>Assigned Officer</label>
+    <input id="modAssign" value="${x.assignedTo||""}">
+    <label>Admin Response</label>
+    <textarea id="modResponse">${x.response||""}</textarea>
+    <label>Internal Note (not visible to student)</label>
+    <input id="modNote" placeholder="Add internal note">
+    <div style="margin-top:10px;"><button class="pri" onclick="saveIssue('${x.ref}')">Save Changes</button></div>
+    <div style="margin-top:14px;"><b>Activity History</b>
+    ${x.history.map(h=>`<div class="muted" style="font-size:11px;">${new Date(h.at).toLocaleString()} — ${h.by}: ${h.from} → ${h.to}</div>`).join("")}
+    </div>
+    ${x.notes.length?`<div style="margin-top:10px;"><b>Internal Notes</b>${x.notes.map(n=>`<div class="muted" style="font-size:11px;">${n}</div>`).join("")}</div>`:""}
+  `;
+  document.getElementById("issueModalBg").classList.add("active");
+}
+function closeIssue(){document.getElementById("issueModalBg").classList.remove("active");}
+function saveIssue(ref){
+  const x=DB.feedback.find(f=>f.ref===ref);
+  const newStatus=document.getElementById("modStatus").value;
+  if(newStatus!==x.status){
+    x.history.push({from:x.status,to:newStatus,by:DB.session.name,at:new Date().toISOString()});
+    logAction("Status Change",x.ref+": "+x.status+" → "+newStatus);
+    x.status=newStatus;
+    if(newStatus==="Resolved") x.resolvedAt=new Date().toISOString();
+  }
+  x.assignedTo=document.getElementById("modAssign").value;
+  x.ministry=document.getElementById("modMinistry").value;
+  x.response=document.getElementById("modResponse").value;
+  const note=document.getElementById("modNote").value.trim();
+  if(note) x.notes.push(note+" — "+DB.session.name+" ("+new Date().toLocaleString()+")");
+  save(DB); closeIssue(); renderIssues(); renderDashboard();
+}
+
+// ---- Reports ----
+function renderReport(){
+  const period=document.getElementById("reportPeriod").value;
+  const f=DB.feedback;
+  const total=f.length;
+  const catCounts={}; f.forEach(x=>catCounts[x.category]=(catCounts[x.category]||0)+1);
+  const top=Object.entries(catCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const unresolved=f.filter(x=>!["Resolved","Closed"].includes(x.status)).length;
+  const critical=f.filter(x=>x.priority==="Critical").length;
+  const ratings=f.filter(x=>x.rating).map(x=>+x.rating);
+  const avgSat=ratings.length?(ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(2):"—";
+  document.getElementById("reportOut").innerHTML=`
+    <h3>RUCU Student Challenges Report</h3>
+    <p class="muted">Academic Year ${DB.acadYear} · Period: ${period} · Generated ${new Date().toLocaleString()}</p>
+    <p><b>Total reports:</b> ${total}</p>
+    <p><b>Top reported categories:</b></p>
+    <ol>${top.map(([c,v])=>`<li>${c} — ${v}</li>`).join("")}</ol>
+    <p><b>Unresolved issues:</b> ${unresolved} &nbsp; <b>Critical issues:</b> ${critical} &nbsp; <b>Avg. satisfaction:</b> ${avgSat}/5</p>
+    <p class="muted">Recommendations/observations are generated based on submitted data and should be reviewed by an authorized administrator before institutional action.</p>`;
+}
+function exportPDF(){
+  renderReport();
+  const { jsPDF }=window.jspdf;
+  const doc=new jsPDF();
+  const f=DB.feedback;
+  const catCounts={}; f.forEach(x=>catCounts[x.category]=(catCounts[x.category]||0)+1);
+  const top=Object.entries(catCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const unresolved=f.filter(x=>!["Resolved","Closed"].includes(x.status)).length;
+  const critical=f.filter(x=>x.priority==="Critical").length;
+  const ratings=f.filter(x=>x.rating).map(x=>+x.rating);
+  const avgSat=ratings.length?(ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(2):"—";
+  let y=18;
+  doc.setFontSize(16); doc.text("RUCU Student Challenges Report",14,y); y+=8;
+  doc.setFontSize(10); doc.text("Academic Year "+DB.acadYear+" | Generated "+new Date().toLocaleString(),14,y); y+=10;
+  doc.setFontSize(12); doc.text("Total reports: "+f.length,14,y); y+=8;
+  doc.text("Unresolved: "+unresolved+"   Critical: "+critical+"   Avg. satisfaction: "+avgSat+"/5",14,y); y+=10;
+  doc.setFontSize(13); doc.text("Top reported categories:",14,y); y+=8;
+  doc.setFontSize(11);
+  top.forEach(([c,v],i)=>{ doc.text((i+1)+". "+c+" — "+v,18,y); y+=7; });
+  y+=6; doc.setFontSize(9);
+  doc.text("Recommendations/observations are generated from submitted data and require administrator review.",14,y);
+  doc.save("rucu_report.pdf");
+}
+function exportCSV(){
+  const rows=[["Reference","Date","Category","Type","Subject","Priority","Status","Anonymous"]];
+  DB.feedback.forEach(x=>rows.push([x.ref,x.createdAt,x.category,x.type,x.title,x.priority,x.status,x.anonymous]));
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob=new Blob([csv],{type:"text/csv"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="rucu_report.csv"; a.click();
+}
+
+// ---- Settings ----
+// ---- Documents & Resources ----
+function renderDocuments(){
+  document.getElementById("docUploadCard").classList.toggle("hidden",!DB.session);
+  document.getElementById("docList").innerHTML=DB.documents.length?DB.documents.map(d=>`
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+      <div><b>${d.title}</b><br><span class="muted" style="font-size:12px;">${d.category||"Hati"} · ${new Date(d.uploadedAt).toLocaleDateString()}</span></div>
+      <div><a class="link" href="${d.dataUrl}" download="${d.fileName}">Pakua</a>${DB.session?` &nbsp;<a class="link" onclick="removeDocument(${d.id})">Ondoa</a>`:""}</div>
+    </div>`).join("") : '<p class="muted">Hakuna nyaraka zilizopakiwa bado.</p>';
+}
+function addDocument(){
+  const title=document.getElementById("doc_title").value.trim();
+  const file=document.getElementById("doc_file").files[0];
+  if(!title||!file){alert("Weka kichwa na chagua faili.");return;}
+  if(file.size>3*1024*1024){alert("Faili ni kubwa mno (zaidi ya 3MB katika hifadhi hii ya demo).");return;}
+  const reader=new FileReader();
+  reader.onload=()=>{
+    DB.documents.push({id:++DB.documentCounter,title,category:document.getElementById("doc_cat").value.trim(),
+      fileName:file.name,dataUrl:reader.result,uploadedAt:new Date().toISOString(),uploadedBy:DB.session.name});
+    save(DB);
+    document.getElementById("doc_title").value=""; document.getElementById("doc_cat").value=""; document.getElementById("doc_file").value="";
+    renderDocuments();
+  };
+  reader.readAsDataURL(file);
+}
+function removeDocument(id){ if(confirm("Ondoa hati hii?")){DB.documents=DB.documents.filter(x=>x.id!==id); save(DB); renderDocuments();} }
+
+// ---- Student Services ----
+function renderServiceAdmin(){
+  document.getElementById("serviceAdminList").innerHTML=DB.services.map(s=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <span>${s.name}${s.active?"":" (imezimwa)"}${s.description?" — "+s.description:""}</span>
+      <span><a class="link" onclick="editService(${s.id})">Hariri</a>&nbsp; <a class="link" onclick="toggleService(${s.id})">${s.active?"Zima":"Washa"}</a> &nbsp;<a class="link" onclick="removeService(${s.id})">Ondoa</a></span>
+    </div>`).join("")||'<p class="muted">Hakuna huduma bado.</p>';
+}
+function addService(){
+  const name=document.getElementById("sv_name").value.trim();
+  if(!name) return;
+  DB.services.push({id:++DB.serviceCounter,name,description:"",contact:"",active:false});
+  save(DB); document.getElementById("sv_name").value=""; renderServiceAdmin();
+}
+function editService(id){
+  const s=DB.services.find(x=>x.id===id);
+  const desc=prompt("Maelezo ya huduma '"+s.name+"':",s.description||"");
+  if(desc===null) return;
+  const contact=prompt("Mawasiliano (simu/email, hiari):",s.contact||"");
+  s.description=desc.trim(); s.contact=(contact||"").trim(); save(DB); renderServiceAdmin();
+}
+function toggleService(id){ const s=DB.services.find(x=>x.id===id); s.active=!s.active; save(DB); renderServiceAdmin(); }
+function removeService(id){ if(confirm("Ondoa huduma hii?")){DB.services=DB.services.filter(x=>x.id!==id); save(DB); renderServiceAdmin();} }
+function renderServices(){
+  const active=DB.services.filter(s=>s.active);
+  document.getElementById("serviceGrid").innerHTML=active.length?active.map(s=>`
+    <div class="card"><h3>${s.name}</h3>
+      <p style="font-size:13px;">${s.description||'<span class="muted">Maelezo bado hayajawekwa na msimamizi.</span>'}</p>
+      ${s.contact?`<p class="muted" style="font-size:12px;">Mawasiliano: ${s.contact}</p>`:""}
+    </div>`).join("") : '<p class="muted">Huduma zitasanidiwa hivi karibuni na msimamizi wa mfumo.</p>';
+}
+
+// ---- Announcements ----
+function renderAnnouncements(){
+  document.getElementById("annCreateCard").classList.toggle("hidden",!DB.session);
+  const today=new Date().toISOString().slice(0,10);
+  const visible=DB.announcements.filter(a=>(!a.publishDate||a.publishDate<=today)&&(!a.expiryDate||a.expiryDate>=today))
+    .sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  document.getElementById("annGrid").innerHTML=visible.length?visible.map(a=>`
+    <div class="card">
+      <h3 style="margin:0 0 4px;">${a.title}</h3>
+      <p class="muted" style="font-size:12px;margin:0 0 8px;">${a.category?a.category+" · ":""}${a.audience||"Wanafunzi Wote"} · ${new Date(a.createdAt).toLocaleDateString()}${DB.session?` &nbsp;<a class="link" onclick="removeAnnouncement(${a.id})">Ondoa</a>`:""}</p>
+      <p style="font-size:13px;">${a.description}</p>
+    </div>`).join("") : '<p class="muted">Hakuna matangazo kwa sasa.</p>';
+}
+function addAnnouncement(){
+  const title=document.getElementById("an_title").value.trim();
+  const desc=document.getElementById("an_desc").value.trim();
+  if(!title||!desc){alert("Weka kichwa na maelezo.");return;}
+  DB.announcements.push({id:++DB.announcementCounter,title,description:desc,
+    category:document.getElementById("an_cat").value.trim(),
+    audience:document.getElementById("an_audience").value.trim()||"Wanafunzi Wote",
+    publishDate:document.getElementById("an_publish").value,
+    expiryDate:document.getElementById("an_expiry").value,
+    author:DB.session.name, createdAt:new Date().toISOString()});
+  logAction("Announcement Published",title); save(DB);
+  ["an_title","an_desc","an_cat","an_publish","an_expiry"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("an_audience").value="Wanafunzi Wote";
+  renderAnnouncements();
+}
+function removeAnnouncement(id){ if(confirm("Ondoa tangazo hili?")){DB.announcements=DB.announcements.filter(x=>x.id!==id); save(DB); renderAnnouncements();} }
+
+// ---- Ministries ----
+function renderMinistryAdmin(){
+  document.getElementById("ministryAdminList").innerHTML=DB.ministries.map(m=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <span>${m.name}${m.demo?' <span class="demo">DEMO</span>':''}${m.active?"":" (imezimwa)"}</span>
+      <span><a class="link" onclick="toggleMinistry(${m.id})">${m.active?"Zima":"Washa"}</a> &nbsp;<a class="link" onclick="removeMinistry(${m.id})">Ondoa</a></span>
+    </div>`).join("")||'<p class="muted">Hakuna wizara bado.</p>';
+}
+function addMinistry(){
+  const name=document.getElementById("mn_name").value.trim();
+  if(!name){alert("Weka jina la wizara.");return;}
+  DB.ministries.push({id:++DB.ministryCounter,demo:false,name,description:document.getElementById("mn_desc").value.trim(),active:true});
+  ["Waziri","Naibu Waziri","Katibu"].forEach(role=>{
+    DB.leaders.push({id:++DB.leaderCounter,demo:false,vacant:true,name:"Nafasi Wazi",position:role+" wa "+name,
+      ministry:name,phone:"",bio:"Nafasi hii bado haijajazwa — msimamizi atengeneze wasifu wa kiongozi halisi.",photo:null,active:true});
+  });
+  logAction("Ministry Created",name+" (+ nafasi 3 za uongozi zimetengenezwa)"); save(DB); document.getElementById("mn_name").value=""; document.getElementById("mn_desc").value=""; renderMinistryAdmin(); renderLeaderAdmin();
+}
+function toggleMinistry(id){ const m=DB.ministries.find(x=>x.id===id); m.active=!m.active; save(DB); renderMinistryAdmin(); }
+function removeMinistry(id){ if(confirm("Ondoa wizara hii?")){const m=DB.ministries.find(x=>x.id===id); logAction("Ministry Removed",m?m.name:String(id)); DB.ministries=DB.ministries.filter(x=>x.id!==id); save(DB); renderMinistryAdmin();} }
+
+// ---- Leadership Directory ----
+function renderLeadership(){
+  const active=DB.leaders.filter(l=>l.active && !l.vacant);
+  document.getElementById("leaderGrid").innerHTML=active.length?active.map(l=>`
+    <div class="card" style="text-align:center;">
+      ${l.photo?`<img src="${l.photo}" style="width:84px;height:84px;border-radius:50%;object-fit:cover;margin-bottom:8px;">`:
+        `<div style="width:84px;height:84px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:28px;">👤</div>`}
+      <h3 style="margin:4px 0 0;">${l.name} ${l.demo?'<span class="demo">DEMO</span>':''}</h3>
+      <p class="muted" style="margin:2px 0 8px;">${l.position}${l.ministry?" · "+l.ministry:""}</p>
+      <p style="font-size:13px;">${l.bio||""}</p>
+      ${l.phone?`<a class="pri" style="display:inline-block;text-decoration:none;margin-top:6px;" href="tel:${l.phone}">📞 Wasiliana (${l.phone})</a>`:'<p class="muted">Namba ya simu haijawekwa.</p>'}
+    </div>`).join("") : '<p class="muted">Taarifa za uongozi zitasanidiwa na msimamizi wa mfumo.</p>';
+}
+function editLeader(id){
+  const l=DB.leaders.find(x=>x.id===id);
+  const name=prompt("Jina la kiongozi kwa nafasi '"+l.position+"':",l.vacant?"":l.name);
+  if(name===null) return;
+  const phone=prompt("Namba ya simu (mfano +255...):",l.phone||"");
+  if(phone===null) return;
+  const bio=prompt("Maelezo mafupi kuhusu kiongozi:",l.vacant?"":l.bio);
+  if(bio===null) return;
+  l.name=name.trim()||"Nafasi Wazi"; l.phone=phone.trim(); l.bio=bio.trim(); l.vacant=!name.trim();
+  save(DB); renderLeaderAdmin(); renderLeadership();
+}
+function renderLeaderAdmin(){
+  document.getElementById("leaderAdminList").innerHTML=DB.leaders.map(l=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <span>${l.position}${l.ministry?" ("+l.ministry+")":""} — ${l.vacant?'<span class="demo" style="background:#fde2e2;color:#a33;">NAFASI WAZI</span>':l.name}${l.active?"":" (imezimwa)"}</span>
+      <span><a class="link" onclick="editLeader(${l.id})">Jaza/Hariri</a> &nbsp;<a class="link" onclick="toggleLeaderActive(${l.id})">${l.active?"Zima":"Washa"}</a> &nbsp;<a class="link" onclick="removeLeader(${l.id})">Ondoa</a></span>
+    </div>`).join("")||'<p class="muted">Hakuna kiongozi bado.</p>';
+}
+function addLeader(){
+  const name=document.getElementById("ld_name").value.trim();
+  const position=document.getElementById("ld_position").value.trim();
+  if(!name||!position){alert("Weka jina na nafasi ya kiongozi.");return;}
+  const rec={id:++DB.leaderCounter,demo:false,name,position,
+    ministry:document.getElementById("ld_ministry").value.trim(),
+    phone:document.getElementById("ld_phone").value.trim(),
+    bio:document.getElementById("ld_bio").value.trim(),
+    photo:null,active:document.getElementById("ld_active").checked};
+  function finish(){
+    DB.leaders.push(rec); logAction("Leader Created",rec.name+" — "+rec.position); save(DB);
+    ["ld_name","ld_position","ld_ministry","ld_phone","ld_bio"].forEach(id=>document.getElementById(id).value="");
+    document.getElementById("ld_photo").value="";
+    renderLeaderAdmin(); renderLeadership();
+  }
+  const file=document.getElementById("ld_photo").files[0];
+  if(file){
+    if(file.size>500*1024){alert("Picha ni kubwa mno (zaidi ya 500KB katika hifadhi hii ya demo).");return;}
+    const reader=new FileReader();
+    reader.onload=()=>{rec.photo=reader.result; finish();};
+    reader.onerror=()=>finish();
+    reader.readAsDataURL(file);
+  } else { finish(); }
+}
+function toggleLeaderActive(id){ const l=DB.leaders.find(x=>x.id===id); l.active=!l.active; save(DB); renderLeaderAdmin(); renderLeadership(); }
+function removeLeader(id){ if(confirm("Ondoa kiongozi huyu?")){const l=DB.leaders.find(x=>x.id===id); logAction("Leader Removed",l?l.name:String(id)); DB.leaders=DB.leaders.filter(x=>x.id!==id); save(DB); renderLeaderAdmin(); renderLeadership();} }
+
+function renderSettings(){
+  document.getElementById("studentCount").textContent=DB.students.length;
+  document.getElementById("auditRows").innerHTML=DB.auditLog.slice(0,50).map(a=>
+    `<tr><td>${new Date(a.at).toLocaleString()}</td><td>${a.action}</td><td>${a.by}</td><td>${a.details||""}</td></tr>`).join("")
+    ||'<tr><td colspan="4" class="muted">Hakuna matukio bado.</td></tr>';
+  renderServiceAdmin();
+  renderMinistryAdmin();
+  renderLeaderAdmin();
+  document.getElementById("catList").innerHTML=DB.categories.map((c,i)=>
+    `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:13px;">${c}
+     <a class="link" onclick="removeCategory(${i})">Remove</a></div>`).join("");
+  document.getElementById("acadYear").value=DB.acadYear;
+  document.getElementById("progList").innerHTML=DB.programmes.length?DB.programmes.map((p,i)=>
+    `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:13px;">${p}
+     <a class="link" onclick="removeProgramme(${i})">Remove</a></div>`).join(""):'<p class="muted">None configured yet — students will type their programme as free text.</p>';
+  document.getElementById("cfgPhone").value=DB.contacts.phone||"";
+  document.getElementById("cfgEmail").value=DB.contacts.email||"";
+}
+function addProgramme(){
+  const v=document.getElementById("newProg").value.trim();
+  if(!v) return;
+  DB.programmes.push(v); save(DB); document.getElementById("newProg").value=""; renderSettings();
+}
+function removeProgramme(i){ DB.programmes.splice(i,1); save(DB); renderSettings(); }
+function saveContacts(){
+  DB.contacts={phone:document.getElementById("cfgPhone").value.trim(),email:document.getElementById("cfgEmail").value.trim()};
+  save(DB); alert("Contact information saved.");
+}
+function importStudentsCSV(){
+  const file=document.getElementById("csv_file").files[0];
+  if(!file){alert("Chagua faili la CSV kwanza.");return;}
+  const reader=new FileReader();
+  reader.onload=async ()=>{
+    const lines=String(reader.result).split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+    if(lines.length<2){alert("Faili haina data ya kutosha (angalau safu ya vichwa + mstari mmoja).");return;}
+    const headers=lines[0].split(",").map(h=>h.trim().toUpperCase());
+    const idx=name=>headers.indexOf(name);
+    const iReg=idx("REGISTRATION NUMBER"),iFirst=idx("FIRST NAME"),iMiddle=idx("MIDDLE NAME"),iLast=idx("LAST NAME"),
+      iProg=idx("PROGRAMME"),iYear=idx("YEAR OF STUDY"),iPhone=idx("PHONE"),iEmail=idx("EMAIL");
+    if(iReg===-1){alert("Faili haina safu ya 'REGISTRATION NUMBER'. Angalia vichwa vya safu.");return;}
+    let added=0,duplicate=0,invalid=0; const supabaseRows=[];
+    for(let i=1;i<lines.length;i++){
+      const cols=lines[i].split(",").map(c=>c.trim());
+      const reg=cols[iReg]||"";
+      if(!reg){invalid++;continue;}
+      if(DB.students.find(s=>s.reg.toLowerCase()===reg.toLowerCase())){duplicate++;continue;}
+      const first=iFirst>-1?(cols[iFirst]||""):"", middle=iMiddle>-1?(cols[iMiddle]||""):"", last=iLast>-1?(cols[iLast]||""):"";
+      const name=[first,middle,last].filter(Boolean).join(" ");
+      if(!name){invalid++;continue;}
+      DB.students.push({name,reg,programme:iProg>-1?(cols[iProg]||""):"",year:iYear>-1?(cols[iYear]||""):"",
+        phone:iPhone>-1?(cols[iPhone]||""):"",email:iEmail>-1?(cols[iEmail]||""):""});
+      supabaseRows.push({registration_number:reg,first_name:first||name,middle_name:middle||null,last_name:last||"",
+        programme:iProg>-1?(cols[iProg]||null):null,year_of_study:iYear>-1?(cols[iYear]||null):null,
+        phone_number:iPhone>-1?(cols[iPhone]||null):null,email:iEmail>-1?(cols[iEmail]||null):null});
+      added++;
+    }
+    let supabaseNote="";
+    if(window.RucusoAPI && window.RucusoAPI.client && supabaseRows.length){
+      try{ await window.RucusoAPI.bulkUpsertStudents(supabaseRows); supabaseNote="\n(Pia zimehifadhiwa kwenye database ya Supabase.)"; }
+      catch(e){ supabaseNote="\n(Onyo: kuhifadhi kwenye Supabase kumeshindikana — "+e.message+". Zimehifadhiwa hapa kwa kivinjari tu.)"; }
+    }
+    logAction("Students CSV Import","Added: "+added+", Duplicate: "+duplicate+", Invalid: "+invalid);
+    save(DB); renderSettings(); document.getElementById("csv_file").value="";
+    alert("Uagizaji umekamilika.\nWameongezwa wapya: "+added+"\nWameruka (tayari wapo kwenye database): "+duplicate+"\nMistari isiyo sahihi: "+invalid+supabaseNote);
+  };
+  reader.readAsText(file);
+}
+function addStudent(){
+  const name=document.getElementById("newStudName").value.trim();
+  const reg=document.getElementById("newStudReg").value.trim();
+  if(!name||!reg){alert("Weka jina na registration number.");return;}
+  const i=DB.students.findIndex(s=>s.reg.toLowerCase()===reg.toLowerCase());
+  if(i>-1) DB.students[i]={name,reg}; else DB.students.push({name,reg});
+  save(DB); document.getElementById("newStudName").value=""; document.getElementById("newStudReg").value=""; renderSettings();
+}
+function bulkImportStudents(){
+  const lines=document.getElementById("bulkStudents").value.split("\n").map(l=>l.trim()).filter(Boolean);
+  let added=0;
+  lines.forEach(l=>{
+    const parts=l.split(",");
+    if(parts.length<2) return;
+    const name=parts[0].trim(), reg=parts.slice(1).join(",").trim();
+    if(!name||!reg) return;
+    const i=DB.students.findIndex(s=>s.reg.toLowerCase()===reg.toLowerCase());
+    if(i>-1) DB.students[i]={name,reg}; else DB.students.push({name,reg});
+    added++;
+  });
+  save(DB); document.getElementById("bulkStudents").value=""; renderSettings();
+  alert(added+" wanafunzi wameongezwa/kusasishwa.");
+}
+function clearStudents(){ if(confirm("Futa wanafunzi wote kwenye database?")){DB.students=[]; save(DB); renderSettings();} }
+function addCategory(){
+  const v=document.getElementById("newCat").value.trim();
+  if(!v) return;
+  DB.categories.push(v); save(DB); document.getElementById("newCat").value=""; renderSettings();
+}
+function removeCategory(i){ DB.categories.splice(i,1); save(DB); renderSettings(); }
+function setAcadYear(){ DB.acadYear=document.getElementById("acadYear").value; save(DB); }
+function clearDemoData(){
+  DB.feedback=DB.feedback.filter(x=>!x.demo); DB.leaders=DB.leaders.filter(x=>!x.demo); DB.ministries=DB.ministries.filter(x=>!x.demo); save(DB); renderIssues(); renderDashboard();
+  alert("Demo data cleared.");
+}
+
+// ---- RUCUSO AI (rule-based, on-device — not a live LLM) ----
+function openAI(){document.getElementById("aiModalBg").classList.add("active");
+  if(!document.getElementById("aiChat").innerHTML){
+    addAI("Habari! Mimi ni RUCUSO AI. Niko hapa kukusaidia kutumia mfumo. Uliza chochote, mfano: 'Nianzie wapi?' au 'Ni changamoto gani zimeripotiwa sana?'");
+  }
+}
+function closeAI(){document.getElementById("aiModalBg").classList.remove("active");}
+function addAI(text,who){
+  const c=document.getElementById("aiChat");
+  c.innerHTML+=`<div class="chatline"><b>${who||"RUCUSO AI"}:</b> ${text}</div>`;
+  c.scrollTop=c.scrollHeight;
+}
+function askAI(){
+  const inp=document.getElementById("aiInput"); const q=inp.value.trim(); if(!q) return;
+  addAI(q,"Wewe"); inp.value="";
+  addAI(answerAI(q.toLowerCase()));
+}
+function answerAI(q){
+  const f=DB.feedback;
+  if(q.includes("nijaze") || q.includes("kichwa")) return "Unaweza kuweka kichwa kifupi kinachoelezea tatizo. Mfano: 'Changamoto ya Internet katika hosteli'.";
+  if(q.includes("nianzie") || (q.includes("nifanye") && currentView==="home")) return "Uko kwenye ukurasa wa mwanzo. Bonyeza 'Submit Feedback' kutoa maoni, au 'Track My Report' kufuatilia lililotumwa.";
+  if(currentView==="settings" && (q.includes("nifanye")||q.includes("category"))) return "Uko kwenye Settings → Categories. Fuata hatua hizi:\n1. Andika jina la category kwenye kisanduku.\n2. Bonyeza Add.\n3. Category itaonekana kwenye orodha na fomu ya wanafunzi.";
+  if(q.includes("report") && (q.includes("ninawezaje")||q.includes("tengeneza")||q.includes("month"))) return "Nenda kwenye tab ya Reports, chagua Period, kisha bonyeza Generate Report. Unaweza Export CSV au Print.";
+  if(q.includes("export")) return "Kwenye ukurasa wa Reports, bonyeza 'Export CSV' kupata faili la data, au 'Print' kupata nakala ya PDF kupitia dirisha la kuchapisha la kivinjari.";
+  if(q.includes("status") && q.includes("badilisha")) return "Kwenye Issues, bonyeza 'View' kwenye ripoti husika, chagua Status mpya kwenye dropdown, kisha 'Save Changes'.";
+  if(q.includes("assign")) return "Kwenye dirisha la 'View' la ripoti, jaza jina la 'Assigned Officer' kisha bonyeza Save Changes.";
+  if(q.includes("unresolved")) {
+    const n=f.filter(x=>!["Resolved","Closed"].includes(x.status)).length;
+    return `DATABASE FACT: Kuna ripoti ${n} ambazo bado hazijamalizika (unresolved).`;
+  }
+  if(q.includes("ngapi") && q.includes("ripoti")||q.includes("zimepokelewa")) return `DATABASE FACT: Jumla ya ripoti zilizopokelewa ni ${f.length}.`;
+  if(q.includes("satisfaction") || q.includes("kuridhika")){
+    const ratings=f.filter(x=>x.rating).map(x=>+x.rating);
+    const avg=ratings.length?(ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(2):"—";
+    return `DATABASE FACT: Wastani wa kuridhika (satisfaction) ni ${avg} kati ya 5, kutoka ripoti ${ratings.length} zenye rating.`;
+  }
+  if(q.includes("zimeripotiwa sana")||q.includes("category gani")){
+    const cc={}; f.forEach(x=>cc[x.category]=(cc[x.category]||0)+1);
+    const top=Object.entries(cc).sort((a,b)=>b[1]-a[1])[0];
+    return top?`AI-GENERATED SUMMARY: Category inayoongoza kwa ripoti ni "${top[0]}" (${top[1]} ripoti). Hii si uamuzi rasmi wa kiutawala mpaka msimamizi athibitishe.`:"Hakuna data ya kutosha bado.";
+  }
+  if(q.includes("dashboard") && q.includes("maana")) return "Dashboard inaonyesha muhtasari wa ripoti zote: idadi jumla, mpya, zinazoendelea, zilizotatuliwa, masuala ya dharura (critical), na wastani wa kuridhika kwa wanafunzi.";
+  return "Samahani, sijaelewa vizuri swali lako. Jaribu: 'Nianzie wapi?', 'Ninawezaje kubadilisha status?', 'Ni ripoti ngapi zimepokelewa?', au 'Nisaidie kutengeneza report'.";
+}
+
+// ---- init ----
+populateCategories();
+renderTabs();
+go("home");
+</script>
+</body>
+</html>
