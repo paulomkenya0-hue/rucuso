@@ -98,6 +98,11 @@ a.link{color:var(--info);cursor:pointer;}
   <span id="loginState" class="muted" style="color:#cdd9ee;font-size:11px;"></span>
 </header>
 <nav class="tabs" id="tabs"></nav>
+<nav class="tabs" id="portalLinks" style="background:var(--navy);padding-top:0;">
+  <a href="#" onclick="go('verify');return false;" style="background:transparent;border:1px solid rgba(255,255,255,.25);color:#fff;padding:6px 10px;border-radius:6px;font-size:12px;text-decoration:none;">Ingia kama Mwanafunzi</a>
+  <a href="/leader/login/" style="background:transparent;border:1px solid rgba(255,255,255,.25);color:#fff;padding:6px 10px;border-radius:6px;font-size:12px;text-decoration:none;">Ingia kama Kiongozi</a>
+  <a href="/admin/login/" style="background:transparent;border:1px solid rgba(255,255,255,.25);color:#fff;padding:6px 10px;border-radius:6px;font-size:12px;text-decoration:none;">Ingia kama Msimamizi</a>
+</nav>
 <main>
 
   <section class="view" id="view-home">
@@ -264,16 +269,10 @@ a.link{color:var(--info);cursor:pointer;}
     </div>
   </section>
 
-  <section class="view" id="view-adminlogin">
-    <div class="card" style="max-width:360px;margin:0 auto;">
-      <h2 style="margin-top:0">Admin Login</h2>
-      <label>Email/Username</label><input id="loginUser">
-      <label>Password</label><input type="password" id="loginPass">
-      <div id="loginErr" class="err"></div>
-      <div style="margin-top:12px;"><button class="pri" onclick="doLogin(event)">Login</button></div>
-      <p class="muted" style="margin-top:10px;">Ukipo unafunguliwa na msimamizi wa RUCUSO. Akaunti hutengenezwa na msimamizi mkuu; rekodi za matukio ya kuingia hufanyika kwenye database.</p>
-    </div>
-  </section>
+  <!-- Admin Login was removed from here (2026-09) — administrative sign-in now
+       lives entirely outside the public site, at /leader/login/ and
+       /admin/login/. See the "Ingia" links in the header. Do not re-add a
+       login form to this page. -->
 
   <section class="view" id="view-dashboard">
     <h2>RUCU Student Voice — 2026/2027</h2>

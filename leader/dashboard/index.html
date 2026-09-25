@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dashibodi ya Kiongozi | RUCUSO</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="/css/portal.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><b>RUCUSO</b><span>Leader Portal</span></div>
+  <div>
+    <span id="whoami" class="muted" style="color:#cdd9ee;font-size:12px;margin-right:10px;"></span>
+    <button class="sec" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Logout</button>
+  </div>
+</header>
+<div class="layout">
+  <nav class="sidebar">
+    <a href="/leader/dashboard/" class="active">Dashibodi</a>
+    <a href="#" id="navIssues">Masuala ya Wizara</a>
+  </nav>
+  <main class="content">
+    <div id="gate" class="card"><p class="muted">Inathibitisha akaunti...</p></div>
+    <div id="body" class="hidden">
+      <div class="statgrid">
+        <div class="card"><b id="st_total">–</b><span>Jumla ya Masuala</span></div>
+        <div class="card"><b id="st_new">–</b><span>Mapya</span></div>
+        <div class="card"><b id="st_progress">–</b><span>Yanayoshughulikiwa</span></div>
+        <div class="card"><b id="st_resolved">–</b><span>Yaliyotatuliwa</span></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0" id="scopeTitle">Masuala</h3>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Namba</th><th>Kichwa</th><th>Aina</th><th>Hali</th><th>Tarehe</th></tr></thead>
+            <tbody id="issueRows"><tr><td colspan="5" class="muted">Inapakia...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase/config.js" onerror="console.warn('supabase/config.js haipo.')"></script>
+<script src="/supabase/supabase-client.js"></script>
+<script src="/js/auth-guard.js"></script>
+<script>
+(async function () {
+  function esc(v) {
+    return String(v == null ? "" : v)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  const session = await window.RucusoGuard.requireRole(["leader"], { loginUrl: "/leader/login/" });
+  if (!session) return; // already redirected
+
+  document.getElementById("gate").classList.add("hidden");
+  document.getElementById("body").classList.remove("hidden");
+  document.getElementById("whoami").textContent =
+    session.profile.full_name + " (" + (session.profile.position || "kiongozi") + ")";
+  document.getElementById("logoutBtn").addEventListener("click", () => window.RucusoGuard.logout("/"));
+
+  const executive = window.RucusoGuard.isExecutiveLeader(session.profile);
+  document.getElementById("scopeTitle").textContent = executive
+    ? "Masuala ya Kiutendaji (Wizara Zote)"
+    : "Masuala ya Wizara Yangu";
+
+  const client = window.RucusoAPI.client;
+  // RLS (migration 004) already restricts this query to the leader's own
+  // ministry unless they hold an executive position or view_all_feedback —
+  // no client-side filtering is needed or trusted here.
+  const { data: rows, error } = await client
+    .from("feedback")
+    .select("reference_number, title, submission_type, status, created_at")
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  const tbody = document.getElementById("issueRows");
+  if (error) {
+    tbody.innerHTML = `<tr><td colspan="5" class="err">${error.message}</td></tr>`;
+    return;
+  }
+  document.getElementById("st_total").textContent = rows.length;
+  document.getElementById("st_new").textContent = rows.filter(r => r.status === "New").length;
+  document.getElementById("st_progress").textContent =
+    rows.filter(r => ["Assigned", "In Progress", "Under Review", "Awaiting Information"].includes(r.status)).length;
+  document.getElementById("st_resolved").textContent =
+    rows.filter(r => ["Resolved", "Closed"].includes(r.status)).length;
+
+  tbody.innerHTML = rows.length ? rows.map(r => `
+    <tr>
+      <td>${esc(r.reference_number)}</td>
+      <td>${esc(r.title)}</td>
+      <td>${esc(r.submission_type)}</td>
+      <td>${esc(r.status)}</td>
+      <td>${esc(new Date(r.created_at).toLocaleDateString("sw-TZ"))}</td>
+    </tr>`).join("") : `<tr><td colspan="5" class="muted">Hakuna masuala kwa sasa.</td></tr>`;
+})();
+</script>
+</body>
+</html>

@@ -110,6 +110,21 @@
       return { user: data.user, profile };
     },
 
+    // Leaders (and admins who prefer it) sign in with a username instead of
+    // an email. Supabase Auth itself only ever takes email+password, so this
+    // resolves the username to its auth email first via a security-definer
+    // RPC that returns null for both "no such username" and "inactive
+    // account" — the same response either way, so it can't be used to probe
+    // which usernames exist.
+    async usernameLogin(username, password) {
+      const { data: email, error: rerr } = await client.rpc("resolve_login_email", {
+        p_username: String(username || "").trim(),
+      });
+      if (rerr) throw friendlyError(rerr);
+      if (!email) throw new Error(MESSAGES.BAD_LOGIN);
+      return api.adminLogin(email, password);
+    },
+
     async adminLogout() {
       await client.auth.signOut();
     },

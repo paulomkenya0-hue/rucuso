@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ingia kama Kiongozi | RUCUSO</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="canonical" href="https://rucuso.online/leader/login/">
+<link rel="stylesheet" href="/css/portal.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><b>RUCUSO</b><span>Leader Portal</span></div>
+  <a href="/" class="sec" style="color:#fff;border-color:rgba(255,255,255,.4);text-decoration:none;padding:8px 14px;border-radius:8px;font-size:13px;">Rudi Nyumbani</a>
+</header>
+<main class="authwrap">
+  <div class="card">
+    <h2 style="margin-top:0">Ingia kama Kiongozi</h2>
+    <p class="muted">Akaunti hii hutolewa na Msimamizi Mkuu. Kama huna akaunti, wasiliana na uongozi wa RUCUSO.</p>
+    <div id="disabledMsg" class="hidden"><p class="err">Akaunti hii imezimwa. Wasiliana na msimamizi mkuu.</p></div>
+    <label for="lg_user">Jina la Mtumiaji (Username)</label>
+    <input id="lg_user" autocomplete="username" autocapitalize="off">
+    <label for="lg_pass">Nenosiri</label>
+    <input id="lg_pass" type="password" autocomplete="current-password">
+    <button class="pri" id="lg_btn">Ingia</button>
+    <div id="lg_err"></div>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase/config.js" onerror="console.warn('supabase/config.js haipo.')"></script>
+<script src="/supabase/supabase-client.js"></script>
+<script src="/js/auth-guard.js"></script>
+<script>
+(function () {
+  const params = new URLSearchParams(location.search);
+  if (params.get("akaunti") === "imezimwa") {
+    document.getElementById("disabledMsg").classList.remove("hidden");
+  }
+
+  // If already signed in as a leader with a completed password change, skip
+  // straight to the dashboard instead of showing the form again.
+  (async () => {
+    if (!window.RucusoAPI) return;
+    const session = await window.RucusoAPI.currentSession().catch(() => null);
+    if (session && session.profile && session.profile.role === "leader" && session.profile.active) {
+      location.replace(session.profile.must_change_password ? "/change-password/" : "/leader/dashboard/");
+    }
+  })();
+
+  const btn = document.getElementById("lg_btn");
+  const errBox = document.getElementById("lg_err");
+
+  async function submit() {
+    const username = document.getElementById("lg_user").value.trim();
+    const password = document.getElementById("lg_pass").value;
+    errBox.innerHTML = "";
+    if (!username || !password) {
+      errBox.innerHTML = '<p class="err">Jaza jina la mtumiaji na nenosiri.</p>';
+      return;
+    }
+    if (!window.RucusoAPI) {
+      errBox.innerHTML = '<p class="err">Mfumo haujaunganishwa na database.</p>';
+      return;
+    }
+    btn.disabled = true; btn.textContent = "Inaingia...";
+    try {
+      const { profile } = await window.RucusoAPI.usernameLogin(username, password);
+      if (profile.role !== "leader") {
+        await window.RucusoAPI.adminLogout();
+        errBox.innerHTML = '<p class="err">Akaunti hii si ya kiongozi. Tumia ukurasa sahihi wa kuingia.</p>';
+        return;
+      }
+      location.href = profile.must_change_password ? "/change-password/" : "/leader/dashboard/";
+    } catch (e) {
+      errBox.innerHTML = `<p class="err">${(e && e.message) || "Imeshindikana kuingia."}</p>`;
+    } finally {
+      btn.disabled = false; btn.textContent = "Ingia";
+    }
+  }
+  btn.addEventListener("click", submit);
+  document.getElementById("lg_pass").addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+})();
+</script>
+</body>
+</html>

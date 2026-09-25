@@ -87,8 +87,15 @@ const TABS = [
   ["leadership", "Uongozi", false], ["services", "Huduma", false], ["announcements", "Matangazo", false],
   ["documents", "Nyaraka", false],
   ["dashboard", "Dashibodi", true], ["issues", "Masuala", true], ["reports", "Ripoti", true],
-  ["settings", "Mipangilio", true], ["adminlogin", "Ingia (Msimamizi)", false],
+  ["settings", "Mipangilio", true],
 ];
+// NOTE: these four staff tabs are being migrated to /admin/dashboard/,
+// /admin/feedback/, /admin/reports/ and /admin/settings/'s several
+// sub-pages (students/leaders/ministries/categories/services) one section at
+// a time. They still require an authenticated staff session (RLS-enforced)
+// to show any data, but they are legacy and will be removed from this file
+// once their replacements reach feature parity — do not build new admin
+// features here, build them under /admin/.
 let currentView = "home";
 let verifyTarget = { preset: null };
 
@@ -97,7 +104,6 @@ function renderTabs() {
   nav.innerHTML = "";
   TABS.forEach(([id, label, needsAuth]) => {
     if (needsAuth && !DB.session) return;
-    if (id === "adminlogin" && DB.session) return;
     const b = document.createElement("button");
     b.textContent = label;
     b.onclick = () => go(id);
@@ -115,7 +121,13 @@ function renderTabs() {
 }
 
 function go(id, presetType) {
-  if (["dashboard", "issues", "reports", "settings"].includes(id) && !DB.session) id = "adminlogin";
+  if (["dashboard", "issues", "reports", "settings"].includes(id) && !DB.session) {
+    // These legacy staff tabs no longer have an in-page login form — send
+    // an unauthenticated visitor to the real Leader/Super Admin portals
+    // instead of silently doing nothing.
+    location.href = "/admin/login/";
+    return;
+  }
   if (id === "submit" && !DB.studentSession) { verifyTarget = { preset: presetType || null }; id = "verify"; }
   currentView = id;
   document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
@@ -462,27 +474,11 @@ async function doTrack(ev) {
 }
 
 // ---------- Admin auth ----------
-async function doLogin(ev) {
-  const u = document.getElementById("loginUser").value.trim();
-  const p = document.getElementById("loginPass").value;
-  const err = document.getElementById("loginErr");
-  const btn = ev && ev.currentTarget;
-  err.textContent = "";
-  if (!u || !p) { err.textContent = "Tafadhali ingiza barua pepe na nenosiri."; return; }
-  busy(btn, true, "Inaingia...");
-  try {
-    const s = await API.adminLogin(u, p);
-    await D.setSession(s);
-    await D.loadAdmin();
-    document.getElementById("loginPass").value = "";
-    go("dashboard");
-  } catch (e) {
-    err.textContent = D.errText(e);
-  } finally {
-    busy(btn, false);
-  }
-}
-
+// NOTE: login itself now happens on /leader/login/ and /admin/login/, not on
+// this page — see the removed view-adminlogin section. This page only
+// restores an existing session (see the boot sequence near the bottom of
+// this file) so a staff member who is already signed in can still use the
+// legacy dashboard/issues/reports/settings tabs while they're migrated.
 async function logout(ev) {
   const btn = ev && ev.currentTarget;
   busy(btn, true, "Inatoka...");

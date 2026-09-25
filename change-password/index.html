@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Badilisha Nenosiri | RUCUSO</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="/css/portal.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><b>RUCUSO</b><span>Akaunti Salama</span></div>
+</header>
+<main class="authwrap">
+  <div class="card" id="gate"><p class="muted">Inathibitisha akaunti...</p></div>
+  <div class="card hidden" id="formCard">
+    <h2 style="margin-top:0">Badilisha Nenosiri Lako</h2>
+    <p class="muted">Kwa usalama, unatakiwa kubadilisha nenosiri la muda kabla ya kuendelea. Huwezi kufikia
+      dashibodi mpaka ubadilishe nenosiri hili.</p>
+    <label for="np1">Nenosiri Jipya</label>
+    <input id="np1" type="password" autocomplete="new-password">
+    <label for="np2">Rudia Nenosiri Jipya</label>
+    <input id="np2" type="password" autocomplete="new-password">
+    <p class="muted" style="margin:6px 0 0">Angalau herufi 8, changanya herufi na namba.</p>
+    <button class="pri" id="saveBtn">Hifadhi Nenosiri Jipya</button>
+    <div id="errBox"></div>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase/config.js" onerror="console.warn('supabase/config.js haipo.')"></script>
+<script src="/supabase/supabase-client.js"></script>
+<script src="/js/auth-guard.js"></script>
+<script>
+(async function () {
+  // allowDuringPasswordChange: this is the one page a must_change_password
+  // account is allowed to reach. requireRole still confirms a real session
+  // exists and the account is active — it just doesn't bounce a
+  // must_change_password account back here-in-an-infinite-loop.
+  const session = await window.RucusoGuard.requireRole(["super_admin", "admin", "leader"], {
+    loginUrl: "/leader/login/",
+    allowDuringPasswordChange: true,
+  });
+  if (!session) return;
+
+  const profile = session.profile;
+  if (!profile.must_change_password) {
+    // Nothing to do here — send them where they belong.
+    location.replace(profile.role === "leader" ? "/leader/dashboard/" : "/admin/dashboard/");
+    return;
+  }
+
+  document.getElementById("gate").classList.add("hidden");
+  document.getElementById("formCard").classList.remove("hidden");
+
+  const btn = document.getElementById("saveBtn");
+  const errBox = document.getElementById("errBox");
+
+  document.getElementById("saveBtn").addEventListener("click", async () => {
+    const p1 = document.getElementById("np1").value;
+    const p2 = document.getElementById("np2").value;
+    errBox.innerHTML = "";
+    if (p1.length < 8) { errBox.innerHTML = '<p class="err">Nenosiri lazima liwe angalau herufi 8.</p>'; return; }
+    if (p1 !== p2) { errBox.innerHTML = '<p class="err">Manenosiri hayafanani.</p>'; return; }
+
+    btn.disabled = true; btn.textContent = "Inahifadhi...";
+    try {
+      const client = window.RucusoAPI.client;
+      const { error: upErr } = await client.auth.updateUser({ password: p1 });
+      if (upErr) throw upErr;
+      const { error: clearErr } = await client.rpc("clear_must_change_password");
+      if (clearErr) throw clearErr;
+      location.href = profile.role === "leader" ? "/leader/dashboard/" : "/admin/dashboard/";
+    } catch (e) {
+      errBox.innerHTML = `<p class="err">${(e && e.message) || "Imeshindikana kubadilisha nenosiri."}</p>`;
+      btn.disabled = false; btn.textContent = "Hifadhi Nenosiri Jipya";
+    }
+  });
+})();
+</script>
+</body>
+</html>
