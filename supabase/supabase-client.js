@@ -175,6 +175,31 @@
       }));
     },
 
+    // ---------------- RUCUSO AI ----------------
+    // The question goes to the rucuso-ai Edge Function, which holds the AI
+    // provider's key and decides server-side what data the caller may see.
+    // Nothing here needs a key of its own, and no private data is fetched by
+    // the browser to answer a question.
+    async askAI(question, history, view) {
+      const res = await client.functions.invoke("rucuso-ai", {
+        body: { question, history: history || [], view: view || null },
+      });
+      if (res.error) {
+        // A non-2xx reply carries our own JSON body; pull the Kiswahili
+        // message out of it instead of showing a generic gateway error.
+        let body = null;
+        try {
+          body = await res.error.context.json();
+        } catch (_) { /* no structured body */ }
+        const message = (body && (body.message || body.error)) || "";
+        const e = new Error(message || MESSAGES.NETWORK);
+        e.code = (body && body.error) || "";
+        e.raw = res.error;
+        throw e;
+      }
+      return res.data;
+    },
+
     // ---------------- Feedback ----------------
     // Public submissions go through submit_feedback(): it mints the reference
     // number, enforces anonymity and blocks duplicate spam inside the database.

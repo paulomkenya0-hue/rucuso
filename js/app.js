@@ -1279,27 +1279,104 @@ async function saveContacts(ev) {
   } catch (e) { D.toast(D.errText(e), "err"); } finally { busy(btn, false); }
 }
 
-// ---------- RUCUSO AI (rule-based, on-device — not a live LLM) ----------
+// ---------- RUCUSO AI ----------
+// The primary answer comes from the rucuso-ai Edge Function: a real language
+// model, given live RUCUSO data that the caller is allowed to see.
+// answerAI() below is kept only as a fallback for when that service cannot be
+// reached, so the chat is never a dead box.
+let aiBusy = false;
+let aiHistory = [];
+
 function openAI() {
   document.getElementById("aiModalBg").classList.add("active");
   if (!document.getElementById("aiChat").innerHTML) {
-    addAI("Habari! Mimi ni RUCUSO AI. Niko hapa kukusaidia kutumia mfumo. Uliza chochote, mfano: 'Nianzie wapi?' au 'Ni changamoto gani zimeripotiwa sana?'");
+    addAI("Habari! Mimi ni RUCUSO AI, msaidizi wa mfumo. Naweza kukusaidia kutumia RUCUSO, kueleza huduma zilizo kwa wanafunzi, kutangaza uongozi, na (kwa wasimamizi) kupewa muhtasari wa ripoti. Uliza chochote kwa lugha yako - mfano: 'Nianzie wapi?' au 'Nawezaje kuwasilisha malalamiko yangu?'");
+    document.getElementById("aiInput").focus();
   }
 }
 function closeAI() { document.getElementById("aiModalBg").classList.remove("active"); }
 function addAI(text, who) {
   const c = document.getElementById("aiChat");
-  c.innerHTML += `<div class="chatline"><b>${esc(who || "RUCUSO AI")}:</b> ${esc(text).replace(/\n/g, "<br>")}</div>`;
+  const line = document.createElement("div");
+  line.className = "chatline";
+  const b = document.createElement("b");
+  b.textContent = (who || "RUCUSO AI") + ":";
+  line.appendChild(b);
+  // textContent, not innerHTML: the answer is model output and must never be
+  // interpreted as markup. pre-wrap keeps the numbered lists readable.
+  line.appendChild(document.createTextNode(" " + String(text == null ? "" : text)));
+  line.style.whiteSpace = "pre-wrap";
+  c.appendChild(line);
   c.scrollTop = c.scrollHeight;
+  return line;
 }
-function askAI() {
+function removeAI(line) {
+  if (line && line.parentNode) line.parentNode.removeChild(line);
+}
+
+// One Kiswahili sentence for whatever the Edge Function or the network said.
+function aiErrorText(e) {
+  const raw = String((e && e.message) || "").trim();
+  const code = String((e && e.code) || "");
+  if (code === "AI_NOT_CONFIGURED") {
+    return "Huduma ya RUCUSO AI bado haijawekwa kwenye mfumo. Wasiliana na msimamizi wa mfumo.";
+  }
+  if (code === "RATE_LIMIT") {
+    return raw || "Umefanya swali mengi m sana. Tafadhali subiri kidogo kisha jaribu tena.";
+  }
+  if (code === "AI_UNAVAILABLE") {
+    return raw || "RUCUSO AI hapatikani kwa sasa. Tafadhali jaribu tena baadaye.";
+  }
+  if (code === "CONTEXT_UNAVAILABLE") {
+    return raw || "Imeshindikana kupata taarifa za mfumo. Tafadhali jaribu tena.";
+  }
+  if (code === "SWALI_LIPU") return "Andika swali kwanza.";
+  if (/jwt|token is expired|unauthor|sign in|log in|not authenticated/i.test(raw)) {
+    return "Muda wa kuingia umeisha. Ingia tena ili kuendelea.";
+  }
+  if (/fetch|network|failed to fetch|load failed|timeout/i.test(raw)) {
+    return "Imeshindikana kuwasiliana na huduma ya AI. Angalia interneti yako kisha jaribu tena.";
+  }
+  return raw || "Hitilafu isiyotarajiwa imetokea. Tafadhali jaribu tena.";
+}
+
+async function askAI() {
   const inp = document.getElementById("aiInput");
   const q = inp.value.trim();
-  if (!q) return;
+  if (!q || aiBusy) return;
+
   addAI(q, "Wewe");
   inp.value = "";
-  addAI(answerAI(q.toLowerCase()));
+  aiBusy = true;
+  inp.disabled = true;
+
+  const thinking = addAI("RUCUSO AI anafikiri...", "RUCUSO AI");
+  thinking.style.opacity = "0.6";
+
+  try {
+    const res = await API.askAI(q, aiHistory, currentView);
+    removeAI(thinking);
+    const answer =
+      (res && res.answer && res.answer.trim()) ||
+      "Samahani, sikuweza kupata jibu kwa sasa. Tafadhali ulize tena.";
+    addAI(answer, "RUCUSO AI");
+    aiHistory.push({ role: "user", content: q }, { role: "assistant", content: answer });
+    aiHistory = aiHistory.slice(-6);
+  } catch (e) {
+    removeAI(thinking);
+    // Say why, then fall back to the built-in answers so the user still gets
+    // something useful.
+    const fallback = answerAI(q.toLowerCase());
+    addAI(aiErrorText(e) + (fallback ? "\n\n" + fallback : ""), "RUCUSO AI");
+  } finally {
+    aiBusy = false;
+    inp.disabled = false;
+    inp.focus();
+  }
 }
+
+// Fallback only: the original keyword answers, used when the AI service is
+// unavailable. Same behaviour as before this upgrade.
 function answerAI(q) {
   const f = DB.feedback;
   const staff = !!DB.session;
