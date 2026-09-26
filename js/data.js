@@ -21,6 +21,88 @@
   const SINGULAR_POSITIONS = ["president", "vice_president", "secretary_general", "prime_minister", "prime_minister_secretary", "deputy_secretary_general"];
   const MINISTRY_ROLES = ["Waziri", "Naibu Waziri", "Katibu"];
 
+  // ---------- Viungo Muhimu (Important Links) ----------
+  //
+  // Every URL below was read off an official RUCU / HESLB page. Nothing here is
+  // invented: no guessed portal paths, no social accounts RUCU does not own.
+  // A super admin can override or extend the list from
+  // /admin/settings/ -> "Viungo Muhimu", which writes the same shape as JSON to
+  // the system_settings row `important_links`. If that row is missing or
+  // unreadable these defaults render, so the section is never empty.
+  //
+  // icon: one of the keys in ICON_SVGS below. Keep it a key, not markup, so a
+  // settings value can never inject HTML into the public page.
+  const DEFAULT_IMPORTANT_LINKS = [
+    { label: "Tovuti ya Ruaha Catholic University", url: "https://www.rucu.ac.tz/", note: "Tovuti rasmi ya chuo —programu, nafasi za kuingia na taarifa zote.", icon: "university" },
+    { label: "RUC SIMS", url: "https://sims.rucu.ac.tz/login", note: "Student Information Management System — kuingia kwa wanafunzi.", icon: "portal" },
+    { label: "RUC E-Learning", url: "https://lms.rucu.ac.tz/", note: "Mfumo wa kujifunza mtandaoni (LMS) wa chuo.", icon: "study" },
+    { label: "RUC E-Library", url: "https://library.rucu.ac.tz/", note: "Maktaba ya dijitali ya chuo — vitabu, machapisho na tafiti.", icon: "library" },
+    { label: "HESLB — Tovuti Rasmi", url: "https://www.heslb.go.tz/", note: "Tovuti rasmi ya HESLB: taarifa za mikopo, magadi na maji.", icon: "bank" },
+    { label: "HESLB Login (OLAMS)", url: "https://olas.heslb.go.tz/olams/account/login", note: "Kuingia kwenye mfumo rasmi wa HESLB. Si sehemu ya RUCUSO.", icon: "login" },
+    { label: "Instagram ya RUCU", url: "https://www.instagram.com/rucu_iringa", note: "Akaunti rasmi ya Instagram ya Ruaha Catholic University.", icon: "instagram" },
+    { label: "Facebook ya RUCU", url: "https://www.facebook.com/officialrucuiringa", note: "Ukurasa rasmi wa Facebook wa chuo.", icon: "facebook" },
+    { label: "YouTube ya RUCU", url: "https://www.youtube.com/@ruahacatholicuniversity3072", note: "Kanzini rasmi ya YouTube ya chuo.", icon: "youtube" },
+    { label: "Wasiliana na RUCU", url: "https://www.rucu.ac.tz/contact", note: "Anwani, simu na barua pepe ya chuo.", icon: "contact" },
+    { label: "Wasiliana na RUCUSO", url: "#sec-contact", note: "Njia za msaada za moja kwa moja kupitia RUCUSO.", icon: "rucuso" },
+  ];
+
+  // Icons are a fixed lookup, not free text: settings can pick a key but can
+  // never inject markup into the public page.
+  const ICON_SVGS = {
+    university: '<path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1M9 17h6"/>',
+    portal: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M7 13h4M7 16h7"/>',
+    study: '<path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>',
+    library: '<path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>',
+    bank: '<path d="M12 3v18M5 8h14M7 8l-4 8h8L7 8zm10 0l-4 8h8l-4-8zM8 21h8"/>',
+    login: '<path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/>',
+    instagram: '<rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.5 6.5h.01"/>',
+    facebook: '<path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/>',
+    youtube: '<path d="M22.5 12s0-3.5-.45-5.15a2.6 2.6 0 00-1.83-1.84C18.55 4.5 12 4.5 12 4.5s-6.55 0-8.22.51A2.6 2.6 0 001.95 6.85 27 27 0 001.5 12a27 27 0 00.45 5.15 2.6 2.6 0 001.83 1.84c1.67.51 8.22.51 8.22.51s6.55 0 8.22-.51a2.6 2.6 0 001.83-1.84C22.5 15.5 22.5 12 22.5 12z"/><path d="M10 15.2V8.8l5.2 3.2z"/>',
+    contact: '<path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012 4.2 2 2 0 014 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.1a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"/>',
+    rucuso: '<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>',
+  };
+
+  // Only http(s) and in-page anchors are allowed through. This is the guard
+  // against a bad settings value turning the section into a javascript: or
+  // data: link, and it also stops "//evil.example" style protocol-relative
+  // values from being rendered as if they were ours.
+  function safeLinkUrl(url) {
+    const raw = String(url == null ? "" : url).trim();
+    if (!raw) return "";
+    if (raw.charAt(0) === "#") return raw;
+    if (!/^https?:\/\//i.test(raw)) return "";
+    try {
+      const parsed = new URL(raw);
+      return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.href : "";
+    } catch {
+      return "";
+    }
+  }
+
+  function normalizeLinks(raw) {
+    let list = raw;
+    if (typeof raw === "string") {
+      const text = raw.trim();
+      if (!text) return null;
+      try { list = JSON.parse(text); } catch { return null; }
+    }
+    if (!Array.isArray(list)) return null;
+    const out = [];
+    list.forEach((item) => {
+      if (!item || typeof item !== "object") return;
+      const url = safeLinkUrl(item.url);
+      const label = String(item.label || "").trim();
+      if (!url || !label) return;
+      out.push({
+        label,
+        url,
+        note: String(item.note || "").trim(),
+        icon: Object.prototype.hasOwnProperty.call(ICON_SVGS, item.icon) ? item.icon : "university",
+      });
+    });
+    return out.length ? out : null;
+  }
+
   const DB = {
     ready: false,
     adminLoaded: false,
@@ -37,9 +119,13 @@
     staff: [],
     auditLog: [],
     studentCount: 0,
-    studentsFull: [], // [{ id, registration_number, full_name, programme, faculty, department, year_of_study, academic_year, phone_number, email, gender, student_status }]
+    // Current page of /admin/students/ results only — never the whole
+    // table (see refreshStudentsFull below for why).
+    studentsPage: { rows: [], count: 0, page: 1, pageSize: 100 },
+    studentFilterOptions: { programmes: [], faculties: [], years: [] },
     contacts: { phone: "", email: "" },
     acadYear: "2026/2027",
+    importantLinks: DEFAULT_IMPORTANT_LINKS, // Viungo Muhimu
   };
 
   // ---------- small helpers ----------
@@ -190,6 +276,10 @@
     DB.programmes = (progs || []).map((p) => ({ id: p.id, name: p.name }));
     DB.contacts = { phone: settings.contact_phone || "", email: settings.contact_email || "" };
     DB.acadYear = settings.academic_year || "2026/2027";
+    // Viungo Muhimu: the admin-configured list wins, otherwise the verified
+    // defaults. A malformed or hostile settings value falls back silently
+    // rather than emptying the section.
+    DB.importantLinks = normalizeLinks(settings.important_links) || DEFAULT_IMPORTANT_LINKS;
   }
 
   // ---------- admin loaders ----------
@@ -428,28 +518,33 @@
   async function refreshStudents() {
     DB.studentCount = await API.studentCount();
   }
-  // Full record set for /admin/students/ (search/filter/edit/deactivate).
-  // Kept separate from refreshStudents() (which only tracks the count used
-  // elsewhere) so pages that don't need the full registry stay cheap.
-  async function refreshStudentsFull() {
-    DB.studentsFull = await API.listStudentsFull();
+  // One page of the /admin/students/ management table, filtered and
+  // counted entirely server-side (see supabase-client.js#listStudentsFull
+  // for why this replaced loading the whole table into the browser).
+  // `opts`: { page, pageSize, search, programme, faculty, year, status }
+  async function refreshStudentsFull(opts = {}) {
+    const result = await API.listStudentsFull(opts);
+    DB.studentsPage = { rows: result.data, count: result.count, page: result.page, pageSize: result.pageSize };
   }
-  async function saveStudentFull(row) {
+  async function refreshStudentFilterOptions() {
+    DB.studentFilterOptions = await API.studentFilterOptions();
+  }
+  async function saveStudentFull(row, pageOpts) {
     await API.upsertStudent(row);
     await audit("Student Added/Updated", row.registration_number);
     await refreshStudents();
-    await refreshStudentsFull();
+    await refreshStudentsFull(pageOpts);
   }
-  async function setStudentStatus(id, status, label) {
+  async function setStudentStatus(id, status, label, pageOpts) {
     await API.setStudentStatus(id, status);
     await audit(status === "inactive" ? "Student Deactivated" : "Student Activated", label || String(id));
-    await refreshStudentsFull();
+    await refreshStudentsFull(pageOpts);
   }
-  async function deleteStudentRow(id, label) {
+  async function deleteStudentRow(id, label, pageOpts) {
     await API.deleteStudent(id);
     await audit("Student Deleted", label || String(id));
     await refreshStudents();
-    await refreshStudentsFull();
+    await refreshStudentsFull(pageOpts);
   }
   async function saveStudent(name, reg) {
     const parts = String(name).trim().split(/\s+/);
@@ -458,6 +553,11 @@
     await API.upsertStudent({ registration_number: reg, first_name: first, last_name: last });
     await audit("Student Added/Updated", reg);
     await refreshStudents();
+  }
+  // Every existing registration number, for CSV duplicate-detection
+  // against the *whole* table (not just whatever page is on screen).
+  async function fetchStudentRegistrationNumbers() {
+    return await API.listStudentRegistrationNumbers();
   }
   async function importStudents(rows) {
     if (!rows.length) return { added: 0 };
@@ -515,10 +615,13 @@
   }
 
   window.RucusoData = {
-    DB,
-    SINGULAR_POSITIONS,
-    MINISTRY_ROLES,
-    errText, toast, loading,
+      DB,
+      SINGULAR_POSITIONS,
+      MINISTRY_ROLES,
+      DEFAULT_IMPORTANT_LINKS,
+      ICON_SVGS,
+      normalizeLinks,
+      errText, toast, loading,
     readUI, writeUI, loadStudentSession, saveStudentSession, purgePrototypeStorage,
     mapLeader, mapFeedback,
     loadPublic, loadAdmin, setSession, audit,
@@ -529,6 +632,7 @@
     refreshDocuments, saveDocument, removeDocument,
     refreshStudents, saveStudent, importStudents, clearStudents,
     refreshStudentsFull, saveStudentFull, setStudentStatus, deleteStudentRow,
+    refreshStudentFilterOptions, fetchStudentRegistrationNumbers,
     refreshCategories, saveCategory, removeCategory,
     refreshProgrammes, saveProgramme, removeProgramme,
     saveContacts, setAcadYear,

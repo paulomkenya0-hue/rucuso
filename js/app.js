@@ -80,10 +80,33 @@ function updatePortalClock() {
   const clock = document.getElementById("portalClock");
   const greetingEl = document.getElementById("portalGreeting");
   const heroGreeting = document.getElementById("heroGreeting");
-  if (clock) clock.textContent = `${date} · ${time}`;
+  if (clock) {
+    // Day + date + time, e.g. "Jumatatu, 26 Oktoba 2026 · 10:42:18". The
+    // machine-readable value carries the Tanzania wall-clock time, not the
+    // visitor's, so anything reading the attribute gets EAT and not their own
+    // timezone.
+    clock.textContent = `${date} · ${time}`;
+    clock.setAttribute("datetime", clockStamp(now));
+  }
   if (greetingEl) greetingEl.textContent = greeting;
   if (heroGreeting) heroGreeting.textContent = `${greeting} · Ruaha Catholic University`;
 }
+
+// YYYY-MM-DDTHH:MM:SS+03:00 for the given instant, in Africa/Dar_es_Salaam.
+function clockStamp(now) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
+    timeZone: "Africa/Dar_es_Salaam",
+  }).format(now);
+  return parts.replace(",", "") + "+03:00";
+}
+
+// Light is the default appearance for everyone. Dark mode is a preference the
+// visitor turns on with the toggle and we remember in rucu_ui_v1; it is never
+// inferred from the operating system's colour scheme, which used to hand every
+// dark-mode device a near-black site.
+const DEFAULT_THEME = "light";
 
 function paintThemeToggle(theme) {
   const button = document.getElementById("themeToggle");
@@ -99,7 +122,7 @@ function paintThemeToggle(theme) {
 
 function toggleTheme() {
   const root = document.documentElement;
-  const current = root.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const current = root.getAttribute("data-theme") || DEFAULT_THEME;
   const next = current === "dark" ? "light" : "dark";
   root.setAttribute("data-theme", next);
   D.writeUI({ theme: next });
@@ -497,11 +520,56 @@ let homeRendered = false;
 function renderHomeSections() {
   renderHeroStats();
   renderContacts();
+  renderImportantLinks();
   renderServices();
   renderAnnouncements();
   renderLeadership();
   renderDocuments();
   homeRendered = true;
+}
+
+// ---------- Viungo Muhimu ----------
+//
+// The list comes from D (system_settings `important_links`, already filtered
+// through normalizeLinks in the data layer), so anything rendered here has
+// survived that allow-list. External links open in a new tab with
+// rel="noopener noreferrer"; in-page anchors (#sec-contact) stay in the same tab
+// so the scroll behaviour still works.
+function renderImportantLinks() {
+  const grid = document.getElementById("linkGrid");
+  if (!grid) return;
+  const links = Array.isArray(DB.importantLinks) ? DB.importantLinks : [];
+  if (!links.length) { grid.innerHTML = ""; return; }
+
+  grid.innerHTML = links.map((item) => {
+    const external = !item.url.startsWith("#");
+    const target = external ? ' target="_blank" rel="noopener noreferrer"' : "";
+    const icon = D.ICON_SVGS[item.icon] || D.ICON_SVGS.university;
+    const note = item.note ? `<span class="linkcard__note">${esc(item.note)}</span>` : "";
+    const host = external ? safeHost(item.url) : "";
+    const meta = host ? `<span class="linkcard__host">${esc(host)}</span>` : "";
+    return `<a class="linkcard" href="${esc(item.url)}"${target}>
+      <span class="linkcard__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
+      </span>
+      <span class="linkcard__body">
+        <span class="linkcard__title">${esc(item.label)}${external ? '<span class="linkcard__ext" aria-hidden="true">↗</span>' : ""}</span>
+        ${note}
+        ${meta}
+      </span>
+    </a>`;
+  }).join("");
+}
+
+// Shows the host so a visitor can see where a link goes before tapping it.
+// Falls back to the raw string if URL parsing is unavailable.
+function safeHost(url) {
+  try {
+    const u = new URL(url);
+    return u.host.replace(/^www\./, "");
+  } catch {
+    return url.replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
+  }
 }
 
 document.addEventListener("change", (e) => {
@@ -2489,14 +2557,10 @@ async function boot() {
   const ui = D.readUI();
   if (ui.theme) document.documentElement.setAttribute("data-theme", ui.theme);
   else document.documentElement.removeAttribute("data-theme");
-  const initialTheme = ui.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const initialTheme = ui.theme || DEFAULT_THEME;
   paintThemeToggle(initialTheme);
   const themeToggle = document.getElementById("themeToggle");
   if (themeToggle) themeToggle.addEventListener("click", toggleTheme);
-  const colorScheme = matchMedia("(prefers-color-scheme: dark)");
-  colorScheme.addEventListener("change", (event) => {
-    if (!D.readUI().theme) paintThemeToggle(event.matches ? "dark" : "light");
-  });
   updatePortalClock();
   setInterval(updatePortalClock, 1000);
   initHeroCanvas();

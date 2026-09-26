@@ -231,13 +231,58 @@
         .order("registration_number"));
     },
     // Full column set for the /admin/students/ management table (search,
-    // filter by faculty/programme/year/academic year, edit, deactivate).
-    async listStudentsFull() {
-      return ok(await client
-        .from("students")
-        .select("id, registration_number, first_name, middle_name, last_name, full_name, programme, faculty, department, year_of_study, academic_year, phone_number, email, gender, student_status")
-        .order("registration_number")
-        .limit(5000));
+    // filter by faculty/programme/year/status, edit, deactivate).
+    //
+    // Server-side search + filter + pagination: PostgREST caps any single
+    // request to the project's "Max Rows" setting (1000 by default) no
+    // matter what .limit() the client asks for, so this used to silently
+    // truncate at 1000 students and searched/counted only inside that
+    // truncated set. Now every filter is applied in the query itself and
+    // `count: "exact"` asks Postgres for a real COUNT(*) of the *matching*
+    // rows (via a header on the response, not the length of the page
+    // returned), so the total is always accurate regardless of table size.
+    async listStudentsFull(opts = {}) {
+      let query = client.from("students").select(
+        "id, registration_number, first_name, middle_name, last_name, full_name, programme, faculty, department, year_of_study, academic_year, phone_number, email, gender, student_status",
+        { count: "exact" }
+      ).order("registration_number");
+      if (opts.programme) query = query.eq("programme", opts.programme);
+      if (opts.faculty) query = query.eq("faculty", opts.faculty);
+      if (opts.year) query = query.eq("year_of_study", opts.year);
+      if (opts.status) query = query.eq("student_status", opts.status);
+      const term = String(opts.search || "").replace(/[^\p{L}\p{N}\s/+\-]/gu, " ").trim();
+      if (term) query = query.or(`full_name.ilike.%${term}%,registration_number.ilike.%${term}%`);
+      const pageSize = Math.min(500, Math.max(1, Number(opts.pageSize) || 100));
+      const page = Math.max(1, Number(opts.page) || 1);
+      const from = (page - 1) * pageSize;
+      const result = await query.range(from, from + pageSize - 1);
+      if (result.error) throw friendlyError(result.error);
+      return { data: result.data || [], count: result.count || 0, page, pageSize };
+    },
+    // Distinct Programme/Faculty/Year values for the filter dropdowns —
+    // computed across the whole table server-side (see migration 011),
+    // since a plain select for this would hit the same row cap above.
+    async studentFilterOptions() {
+      const rows = ok(await client.rpc("student_filter_options"));
+      const row = rows && rows[0];
+      return {
+        programmes: (row && row.programmes) || [],
+        faculties: (row && row.faculties) || [],
+        years: (row && row.years) || [],
+      };
+    },
+    // Registration numbers only, paged through the whole table — used by
+    // CSV import to detect duplicates against every existing student, not
+    // just whichever page happens to be loaded on screen.
+    async listStudentRegistrationNumbers() {
+      const out = [];
+      const pageSize = 1000;
+      for (let from = 0; ; from += pageSize) {
+        const page = ok(await client.from("students")
+          .select("registration_number").range(from, from + pageSize - 1));
+        out.push(...page.map((r) => r.registration_number));
+        if (page.length < pageSize) return out;
+      }
     },
     async setStudentStatus(id, status) {
       return ok(await client.from("students").update({ student_status: status }).eq("id", id).select());

@@ -71,6 +71,14 @@
               <tbody id="studentRows"><tr><td colspan="9" class="muted">Inapakia...</td></tr></tbody>
             </table>
           </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px;">
+            <span class="muted" id="pageSummary">Inaonyesha 0–0 kati ya 0</span>
+            <div>
+              <button class="sec" id="prevPageBtn" disabled>&laquo; Nyuma</button>
+              <span class="muted" id="pageIndicator" style="margin:0 8px;">Ukurasa 1</span>
+              <button class="sec" id="nextPageBtn" disabled>Mbele &raquo;</button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -159,53 +167,55 @@
   });
 
   // ---------- load + render list ----------
+  // Everything here — search, the four filters, the total shown, and the
+  // pages themselves — comes straight from the database on every request.
+  // Nothing is filtered or counted in the browser, so results are always
+  // correct no matter how many students the table holds.
+  const state = { page: 1, pageSize: 100, search: "", programme: "", faculty: "", year: "", status: "" };
+
+  function currentPageOpts() {
+    return {
+      page: state.page, pageSize: state.pageSize, search: state.search,
+      programme: state.programme, faculty: state.faculty, year: state.year, status: state.status,
+    };
+  }
+
   async function loadAndRender() {
+    try {
+      const [headerTotal] = await Promise.all([API.studentCount(), D.refreshStudentFilterOptions()]);
+      document.getElementById("totalCount").textContent = headerTotal;
+    } catch (e) { toast(D.errText(e), "err"); }
+    populateFilterOptions();
+    await loadPage();
+  }
+
+  async function loadPage() {
     document.getElementById("studentRows").innerHTML = '<tr><td colspan="9" class="muted">Inapakia...</td></tr>';
     try {
-      await D.refreshStudentsFull();
+      await D.refreshStudentsFull(currentPageOpts());
     } catch (e) {
       document.getElementById("studentRows").innerHTML = `<tr><td colspan="9" class="err">${esc(D.errText(e))}</td></tr>`;
       return;
     }
-    document.getElementById("totalCount").textContent = D.DB.studentsFull.length;
-    populateFilterOptions();
     renderRows();
+    renderPager();
   }
 
   function populateFilterOptions() {
-    const progs = new Set(), facs = new Set(), years = new Set();
-    D.DB.studentsFull.forEach((s) => {
-      if (s.programme) progs.add(s.programme);
-      if (s.faculty) facs.add(s.faculty);
-      if (s.year_of_study) years.add(s.year_of_study);
-    });
+    const opts = D.DB.studentFilterOptions;
     const fill = (id, values) => {
       const el = document.getElementById(id);
       const current = el.value;
       el.innerHTML = el.querySelector("option").outerHTML +
-        Array.from(values).sort().map((v) => `<option ${v === current ? "selected" : ""}>${esc(v)}</option>`).join("");
+        (values || []).map((v) => `<option ${v === current ? "selected" : ""}>${esc(v)}</option>`).join("");
     };
-    fill("q_programme", progs);
-    fill("q_faculty", facs);
-    fill("q_year", years);
+    fill("q_programme", opts.programmes);
+    fill("q_faculty", opts.faculties);
+    fill("q_year", opts.years);
   }
 
   function renderRows() {
-    const q = document.getElementById("q_text").value.trim().toLowerCase();
-    const fProg = document.getElementById("q_programme").value;
-    const fFac = document.getElementById("q_faculty").value;
-    const fYear = document.getElementById("q_year").value;
-    const fStatus = document.getElementById("q_status").value;
-
-    const rows = D.DB.studentsFull.filter((s) => {
-      if (q && !((s.full_name || "").toLowerCase().includes(q) || (s.registration_number || "").toLowerCase().includes(q))) return false;
-      if (fProg && s.programme !== fProg) return false;
-      if (fFac && s.faculty !== fFac) return false;
-      if (fYear && s.year_of_study !== fYear) return false;
-      if (fStatus && (s.student_status || "active") !== fStatus) return false;
-      return true;
-    });
-
+    const rows = D.DB.studentsPage.rows;
     const tbody = document.getElementById("studentRows");
     tbody.innerHTML = rows.length ? rows.map((s) => {
       const active = (s.student_status || "active") !== "inactive";
@@ -227,15 +237,58 @@
     }).join("") : `<tr><td colspan="9" class="muted">Hakuna mwanafunzi anayelingana na utafutaji.</td></tr>`;
   }
 
-  ["q_text", "q_programme", "q_faculty", "q_year", "q_status"].forEach((id) =>
-    document.getElementById(id).addEventListener("input", renderRows));
+  function renderPager() {
+    const { rows, count, page, pageSize } = D.DB.studentsPage;
+    const totalPages = Math.max(1, Math.ceil(count / pageSize));
+    const from = count === 0 ? 0 : (page - 1) * pageSize + 1;
+    const to = from + rows.length - 1;
+    document.getElementById("pageSummary").textContent = `Inaonyesha ${from}–${to} kati ya ${count}`;
+    document.getElementById("pageIndicator").textContent = `Ukurasa ${page} / ${totalPages}`;
+    document.getElementById("prevPageBtn").disabled = page <= 1;
+    document.getElementById("nextPageBtn").disabled = page >= totalPages;
+  }
+
+  document.getElementById("prevPageBtn").addEventListener("click", () => {
+    if (state.page <= 1) return;
+    state.page -= 1;
+    loadPage();
+  });
+  document.getElementById("nextPageBtn").addEventListener("click", () => {
+    const totalPages = Math.max(1, Math.ceil(D.DB.studentsPage.count / D.DB.studentsPage.pageSize));
+    if (state.page >= totalPages) return;
+    state.page += 1;
+    loadPage();
+  });
+
+  // Any filter change goes back to page 1 (an old filter's page 3 may not
+  // exist under a new, narrower filter). Free-text search is debounced so
+  // typing doesn't fire a request per keystroke.
+  let searchDebounce = null;
+  document.getElementById("q_text").addEventListener("input", (e) => {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => {
+      state.search = e.target.value.trim();
+      state.page = 1;
+      loadPage();
+    }, 300);
+  });
+  ["q_programme", "q_faculty", "q_year", "q_status"].forEach((id) => {
+    document.getElementById(id).addEventListener("change", () => {
+      state.programme = document.getElementById("q_programme").value;
+      state.faculty = document.getElementById("q_faculty").value;
+      state.year = document.getElementById("q_year").value;
+      state.status = document.getElementById("q_status").value;
+      state.page = 1;
+      loadPage();
+    });
+  });
 
   document.getElementById("studentRows").addEventListener("click", async (ev) => {
     const a = ev.target.closest("a[data-act]");
     if (!a) return;
     ev.preventDefault();
     const id = a.dataset.id;
-    const s = D.DB.studentsFull.find((x) => x.id === id);
+    const s = D.DB.studentsPage.rows.find((x) => x.id === id);
     if (!s) return;
 
     if (a.dataset.act === "edit") {
@@ -257,27 +310,36 @@
           first_name: s.first_name, middle_name: s.middle_name, last_name: s.last_name,
           programme: prog.trim() || null, faculty: fac.trim() || null, department: dept.trim() || null,
           year_of_study: year.trim() || null, phone_number: phone.trim() || null, email: email.trim() || null,
-        });
+        }, currentPageOpts());
         toast("Mabadiliko yamehifadhiwa.");
+        // Refresh the dropdowns too, in case this edit introduced a new
+        // Programme/Faculty/Year value that wasn't in the list before.
+        await D.refreshStudentFilterOptions();
+        populateFilterOptions();
         renderRows();
+        renderPager();
       } catch (e) { toast(D.errText(e), "err"); }
     }
 
     if (a.dataset.act === "toggle") {
       const nextStatus = (s.student_status || "active") !== "inactive" ? "inactive" : "active";
       try {
-        await D.setStudentStatus(id, nextStatus, s.full_name);
+        await D.setStudentStatus(id, nextStatus, s.full_name, currentPageOpts());
         toast(nextStatus === "inactive" ? "Mwanafunzi amezimwa." : "Mwanafunzi amewezeshwa.");
         renderRows();
+        renderPager();
       } catch (e) { toast(D.errText(e), "err"); }
     }
 
     if (a.dataset.act === "delete") {
       if (!confirm(`Futa kabisa rekodi ya ${s.full_name} (${s.registration_number})? Hatua hii haiwezi kutenduliwa.`)) return;
       try {
-        await D.deleteStudentRow(id, s.full_name);
+        await D.deleteStudentRow(id, s.full_name, currentPageOpts());
         toast("Mwanafunzi amefutwa.");
+        const totalToastCount = await API.studentCount();
+        document.getElementById("totalCount").textContent = totalToastCount;
         renderRows();
+        renderPager();
       } catch (e) { toast(D.errText(e), "err"); }
     }
   });
@@ -304,7 +366,7 @@
       return;
     }
     try {
-      await D.saveStudentFull(row);
+      await D.saveStudentFull(row, currentPageOpts());
       msg.innerHTML = '<p class="ok-msg">Mwanafunzi amesajiliwa kikamilifu.</p>';
       ["s_reg", "s_first", "s_middle", "s_last", "s_prog", "s_fac", "s_dept", "s_phone", "s_email"]
         .forEach((id) => document.getElementById(id).value = "");
@@ -370,7 +432,10 @@
         return;
       }
 
-      const existing = new Set(D.DB.studentsFull.map((s) => s.registration_number.toLowerCase()));
+      // Checked against every registration number in the table, not just
+      // the page currently on screen — otherwise "tayari wapo" only ever
+      // catches duplicates that happen to fall on the loaded page.
+      const existing = new Set((await D.fetchStudentRegistrationNumbers()).map((r) => r.toLowerCase()));
       const rows = [], skippedInvalid = [], skippedDupInFile = [], willUpdate = [];
       const seen = new Set();
       for (let i = 1; i < lines.length; i++) {
@@ -414,6 +479,7 @@
       fileInput.value = "";
       pendingFile = null;
       drop.textContent = "Bofya hapa au buruta faili la .csv hapa";
+      state.page = 1;
       await loadAndRender();
     } catch (e) {
       summary.innerHTML = `<p class="err">${esc(D.errText(e))}</p>`;

@@ -14,45 +14,52 @@
    -------------------------------------------------------------------------- */
 :root {
   /* Brand -------------------------------------------------------------- */
-  --navy: #0b2545;
-  --navy-700: #0d2c56;
-  --navy2: #13315c;
-  --gold: #c99a3c;
-  --gold-soft: #e9d3a3;
+  /* Navy/gold are the official Ruaha Catholic University brand colours
+     (rucu.ac.tz uses #152d7a primary, #012758 secondary, #d6b161 accent).
+     RUCUSO borrows them so the student platform reads as one institution. */
+  --navy: #152d7a;
+  --navy-700: #012758;
+  --navy2: #24409b;
+  --gold: #d6b161;
+  --gold-soft: #e8d5a8;
   --gold-ink: #3a2c0c;
   /* Gold for small text on a light surface. The brand gold is a tint: on
-     near-white it only reaches 2.4:1, which fails WCAG AA for 12px labels.
+     near-white it only reaches ~2.1:1, which fails WCAG AA for 12px labels.
      This is the same hue pushed dark enough to clear 4.5:1. */
-  --gold-text: #8a6314;
+  --gold-text: #7a5710;
 
   /* Surfaces ----------------------------------------------------------- */
-  --bg: #f5f7fa;
-  --bg-alt: #eef2f7;
+  /* Warm white / milk white, never cold grey. --bg-alt is the soft cream
+     used for tinted sections so the page alternates in tone, not in hue. */
+  --bg: #fdfcf9;
+  --bg-alt: #faf5ec;
+  --cream: #faf5ec;
+  --cream-soft: #f5eddd;
   --surface: #ffffff;
   --card: #ffffff;
-  --border: #dde4ed;
-  --border-strong: #c3cedd;
+  --border: #e9e2d6;
+  --border-strong: #d8cdb8;
 
   /* Text --------------------------------------------------------------- */
-  --text: #16202f;
-  --text-strong: #0b1626;
-  --muted: #5a6779;
+  --text: #1e2330;
+  --text-strong: #0f1219;
+  --muted: #5a6272;
   /* Second-tier muted text. Always small (12px hints, meta rows), so it has
      to clear 4.5:1, not just look subtle. Must not be used on the dark
      footer — use --on-dark-muted there. */
-  --muted-2: #616b7a;
+  --muted-2: #646c7b;
   --on-dark: #ffffff;
-  --on-dark-muted: #b9c8de;
+  --on-dark-muted: #cdd8ee;
 
   /* Semantic ----------------------------------------------------------- */
-  --ok: #1a7f57;
-  --ok-bg: #e4f4ec;
-  --warn: #b06a12;
-  --warn-bg: #fdf0dd;
-  --crit: #b83434;
+  --ok: #14684a;
+  --ok-bg: #e5f3ec;
+  --warn: #96590b;
+  --warn-bg: #fcf0dc;
+  --crit: #a92e2e;
   --crit-bg: #fbe7e7;
-  --info: #1f5b96;
-  --info-bg: #e7effa;
+  --info: #1a5290;
+  --info-bg: #e8f0fa;
 
   /* Typography --------------------------------------------------------- */
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
@@ -93,17 +100,19 @@
   --radius-pill: 999px;
 
   /* Elevation ---------------------------------------------------------- */
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 1px rgba(15, 23, 42, 0.04);
-  --shadow-md: 0 4px 14px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.05);
-  --shadow-lift: 0 12px 30px rgba(11, 37, 69, 0.14);
-  --shadow-header: 0 1px 0 rgba(11, 37, 69, 0.08), 0 4px 18px rgba(11, 37, 69, 0.06);
+  /* Soft, blue-tinted shadows: they lift a white card off cream without the
+     grey haze a neutral shadow leaves behind. */
+  --shadow-sm: 0 1px 2px rgba(21, 45, 122, 0.06), 0 1px 1px rgba(15, 18, 25, 0.04);
+  --shadow-md: 0 4px 14px rgba(21, 45, 122, 0.08), 0 2px 4px rgba(15, 18, 25, 0.05);
+  --shadow-lift: 0 12px 30px rgba(21, 45, 122, 0.12);
+  --shadow-header: 0 1px 0 rgba(21, 45, 122, 0.08), 0 4px 18px rgba(21, 45, 122, 0.06);
 
   /* Layout ------------------------------------------------------------- */
   --container: 1180px;
   --container-narrow: 760px;
   --header-h: 64px;
-  --ring: 0 0 0 3px rgba(201, 154, 60, 0.35);
-  --ring-info: 0 0 0 3px rgba(31, 91, 150, 0.28);
+  --ring: 0 0 0 3px rgba(214, 177, 97, 0.45);
+  --ring-info: 0 0 0 3px rgba(26, 82, 144, 0.28);
 
   /* Motion ------------------------------------------------------------- */
   --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
@@ -113,39 +122,13 @@
   box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --bg: #0a1120;
-    --bg-alt: #0e1728;
-    --surface: #131d2f;
-    --card: #131d2f;
-    --border: #24324a;
-    --border-strong: #33435f;
-    --text: #e9edf4;
-    --text-strong: #f7f9fc;
-    --muted: #9aa8bd;
-    --muted-2: #8492a8;
-    --on-dark-muted: #a9bad2;
-    --ok: #4ec08d;
-    --ok-bg: #0f2b21;
-    --warn: #e0a955;
-    --warn-bg: #2b2110;
-    --crit: #f08585;
-    --crit-bg: #2d1616;
-    --info: #7db3e8;
-    --info-bg: #12233a;
-    --navy: #060d1a;
-    --navy-700: #0a1526;
-    --navy2: #10203a;
-    --gold-soft: #d9bd7e;
-    --gold-ink: #241b06;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
-    --shadow-lift: 0 14px 32px rgba(0, 0, 0, 0.55);
-  }
-}
-
+/* Dark mode is opt-in only.
+   This used to be a `prefers-color-scheme: dark` block, which made every
+   visitor whose phone or laptop is set to dark get a near-black site — the
+   "RUCUSO is too dark" complaint. Light is now the default appearance on
+   every device; [data-theme="dark"] below is the only thing that turns it
+   dark, and that only happens when the visitor taps the theme toggle.
+   The dark palette itself is unchanged. */
 :root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #0a1120;
@@ -170,9 +153,11 @@
   --navy: #060d1a;
   --navy-700: #0a1526;
   --navy2: #10203a;
+  --gold: #d6b161;
   --gold-soft: #d9bd7e;
   --gold-ink: #241b06;
-  /* dark mode is the default, so the default value here is the soft gold */
+  /* On a dark surface the brand gold is legible as-is, so the dark theme
+     uses the soft gold for small text instead of the darkened --gold-text. */
   --gold-text: #d9bd7e;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
@@ -431,6 +416,8 @@ main { display: block; }
   .siteheader__inner { gap: var(--sp-2); }
   .siteheader .brand__sub { display:none; }
   .siteheader .brand__crest { width:32px; height:32px; }
+  .siteheader .brand__mark { width:32px; height:32px; }
+  .siteheader .brand__logo { width:28px; height:28px; }
   .siteheader .brand__name { font-size:1.05rem; }
 }
 
@@ -442,6 +429,25 @@ main { display: block; }
   color: inherit;
   flex: none;
 }
+/* The brand lockup pairs the official Ruaha Catholic University crest with
+   the RUCUSO wordmark. The crest is a transparent PNG, so it sits directly on
+   the header without a plate; the hairline ring only exists to give it an edge
+   against the cream sections. */
+.brand__mark {
+  width: 38px; height: 38px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.brand__logo { width: 34px; height: 34px; object-fit: contain; }
+/* The historical .brand__crest is still used by the admin/leader headers, so
+   it keeps its original look. */
 .brand__crest {
   width: 38px; height: 38px;
   border-radius: 50%;
@@ -645,7 +651,7 @@ body.drawer-open { overflow: hidden; }
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(120% 90% at 88% 8%, rgba(201, 154, 60, 0.20) 0%, transparent 58%),
+    radial-gradient(120% 90% at 88% 8%, rgba(214, 177, 97, 0.20) 0%, transparent 58%),
     linear-gradient(150deg, var(--navy) 0%, var(--navy2) 100%);
   z-index: -3;
 }
@@ -767,7 +773,9 @@ body.drawer-open { overflow: hidden; }
   grid-template-columns: 1fr;
 }
 @media (min-width: 560px) { .quickgrid { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1000px) { .quickgrid { grid-template-columns: repeat(5, 1fr); } }
+/* Four columns, not five: there are seven quick actions (HESLB verification and
+   HESLB login are separate cards), and 4 + 3 reads better than 5 + 2. */
+@media (min-width: 1000px) { .quickgrid { grid-template-columns: repeat(4, 1fr); } }
 
 .quickcard {
   display: flex;
@@ -791,6 +799,74 @@ body.drawer-open { overflow: hidden; }
   border-color: var(--gold-soft);
 }
 .quickcard:active { transform: translateY(-1px); }
+
+/* --------------------------------------------------------------------------
+   8b. Viungo Muhimu (Important Links)
+   -------------------------------------------------------------------------- */
+.linkgrid {
+  display: grid;
+  gap: var(--sp-3);
+  grid-template-columns: 1fr;
+}
+@media (min-width: 560px) { .linkgrid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 900px) { .linkgrid { grid-template-columns: repeat(3, 1fr); } }
+
+.linkcard {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--gold);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  color: inherit;
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+.linkcard:hover,
+.linkcard:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+  border-color: var(--border-strong);
+  border-left-color: var(--gold);
+}
+.linkcard:active { transform: translateY(0); }
+.linkcard:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+
+.linkcard__icon {
+  width: 40px; height: 40px;
+  flex: none;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-alt);
+  color: var(--navy);
+  border: 1px solid var(--border);
+}
+:root[data-theme="dark"] .linkcard__icon { background: #16233d; color: var(--gold-soft); }
+.linkcard__icon svg { width: 20px; height: 20px; }
+
+.linkcard__body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.linkcard__title {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--text-strong);
+  line-height: var(--lh-snug);
+}
+.linkcard__ext { font-size: 0.8em; color: var(--muted); }
+.linkcard__note { font-size: var(--fs-sm); color: var(--muted); line-height: 1.5; }
+.linkcard__host {
+  font-size: var(--fs-xs);
+  color: var(--muted-2);
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
 .quickcard__icon {
   width: 42px; height: 42px;
   border-radius: var(--radius-sm);
@@ -1452,6 +1528,38 @@ input[type="checkbox"] {
 .toolview__title { font-size: var(--fs-2xl); margin: 0 0 4px; }
 .toolview__sub { color: var(--muted); font-size: var(--fs-sm); margin: 0; max-width: 60ch; }
 .heslb-brand { display:flex; align-items:center; gap:12px; margin-bottom:var(--sp-3); }
+/* Keeps "check your HESLB record on RUCUSO" and "log in to the official HESLB
+   platform" visibly separate, so nobody mistakes one for the other. */
+.heslb-split {
+  display: grid;
+  gap: var(--sp-3);
+  grid-template-columns: 1fr;
+  margin-bottom: var(--sp-4);
+}
+@media (min-width: 720px) { .heslb-split { grid-template-columns: repeat(2, 1fr); } }
+.heslb-split__card {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--sp-4);
+}
+.heslb-split__card--ours { border-left: 3px solid var(--gold); background: var(--surface); }
+.heslb-split__card h3 { margin: 6px 0 6px; font-size: var(--fs-md); }
+.heslb-split__card p { font-size: var(--fs-sm); margin-bottom: var(--sp-3); }
+.heslb-split__card p:last-child { margin-bottom: 0; }
+.heslb-split__tag {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--cream-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 3px 10px;
+}
+:root[data-theme="dark"] .heslb-split__tag { background: #16233d; }
 .heslb-brand img { width:48px; height:48px; flex:none; object-fit:contain; }
 .heslb-brand span { display:block; color:var(--muted); font-size:var(--fs-xs); font-weight:700; }
 .heslb-brand .toolview__title { font-size:var(--fs-xl); margin:0; }
@@ -1964,7 +2072,7 @@ input[type="checkbox"] {
   transition: transform var(--dur) var(--ease), background var(--dur) var(--ease);
 }
 .aifab:hover { transform: translateY(-2px); background: var(--navy2); }
-.aifab::after { content:""; position:absolute; inset:-4px; border:1px solid rgba(201,154,60,.42); border-radius:inherit; animation:aipulse 2.8s ease-out infinite; pointer-events:none; }
+.aifab::after { content:""; position:absolute; inset:-4px; border:1px solid rgba(214,177,97,.42); border-radius:inherit; animation:aipulse 2.8s ease-out infinite; pointer-events:none; }
 @keyframes aipulse { 0% { opacity:.65; transform:scale(.96); } 100% { opacity:0; transform:scale(1.16); } }
 .aifab svg { width: 18px; height: 18px; color: var(--gold); flex: none; }
 .aifab__label { display: none; }
@@ -2313,7 +2421,7 @@ body.modal-open { overflow: hidden; }
   transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
 }
 .dropzone:hover { border-color: var(--gold-soft); }
-.dropzone.drag { border-color: var(--gold); background: rgba(201, 154, 60, 0.08); }
+.dropzone.drag { border-color: var(--gold); background: rgba(214, 177, 97, 0.08); }
 
 .hidden { display: none !important; }
 
@@ -2336,6 +2444,20 @@ body.modal-open { overflow: hidden; }
 @media (min-width: 1000px) { .footergrid { grid-template-columns: 1.6fr 1fr 1fr 1.3fr; gap: var(--sp-5); } }
 
 .footerbrand { display: flex; flex-direction: column; gap: var(--sp-3); }
+/* The footer is deep navy, so the transparent RUC crest needs a white plate
+   behind it to stay legible — the same treatment rucu.ac.tz uses on its own
+   footer logo. */
+.footerbrand__mark {
+  width: 52px; height: 52px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  background: #ffffff;
+  padding: 6px;
+}
+.footerbrand__mark img { width: 100%; height: 100%; object-fit: contain; }
 .footerbrand .brand__crest { background: var(--gold); color: var(--navy); border-color: var(--gold); }
 .footerbrand__name {
   font-family: var(--font-display);
@@ -2353,8 +2475,8 @@ body.modal-open { overflow: hidden; }
   font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--gold-soft);
-  background: rgba(201, 154, 60, 0.14);
-  border: 1px solid rgba(201, 154, 60, 0.3);
+  background: rgba(214, 177, 97, 0.14);
+  border: 1px solid rgba(214, 177, 97, 0.3);
   border-radius: var(--radius-pill);
   padding: 4px 12px;
   align-self: flex-start;
