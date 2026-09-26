@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Audit Logs | RUCUSO</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="/css/portal.css">
+<style>
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-bottom: var(--sp-3);
+  }
+
+  .toolbar label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted-2);
+  }
+
+  .toolbar input,
+  .toolbar select {
+    min-width: 190px;
+    padding: 9px 11px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    font: inherit;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .twrap { overflow-x: auto; }
+
+  table { min-width: 760px; }
+
+  .t-when {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted-2);
+    font-size: var(--fs-xs);
+  }
+
+  .t-action {
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .t-details {
+    color: var(--muted);
+    max-width: 380px;
+  }
+
+  .empty { text-align: center; color: var(--muted); padding: 26px; }
+
+  .loadmore { display: flex; justify-content: center; margin-top: var(--sp-3); }
+  .loadmore .pri { width: auto; margin: 0; padding: 10px 20px; }
+</style>
+</head>
+
+<body>
+
+<header class="top">
+  <div class="brand"><span class="crest">R</span><b>RUCUSO</b><span>Audit Logs</span></div>
+  <div>
+    <span id="whoami" class="muted" style="color:#cdd9ee;font-size:12px;margin-right:10px;"></span>
+    <button class="sec" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Logout</button>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <a href="/admin/dashboard/">Dashibodi</a>
+    <a href="/admin/students/" data-perm="manage_students">Wanafunzi</a>
+    <a href="/admin/leaders/" data-perm="__super_admin_only">Viongozi</a>
+    <a href="/admin/ministries/" data-perm="manage_ministries">Wizara</a>
+    <a href="/admin/categories/" data-perm="manage_categories">Categories</a>
+    <a href="/admin/feedback/" data-perm="view_feedback">Maoni &amp; Malalamiko</a>
+    <a href="/admin/services/" data-perm="manage_services">Huduma</a>
+    <a href="/admin/announcements/" data-perm="manage_announcements">Matangazo</a>
+    <a href="/admin/documents/" data-perm="manage_documents">Nyaraka</a>
+    <a href="/admin/reports/" data-perm="manage_reports">Ripoti</a>
+    <a href="/admin/ai/" data-perm="__super_admin_only">RUCUSO AI</a>
+    <a href="/admin/admins/" data-perm="__super_admin_only">Msimamizi</a>
+    <a href="/admin/audit-logs/" class="active" data-perm="view_audit_logs">Audit Logs</a>
+    <a href="/admin/settings/" data-perm="__super_admin_only">Mipangilio</a>
+  </nav>
+
+  <main class="content">
+    <div id="gate" class="card"><p class="muted">Inathibitisha akaunti...</p></div>
+
+    <div id="body" class="hidden">
+
+      <div class="pagehead">
+        <div class="accent"></div>
+        <h2>Audit Logs</h2>
+        <p>Kumbukumbu ya vitendo vilivyofanywa ndani ya mfumo — ukiweza wa kusoma tu.</p>
+      </div>
+
+      <div class="toolbar">
+        <label for="actionFilter">Kitendo
+          <select id="actionFilter">
+            <option value="">Zote</option>
+          </select>
+        </label>
+
+        <label for="search">Tafuta
+          <input type="search" id="search" placeholder="Jina, kitendo, maelezo...">
+        </label>
+      </div>
+
+      <div class="card">
+        <div class="twrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Wakati</th>
+                <th>Kitendo</th>
+                <th>Aliyefanya</th>
+                <th>Maelezo</th>
+              </tr>
+            </thead>
+            <tbody id="logBody">
+              <tr><td colspan="4" class="empty">Inapakia kumbukumbu...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="loadmore">
+        <button class="pri" id="moreBtn" hidden>Onyesha zaidi</button>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase/config.js" onerror="console.warn('supabase/config.js haipo.')"></script>
+<script src="/supabase/supabase-client.js"></script>
+<script src="/js/auth-guard.js"></script>
+<script>
+(async function () {
+  const session = await window.RucusoGuard.requireRole(["super_admin", "admin"], { loginUrl: "/admin/login/" });
+  if (!session) return;
+
+  const profile = session.profile;
+  document.getElementById("gate").classList.add("hidden");
+  document.getElementById("body").classList.remove("hidden");
+  document.getElementById("whoami").textContent = profile.full_name + " (" + profile.role + ")";
+  document.getElementById("logoutBtn").addEventListener("click", () => window.RucusoGuard.logout("/"));
+
+  document.querySelectorAll("#sidebar a[data-perm]").forEach((a) => {
+    const perm = a.dataset.perm;
+    const allowed = perm === "__super_admin_only"
+      ? profile.role === "super_admin"
+      : window.RucusoGuard.hasPermission(profile, perm);
+    if (!allowed) a.remove();
+  });
+
+  const client = window.RucusoAPI.client;
+  const PAGE = 100;
+
+  let all = [];
+  let shown = PAGE;
+
+  function escapeHtml(v) {
+    return String(v == null ? "" : v)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+
+  function formatWhen(value) {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (isNaN(d)) return "—";
+    return d.toLocaleString("en-GB", {
+      day: "2-digit", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit", hour12: false,
+    });
+  }
+
+  function actorName(row) {
+    if (row.actor_label) return row.actor_label;
+    return "—";
+  }
+
+  function matches(row, action, term) {
+    if (action && row.action !== action) return false;
+    if (!term) return true;
+    const haystack = [row.action, row.details, row.actor_label]
+      .join(" ")
+      .toLowerCase();
+    return haystack.indexOf(term) > -1;
+  }
+
+  function paint() {
+    const action = document.getElementById("actionFilter").value;
+    const term = document.getElementById("search").value.trim().toLowerCase();
+
+    const filtered = all.filter((r) => matches(r, action, term));
+    const slice = filtered.slice(0, shown);
+    const body = document.getElementById("logBody");
+
+    if (!filtered.length) {
+      body.innerHTML = '<tr><td colspan="4" class="empty">Hakuna kumbukumbu inayolingana.</td></tr>';
+    } else {
+      body.innerHTML = slice.map(function (row) {
+        return (
+          "<tr>" +
+          '<td class="t-when">' + escapeHtml(formatWhen(row.created_at)) + "</td>" +
+          '<td class="t-action">' + escapeHtml(row.action || "—") + "</td>" +
+          "<td>" + escapeHtml(actorName(row)) + "</td>" +
+          '<td class="t-details">' + escapeHtml(row.details || "—") + "</td>" +
+          "</tr>"
+        );
+      }).join("");
+    }
+
+    const more = document.getElementById("moreBtn");
+    more.hidden = filtered.length <= shown;
+    more.textContent = "Onyesha zaidi (" + filtered.length + " kati ya " + all.length + ")";
+  }
+
+  function fillActions() {
+    const select = document.getElementById("actionFilter");
+    const actions = Array.from(new Set(all.map((r) => r.action).filter(Boolean))).sort();
+    actions.forEach(function (a) {
+      const opt = document.createElement("option");
+      opt.value = a;
+      opt.textContent = a;
+      select.appendChild(opt);
+    });
+  }
+
+  const { data, error } = await client
+    .from("audit_logs")
+    .select("id, actor_id, actor_label, action, details, created_at")
+    .order("created_at", { ascending: false })
+    .limit(1000);
+
+  if (error) {
+    console.error(error);
+    document.getElementById("logBody").innerHTML =
+      '<tr><td colspan="4" class="empty" style="color:var(--crit)">Imeshindikana kupakia kumbukumbu.</td></tr>';
+    return;
+  }
+
+  all = data || [];
+  fillActions();
+  paint();
+
+  document.getElementById("actionFilter").addEventListener("change", function () { shown = PAGE; paint(); });
+  document.getElementById("search").addEventListener("input", function () { shown = PAGE; paint(); });
+  document.getElementById("moreBtn").addEventListener("click", function () { shown += PAGE; paint(); });
+})();
+</script>
+</body>
+</html>

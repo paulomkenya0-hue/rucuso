@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ripoti | RUCUSO</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="/css/portal.css">
+<style>
+  .filters {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .filters label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted-2);
+  }
+
+  .filters input {
+    width: 168px;
+    padding: 9px 11px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    font: inherit;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .cols {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--sp-3);
+  }
+
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 26px;
+  }
+
+  #message:empty { display: none; }
+
+  #message .note {
+    padding: 11px 13px;
+    border-radius: var(--radius-sm);
+    font-size: var(--fs-sm);
+    margin-bottom: var(--sp-3);
+  }
+
+  #message .note.error { color: var(--crit); background: var(--crit-bg); }
+  #message .note.ok { color: var(--ok); background: var(--ok-bg); }
+</style>
+</head>
+
+<body>
+
+<header class="top">
+  <div class="brand"><span class="crest">R</span><b>RUCUSO</b><span>Reports</span></div>
+  <div>
+    <span id="whoami" class="muted" style="color:#cdd9ee;font-size:12px;margin-right:10px;"></span>
+    <button class="sec" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Logout</button>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <a href="/admin/dashboard/">Dashibodi</a>
+    <a href="/admin/students/" data-perm="manage_students">Wanafunzi</a>
+    <a href="/admin/leaders/" data-perm="__super_admin_only">Viongozi</a>
+    <a href="/admin/ministries/" data-perm="manage_ministries">Wizara</a>
+    <a href="/admin/categories/" data-perm="manage_categories">Categories</a>
+    <a href="/admin/feedback/" data-perm="view_feedback">Maoni &amp; Malalamiko</a>
+    <a href="/admin/services/" data-perm="manage_services">Huduma</a>
+    <a href="/admin/announcements/" data-perm="manage_announcements">Matangazo</a>
+    <a href="/admin/documents/" data-perm="manage_documents">Nyaraka</a>
+    <a href="/admin/reports/" class="active" data-perm="manage_reports">Ripoti</a>
+    <a href="/admin/ai/" data-perm="__super_admin_only">RUCUSO AI</a>
+    <a href="/admin/admins/" data-perm="__super_admin_only">Msimamizi</a>
+    <a href="/admin/audit-logs/" data-perm="view_audit_logs">Audit Logs</a>
+    <a href="/admin/settings/" data-perm="__super_admin_only">Mipangilio</a>
+  </nav>
+
+  <main class="content">
+    <div id="gate" class="card"><p class="muted">Inathibitisha akaunti...</p></div>
+
+    <div id="body" class="hidden">
+
+      <div class="pagehead">
+        <div class="accent"></div>
+        <h2>Ripoti</h2>
+        <p>Muhtasari wa maoni na malalamiko kwa kipindi ulichochagua.</p>
+      </div>
+
+      <div id="message"></div>
+
+      <div class="card">
+        <div class="filters">
+          <label for="from">Kuanzia
+            <input type="date" id="from">
+          </label>
+
+          <label for="to">Hadi
+            <input type="date" id="to">
+          </label>
+
+          <button class="pri" id="applyBtn" style="width:auto;margin:0;padding:10px 18px;">Tuma Ripoti</button>
+          <button class="sec" id="csvBtn" style="width:auto;">Pakua CSV</button>
+        </div>
+      </div>
+
+      <div class="statgrid">
+        <div class="card"><b id="r_total">–</b><span>Jumla</span></div>
+        <div class="card"><b id="r_open">–</b><span>Yaliyobaki</span></div>
+        <div class="card"><b id="r_resolved">–</b><span>Yaliyotatuliwa</span></div>
+        <div class="card"><b id="r_complaints">–</b><span>Malalamiko</span></div>
+        <div class="card"><b id="r_critical">–</b><span>Critical</span></div>
+        <div class="card"><b id="r_avgDays">–</b><span>Wastani wa siku</span></div>
+      </div>
+
+      <div class="cols">
+        <div class="card">
+          <h3>Ikao</h3>
+          <div id="byStatus"><p class="muted">Inapakia...</p></div>
+        </div>
+
+        <div class="card">
+          <h3>Aina</h3>
+          <div id="byType"><p class="muted">Inapakia...</p></div>
+        </div>
+
+        <div class="card">
+          <h3>Kipaumbele</h3>
+          <div id="byPriority"><p class="muted">Inapakia...</p></div>
+        </div>
+      </div>
+
+      <p class="muted" style="font-size:var(--fs-xs);margin-top:var(--sp-3);">
+        Ripoti hii ni ya kusoma tu. Mabadiliko ya maoni yafanywe kwenye
+        <a href="/admin/feedback/">Maoni &amp; Malalamiko</a>.
+      </p>
+
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase/config.js" onerror="console.warn('supabase/config.js haipo.')"></script>
+<script src="/supabase/supabase-client.js"></script>
+<script src="/js/auth-guard.js"></script>
+<script>
+(async function () {
+  const session = await window.RucusoGuard.requireRole(["super_admin", "admin"], { loginUrl: "/admin/login/" });
+  if (!session) return;
+
+  const profile = session.profile;
+  document.getElementById("gate").classList.add("hidden");
+  document.getElementById("body").classList.remove("hidden");
+  document.getElementById("whoami").textContent = profile.full_name + " (" + profile.role + ")";
+  document.getElementById("logoutBtn").addEventListener("click", () => window.RucusoGuard.logout("/"));
+
+  // Sidebar is filtered per-permission, matching the other admin modules; RLS
+  // still enforces the real boundary regardless of what the browser renders.
+  document.querySelectorAll("#sidebar a[data-perm]").forEach((a) => {
+    const perm = a.dataset.perm;
+    const allowed = perm === "__super_admin_only"
+      ? profile.role === "super_admin"
+      : window.RucusoGuard.hasPermission(profile, perm);
+    if (!allowed) a.remove();
+  });
+
+  const client = window.RucusoAPI.client;
+  const CLOSED = ["Resolved", "Closed", "Rejected/Invalid"];
+
+  let rows = [];
+
+  function showMessage(text, type = "ok") {
+    document.getElementById("message").innerHTML =
+      '<div class="note ' + type + '">' + escapeHtml(text) + "</div>";
+  }
+
+  function dayDiff(a, b) {
+    return (new Date(b) - new Date(a)) / 86400000;
+  }
+
+  function bar(title, count, total) {
+    const pct = total ? Math.round((count / total) * 100) : 0;
+    return (
+      '<div class="bar-row">' +
+      "<span>" + escapeHtml(title) + "</span>" +
+      '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div>' +
+      "<span>" + count + "</span>" +
+      "</div>"
+    );
+  }
+
+  function escapeHtml(v) {
+    return String(v == null ? "" : v)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+
+  function tally(list, key) {
+    const out = {};
+    list.forEach((r) => { const k = r[key] || "—"; out[k] = (out[k] || 0) + 1; });
+    return Object.keys(out).sort((a, b) => out[b] - out[a]);
+  }
+
+  function paint(list) {
+    rows = list;
+    document.getElementById("message").innerHTML = "";
+    const total = rows.length;
+    const open = rows.filter((r) => !CLOSED.includes(r.status));
+    const resolved = rows.filter((r) => ["Resolved", "Closed"].includes(r.status));
+    const complaints = rows.filter((r) => r.submission_type === "Complaint");
+    const critical = rows.filter((r) => r.priority === "Critical" && !CLOSED.includes(r.status));
+
+    document.getElementById("r_total").textContent = total;
+    document.getElementById("r_open").textContent = open.length;
+    document.getElementById("r_resolved").textContent = resolved.length;
+    document.getElementById("r_complaints").textContent = complaints.length;
+    document.getElementById("r_critical").textContent = critical.length;
+
+    // Average days to resolution, over the rows that actually have one.
+    const closedWithDate = rows.filter((r) => r.resolved_at && r.created_at);
+    const avg = closedWithDate.length
+      ? (closedWithDate.reduce((s, r) => s + dayDiff(r.created_at, r.resolved_at), 0) / closedWithDate.length)
+      : null;
+    document.getElementById("r_avgDays").textContent = avg === null ? "–" : avg.toFixed(1);
+
+    const paintInto = (id, key) => {
+      const el = document.getElementById(id);
+      const keys = tally(rows, key);
+      el.innerHTML = keys.length
+        ? keys.map((k) => bar(k, rows.filter((r) => (r[key] || "—") === k).length, total)).join("")
+        : '<p class="empty">Hakuna data kwa kipindi hiki.</p>';
+    };
+    paintInto("byStatus", "status");
+    paintInto("byType", "submission_type");
+    paintInto("byPriority", "priority");
+  }
+
+  async function load() {
+    const from = document.getElementById("from").value;
+    const to = document.getElementById("to").value;
+    let q = client.from("feedback").select(
+      "id, reference_number, submission_type, status, priority, created_at, resolved_at"
+    );
+    if (from) q = q.gte("created_at", from + "T00:00:00.000Z");
+    if (to) q = q.lte("created_at", to + "T23:59:59.999Z");
+
+    const { data, error } = await q.order("created_at", { ascending: false }).limit(2000);
+    if (error) {
+      console.error(error);
+      showMessage("Imeshindikana kupakia ripoti. Hakikisha mtandao au upanuzi wa RLS.", "error");
+      return;
+    }
+    paint(data || []);
+  }
+
+  document.getElementById("applyBtn").addEventListener("click", load);
+
+  document.getElementById("csvBtn").addEventListener("click", () => {
+    if (!rows.length) { showMessage("Hakuna data ya kupakua kwa kipindi hiki.", "error"); return; }
+    const head = ["reference_number", "submission_type", "status", "priority", "created_at", "resolved_at"];
+    const cell = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+    const csv = [head.join(",")]
+      .concat(rows.map((r) => head.map((h) => cell(r[h])).join(",")))
+      .join("\r\n");
+    const url = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "rucuso-ripoti-" + new Date().toISOString().slice(0, 10) + ".csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  await load();
+})();
+</script>
+</body>
+</html>

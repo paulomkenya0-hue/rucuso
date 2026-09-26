@@ -539,16 +539,40 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../../js/config.js"></script>
+<script src="../../supabase/config.js"
+        onerror="console.warn('supabase/config.js haipo.')"></script>
 <script src="../../supabase/supabase-client.js"></script>
+<script src="../../js/auth-guard.js"></script>
 
 <script>
-(function () {
+(async function () {
   "use strict";
 
   const api = window.RucusoAPI;
 
   const notice = document.getElementById("notice");
+
+  if (!api) {
+    showNotice(
+      "RUCUSO API haipatikani. Hakikisha config.js na supabase-client.js zimepakiwa.",
+      "error"
+    );
+    return;
+  }
+
+  // Settings are super-admin only (the sidebar entry says so, and
+  // system_settings is writable by any staff member at the RLS layer, so this
+  // page check is the only barrier). Use the shared guard instead of
+  // re-implementing the session + active check that every other module does —
+  // it also picks up the must_change_password redirect for free.
+  const session = await window.RucusoGuard.requireRole(
+    ["super_admin"],
+    { loginUrl: "/admin/login/" }
+  );
+
+  if (!session) return;
+
+  const profile = session.profile;
 
   const userName = document.getElementById("userName");
   const userRole = document.getElementById("userRole");
@@ -571,14 +595,6 @@
   const logoutBtn = document.getElementById("logoutBtn");
   const logoutDanger = document.getElementById("logoutDanger");
 
-  if (!api) {
-    showNotice(
-      "RUCUSO API haipatikani. Hakikisha config.js na supabase-client.js zimepakiwa.",
-      "error"
-    );
-    return;
-  }
-
   function showNotice(message, type) {
     notice.textContent = message;
     notice.className = "notice show " + (type || "success");
@@ -597,21 +613,7 @@
 
   async function loadPage() {
     try {
-      const session = await api.currentSession();
-
-      if (!session || !session.user) {
-        window.location.href = "../login/index.html";
-        return;
-      }
-
-      const profile = session.profile;
-
-      if (!profile || !profile.active) {
-        await api.adminLogout();
-        window.location.href = "../login/index.html";
-        return;
-      }
-
+      // session + profile come from the shared guard; no second fetch needed.
       userName.textContent =
         profile.full_name || "RUCUSO Administrator";
 

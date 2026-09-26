@@ -2,7 +2,7 @@
 //
 // Load order in index.html must be:
 //   1. https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2  (UMD build, exposes window.supabase)
-//   2. js/config.js  (defines window.RUCUSO_CONFIG)
+//   2. supabase/config.js  (defines window.RUCUSO_CONFIG)
 //   3. this file    (defines window.RucusoAPI)
 //   4. js/data.js   (defines window.RucusoData — the app's data layer)
 //

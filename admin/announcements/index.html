@@ -915,6 +915,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase/config.js"></script>
 <script src="../../supabase/supabase-client.js"></script>
+<script src="../../js/auth-guard.js"></script>
 
 <script>
 (function () {
@@ -1238,20 +1239,14 @@
 
     try {
 
-      const session =
-        await window.RucusoAPI.currentSession();
+      // Shared guard replaces the hand-rolled session/active check; it also
+      // handles the must_change_password redirect.
+      const session = await window.RucusoGuard.requireRole(
+        ["super_admin", "admin"],
+        { loginUrl: "../login/" }
+      );
 
-      if (!session || !session.user) {
-        window.location.href = "../login/";
-        return false;
-      }
-
-      if (!session.profile || !session.profile.active) {
-
-        await window.RucusoAPI.adminLogout();
-
-        window.location.href = "../login/";
-
+      if (!session) {
         return false;
       }
 

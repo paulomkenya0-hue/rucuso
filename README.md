@@ -1,198 +1,169 @@
 # RUCUSO
 **Ruaha Catholic University Students' Organization — Digital Platform**
 
-Academic Year 2026/2027
+Academic Year 2026/2027 · Production: **https://rucuso.online**
 
-## Kuhusu / About
-RUCUSO ni jukwaa la kidijitali kwa ajili ya uongozi wa wanafunzi, huduma za wanafunzi, na
-mfumo wa maoni/malalamiko/changamoto/mapendekezo wa Ruaha Catholic University.
+## What this is
 
-RUCUSO is a static site (vanilla HTML/CSS/JS, no build step, no framework) whose data now
-lives in **Supabase Postgres**, not in the browser. Any admin change made on one device is
-visible to every other device immediately.
+RUCUSO is a static site (vanilla HTML/CSS/JS — no build step, no framework, no package manager)
+that runs the university's student-organisation platform: a public leadership directory and
+services directory, a feedback/complaints/challenges intake with reference tracking, SMS-OTP
+student verification, a Kiswahili AI assistant, and staff portals for administrators and leaders.
 
-Production: **https://rucuso.online** — deployed from `main` via GitHub Pages.
+All shared data lives in **Supabase Postgres**, not in the browser, so a change made on one
+device is visible on every other device immediately.
+
+## Routes
+
+### Public — `index.html` (one page, in-app views)
+| View | Purpose |
+| --- | --- |
+| `home` | Home / directory preview |
+| `submit` | Submit feedback, complaint, challenge, suggestion or praise |
+| `verify` | Student verification: registration number → phone → SMS OTP |
+| `track` | Track a submission by its reference number |
+| `reports`, `dashboard`, `issues`, `settings` | **Legacy.** Marked `data-legacy="1"` and no longer in the navigation; staff are sent to `/admin/*` instead. Do not build new features here. |
+
+### Admin — `/admin/*` (roles below; all read through the shared guard)
+| Path | Purpose | Allowed roles |
+| --- | --- | --- |
+| `/admin/login/` | Sign in | public |
+| `/admin/dashboard/` | Totals and breakdowns | super_admin, admin |
+| `/admin/feedback/` | Manage feedback/maoni | super_admin, admin |
+| `/admin/announcements/` | Publish and expire announcements | super_admin, admin |
+| `/admin/documents/` | Upload and manage documents | super_admin, admin |
+| `/admin/students/` | Student records | super_admin, admin |
+| `/admin/ministries/` | Ministries (Wizara) | super_admin, admin |
+| `/admin/categories/` | Feedback categories | super_admin, admin |
+| `/admin/services/` | Student services | super_admin, admin |
+| `/admin/reports/` | Date-ranged report summary + CSV export | super_admin, admin |
+| `/admin/audit-logs/` | Filterable audit log | super_admin, admin |
+| `/admin/leaders/` | Leader account CRUD (via Edge Function) | super_admin |
+| `/admin/ai/` | RUCUSO AI console | super_admin |
+| `/admin/admins/` | Read-only staff roster | super_admin |
+| `/admin/settings/` | System settings | super_admin |
+
+### Leader
+| Path | Purpose |
+| --- | --- |
+| `/leader/login/` | Leader sign-in |
+| `/leader/dashboard/` | Leader dashboard (position + ministry scoped) |
+| `/change-password/` | Forced password change on first login |
+
+An `admin` additionally sees only the sidebar entries its `profiles.permissions` map grants.
 
 ## Repository layout
 | Path | Purpose |
 | --- | --- |
-| `index.html` | All markup, CSS and screen structure |
-| `js/app.js` | All screen logic and every call into the data layer |
-| `js/data.js` | The data layer: Supabase loaders/mutators + the in-memory cache |
+| `index.html` | All public markup and in-app view structure |
+| `css/portal.css` | The single shared stylesheet for public, admin and leader pages |
+| `js/app.js` | Public screen logic and every call into the data layer |
+| `js/data.js` | The app's data layer: Supabase loaders/mutators + in-memory cache |
+| `js/auth-guard.js` | `window.RucusoGuard.requireRole()` — the shared route guard |
 | `supabase/config.js` | Public Supabase URL + anon key (safe to publish; RLS is the boundary) |
 | `supabase/supabase-client.js` | `window.RucusoAPI` — the only file that talks to Supabase |
 | `supabase/schema.sql` | Migration 001 — tables, RLS policies, first RPCs |
-| `supabase/migrations/002_production_backend.sql` | Migration 002 — hardening, storage buckets, `submit_feedback()` |
-| `supabase/migrations/003_ai_assistant.sql` | Migration 003 — `ai_queries`, the AI rate-limit ledger |
-| `supabase/functions/send-otp`, `verify-otp` | Edge Functions for real SMS OTP |
-| `supabase/functions/rucuso-ai` | Edge Function: the real RUCUSO AI assistant (holds the AI key) |
+| `supabase/migrations/002_production_backend.sql` | Storage buckets, seeded reference data, closed RLS gaps, `submit_feedback()` |
+| `supabase/migrations/003_ai_assistant.sql` | `ai_queries` — the AI rate-limit ledger (no browser policies) |
+| `supabase/migrations/004_roles_permissions.sql` | Role/title split, `profiles.permissions`, per-permission RLS |
+| `supabase/migrations/005_leader_visibility_and_password_flow.sql` | `leaders.public_visible`, `must_change_password` |
+| `supabase/migrations/006_student_phone_verification.sql` | `verify_student_identity()` RPC |
+| `supabase/functions/send-otp`, `verify-otp`, `rucuso-ai`, `leader-admin` | Edge Functions |
 | `robots.txt`, `sitemap.xml`, `CNAME` | SEO / custom domain |
 
 ## What still lives in the browser
-Exactly two `localStorage` keys, neither of which is shared application data:
-- `rucu_student_session_v1` — the student's own verified session, so a page refresh does not
-  force them to re-enter an SMS code.
+
+Exactly two `localStorage` keys, neither of them shared application data:
+
+- `rucu_student_session_v1` — the student's own verified session, so a refresh does not force
+  them to re-enter an SMS code.
 - `rucu_ui_v1` — UI preferences (theme).
 
-Everything else — leaders, ministries, services, announcements, documents, feedback, issues,
-students, categories, programmes, contacts and the audit log — is read from and written to
-Supabase on every load. **There is no localStorage fallback**: if Supabase is unreachable the
-app says so and refuses to pretend the operation succeeded.
+Everything else is read from and written to Supabase on every load. **There is no
+localStorage fallback**: if Supabase is unreachable the app says so rather than pretending the
+operation succeeded.
 
 ## Security model
-- Supabase Auth is the only authentication. No passwords are stored in the browser, and no
-  demo accounts exist.
-- Every admin/leader account needs a row in `profiles`. Without one, login succeeds but the
-  app shows "Akaunti hii haina profili ya msimamizi" and nothing else is possible.
-- Permissions are enforced by **Row Level Security**, not by JavaScript. The front end's route
-  guards are only a convenience on top of that.
-- The public cannot read the `students` or `feedback` tables. Student lookups go through
-  `lookup_student()`, and tracking goes through `track_feedback()`.
-- Public submissions go through `submit_feedback()`, which mints the reference number,
-  enforces anonymity server-side, and blocks duplicate spam inside the database.
-- The public leadership directory reads a dedicated `public_leaders` view, so the leaders'
-  registration numbers and private phone numbers are never exposed to visitors.
+
+- Supabase Auth is the only authentication. No passwords are stored in the browser and no demo
+  accounts exist.
+- Every admin/leader account needs a row in `profiles`. Without one, login succeeds but the app
+  shows "Akaunti hii haina profili ya msimamizi" and nothing else is possible.
+- **Row Level Security is the real boundary.** `js/auth-guard.js` only stops an unauthorised
+  visitor from seeing admin markup — every query still runs as that visitor's own role and
+  Postgres decides what comes back. Migration 004 splits this per permission
+  (`profiles.permissions`), and `super_admin` passes every check implicitly.
+- The public cannot read the `students` or `feedback` tables. Student verification goes through
+  `lookup_student()` and `verify_student_identity()`; tracking goes through `track_feedback()`.
+- Public submissions go through `submit_feedback()`, which mints the reference number, enforces
+  anonymity server-side, and blocks duplicate spam inside the database.
+- The public leadership directory reads a dedicated `public_leaders` view, so registration
+  numbers and private phone numbers are never exposed to visitors.
 - Feedback attachments live in a **private** storage bucket; staff open them through a
   short-lived signed URL.
 - The `service_role` key exists only inside the Edge Functions, as a Supabase secret.
-- The **AI provider's key is server-side only** (`AI_API_KEY` in Supabase secrets). No browser
-  file contains an AI key, and the `rucuso-ai` function never returns it.
-- RUCUSO AI is authorised on the server: the function looks the caller's real role up from
-  `profiles` and assembles only the data that caller may see. Visitors get public content; staff
-  additionally get aggregate report numbers. No individual report, attachment, student name,
-  registration number, phone number or private leader field is ever sent to the model.
+- The **AI provider's key is server-side only** (`AI_API_KEY`). No browser file contains an AI
+  key. `rucuso-ai` looks the caller's real role up server-side and assembles only the data that
+  caller may see — visitors get public content, staff additionally get aggregate report
+  numbers. No individual report, attachment, student name, registration number, phone number or
+  private leader field is ever sent to the model.
 
-## Setup / deployment order
-1. Run `supabase/schema.sql` (001) in the SQL Editor — only needed once, on a new project.
-2. Run `supabase/migrations/002_production_backend.sql` in the SQL Editor. **This one is
-   required for the live site**: it creates the storage buckets, seeds the categories and
-   student services, closes four RLS gaps and adds `submit_feedback()`.
+## Setup
+
+1. Run `supabase/schema.sql` (001) in the Supabase SQL Editor — once, on a new project.
+2. Run `supabase/migrations/002_production_backend.sql`, then `003_ai_assistant.sql`, then
+   `004_roles_permissions.sql`, then `005_leader_visibility_and_password_flow.sql`. Each one says
+   in its header what order it expects. **002 is required for the live site.**
 3. Create the first real admin:
-   - Dashboard → Authentication → Users → **Add user** (real email + password)
-   - then, in the SQL Editor:
+   - Dashboard → Authentication → Users → **Add user** (real email + password), then:
      ```sql
      insert into profiles (id, full_name, role)
      values ('<paste-the-uid>', 'Jina Lamili', 'super_admin')
      on conflict (id) do update set role = excluded.role;
      ```
-4. Set the OTP secrets and deploy the Edge Functions (see
-   `supabase/edge-functions-README.md`).
-5. Optional — the AI assistant. Run `supabase/migrations/003_ai_assistant.sql` in the SQL
-   Editor, set the AI secret, then deploy:
+4. `supabase/config.js` must hold the project URL and anon key. It is committed on purpose: the
+   anon key is public by design and is only safe because RLS is on every table. Never put a
+   `service_role` or AI key in it. There is no second copy of this file — every page loads this
+   one path.
+5. Optional — SMS OTP. Set the SMS provider's credentials as Supabase secrets and deploy
+   `send-otp` and `verify-otp` (see `supabase/edge-functions-README.md`). Until a provider is
+   connected, `REQUIRE_SMS_OTP = false` and verification falls back to the narrower
+   phone-on-file check from migration 006.
+6. Optional — the AI assistant:
    ```bash
    supabase secrets set AI_API_KEY=your_provider_key
    supabase secrets set AI_MODEL=gpt-4o-mini
    supabase secrets set AI_RATE_SALT=<openssl rand -base64 32>
    supabase functions deploy rucuso-ai
    ```
-   Any OpenAI-compatible provider works; set `AI_API_BASE_URL` for OpenAI-compatible gateways
-   such as Groq, OpenRouter, DeepSeek or Together. Without this step the app still works and the
-   "Ask RUCUSO AI" button falls back to its built-in answers.
-6. `supabase/config.js` must contain the project URL and anon key. It is committed on purpose:
-   the anon key is public by design and is only safe because RLS is on every table. Never put
-   a `service_role` or AI key in it.
+   Any OpenAI-compatible provider works; set `AI_API_BASE_URL` for gateways such as Groq,
+   OpenRouter, DeepSeek or Together. Without this step the app still works and the AI button
+   falls back to its built-in answers.
 7. Push to `main`; GitHub Pages publishes it.
 
-## Verification checklist (do this before telling students to use it)
-- [ ] Log in as `super_admin` in a normal window, create a leader, refresh, and confirm it is
-      still there.
-- [ ] Open the site in an incognito window and confirm the leader appears in the directory.
-- [ ] Edit the leader, refresh, confirm the edit persisted.
-- [ ] Deactivate the leader, confirm it disappears from the public directory but stays in the
-      admin list; re-activate it.
-- [ ] Delete a test leader and confirm it is gone from both.
-- [ ] Create a ministry, refresh, confirm it persisted.
-- [ ] Submit a test feedback, note the reference number, and track it from another browser.
-- [ ] Verify a student registration number, and confirm a non-existent one is rejected.
-- [ ] Log in with a non-admin account and confirm it cannot change any protected data.
-- [ ] Upload a document and a leader photo, and confirm the files load from storage (not from
-      base64 in localStorage).
-- [ ] Send an OTP to a real phone and confirm the code arrives and expires after 5 minutes.
-- [ ] Ask RUCUSO AI "Nianzie wapi?" and "Nawezaje kuwasilisha malalamiko yangu?" in a private
-      window — both should give real instructions, not the "I did not understand" reply.
-- [ ] Ask the AI "Ni ripoti ngapi zimepokelewa?" **as a visitor**: it must say the analytics are
-      staff-only. Ask the same question **while signed in as staff**: it must give the number.
-- [ ] Ask the AI for a student's registration number or a report's text: it must say it does not
-      have that, because it is never given that data.
-- [ ] Send 7 AI questions quickly from a private window and confirm the 7th is rate limited.
-- [ ] Rename `AI_API_KEY` (or delete it), reload, ask a question, and confirm you get the
-      Kiswahili "AI not configured yet" message plus the built-in fallback — not a broken chat.
-## Features
-- Kiswahili-first UI (RUCUSO branding, key screens translated)
-- Student verification: registration-number lookup → Tanzania phone → **real SMS OTP**
-  (Edge Function, hashed codes, 5-minute expiry, 5-attempt limit, per-phone rate limiting)
-- Feedback/Complaints/Challenges/Suggestions/Praise submission with anonymous option,
-  a private attachment, an auto-generated reference number (`RUCU-2026-XXXXXX`), a math
-  anti-spam check and duplicate detection **enforced in the database**
-- Track My Report by reference number, with a status timeline and category
-- Admin dashboard: totals, category/status/ministry breakdowns (CSS bar charts), recurring
-  issue grouping with an AI-generated suggestion that an admin must confirm
-- Issue management: filter, view, change status, assign officer, assign ministry, respond,
-  internal notes, full audit trail per issue
-- Reports: category/status/satisfaction summary, CSV export, PDF export (jsPDF)
-- Leadership Directory: photo, position, short bio and a tap-to-call number for public users;
-  admin CRUD. Positions are pre-seeded (4 singular posts + 3 slots per ministry, created
-  whenever a ministry is added). Empty slots show as "NAFASI WAZI" and click "Jaza/Hariri" to
-  fill in the real name, phone and bio. Vacant slots are hidden from the public directory.
-- Ministries (Wizara): configurable, linked to issues for routing and reporting
-- Student Services module: configurable list (Mikopo, Malazi, Afya, ...), inactive until an
-  admin fills in real details
-- Announcements (Matangazo): publish/expiry dates, category, audience, author
-- Documents & Resources (Nyaraka): admin file upload to Supabase Storage, public download list
-- Global Audit Log: logins, verifications, status changes, leader/ministry/announcement/
-  document actions, CSV imports
-- A **RUCUSO AI** assistant (Kiswahili) backed by a real language model. It runs in the
-  `rucuso-ai` Edge Function, which holds the provider key and gives it live RUCUSO data —
-  services, announcements, ministries, the leadership directory, and for staff the report
-  totals, status/category breakdowns and average satisfaction. It understands natural
-  questions ("Nawezaje kuwasilisha malalamiko yangu?" and "How do I send a complaint?" are the
-  same question) and holds a short conversation so follow-ups work. Rate limited, and it
-  falls back to built-in answers if the service is unreachable or not configured yet.
+## Running it locally
 
-## Not yet built
-- Voice input for the AI assistant, and a transcript of past conversations in the admin UI
-  (the questions are already logged in the `ai_queries` table)
-- Leader login portal with forced password change on first login
-- Representative Portal (campus/faculty/programme/year representation structure)
-- Election-ready schema (candidates, positions, voting periods) — intentionally not built, per
-  the original spec, until explicitly activated
-- Excel (`.xlsx`) student import (CSV/paste import is implemented; `.xlsx` needs a parser)
-- Per-role scoping (Minister/Deputy/MP/Representative see only their own portfolio) — RLS
-  currently draws a single line between "staff" and "public"
-- Full Kiswahili/English language switcher (Kiswahili-first; some admin screens are in English)
-- Real per-section URLs for SEO (all sections share one `index.html`)
+Any static server works — there is nothing to install:
 
-## Running it
-Just open `index.html`, or serve the folder with any static server:
-```
+```bash
 python -m http.server 8000     # then open http://localhost:8000
 ```
-`file://` will not work — browsers block cross-origin requests to Supabase from it. There is
-no build step and nothing to install. jsPDF comes from a CDN for PDF export.
 
-`supabase/config.js` must be present and filled in, otherwise the app loads but every screen
-shows the "database unreachable" state on purpose.
+`file://` will not work: browsers block cross-origin requests to Supabase from it.
 
-## Deploy on GitHub Pages
+## Deploy
+
 1. Push to `main`.
 2. Repo → Settings → Pages → Source: deploy from the `main` branch, root folder.
 3. Enforce **HTTPS** once the certificate is issued.
 
 The `CNAME` file already pins this repo to `rucuso.online`; point the domain's DNS at GitHub
-Pages per GitHub's "Managing a custom domain" docs.
-
-### SEO
-`robots.txt`, `sitemap.xml`, `CNAME` and the meta tags (title, description, canonical, Open
-Graph) are in the repo and already reference `rucuso.online`. For indexing:
-1. Google Search Console → add the domain as a property and verify via a DNS TXT record or the
-   HTML verification file in the repo root.
-2. Submit `https://rucuso.online/sitemap.xml` under **Sitemaps**.
-3. Use **URL Inspection → Request Indexing** on the homepage.
-
-All screens share one `index.html`, so there is a single URL to index. Individual sections will
-not get their own search results until real routing is added.
+Pages per GitHub's "Managing a custom domain" docs. For indexing: add the domain in Google
+Search Console, submit `https://rucuso.online/sitemap.xml` under **Sitemaps**, then use
+**URL Inspection → Request Indexing**.
 
 ## How a data change flows
+
 1. A click in `index.html` calls a function in `js/app.js`.
 2. That function asks `js/data.js` to mutate.
 3. `js/data.js` calls `RucusoAPI` (`supabase/supabase-client.js`).
@@ -203,6 +174,37 @@ Because step 4 reads from the cache that step 3 just refreshed, a successful wri
 immediately visible; a failed write leaves the screen unchanged and surfaces the error as a
 toast. Nothing is ever written to `localStorage`.
 
+## Before telling students to use it
+
+- [ ] Sign in as `super_admin`, create a leader, refresh, confirm it is still there — then check
+      it appears in the public directory from an incognito window, and that deactivating it
+      removes it from the directory but not from the admin list.
+- [ ] Submit test feedback, note the reference number, and track it from another browser.
+- [ ] Verify a real registration number; confirm a non-existent one is rejected.
+- [ ] Sign in as an `admin` with a narrow `permissions` map and confirm the sidebar hides the
+      modules it was not granted and those URLs refuse the role.
+- [ ] Upload a document and a leader photo; confirm the files load from Supabase Storage.
+- [ ] Send an OTP to a real phone; confirm it arrives and expires after 5 minutes.
+- [ ] Ask the AI "Nawezaje kuwasilisha malalamiko yangu?" in a private window — it should give
+      real instructions. Ask it for a report count as a **visitor** (must refuse: staff-only) and
+      then as **staff** (must answer). Ask it for a student's registration number (must refuse).
+- [ ] Rename `AI_API_KEY`, reload, ask a question, and confirm you get the Kiswahili
+      "not configured yet" message plus the built-in fallback — not a broken chat.
+
+## Not built yet
+
+- Voice input for the AI assistant, and a transcript of past conversations in the admin UI
+  (questions are already logged in `ai_queries`).
+- Representative Portal (campus/faculty/programme/year representation structure).
+- Election-ready schema (candidates, positions, voting periods) — intentionally not built, per
+  the original spec, until explicitly activated.
+- Excel (`.xlsx`) student import; CSV/paste import is implemented.
+- Full ministry-scoped RLS for leaders — `has_permission()` and `is_staff()` are in place, but
+  portfolio-level scoping of minister/deputy/representative views is not.
+- A full Kiswahili/English language switcher (Kiswahili-first; some admin screens are English).
+- Real per-section URLs for SEO — all public views share one `index.html`.
+
 ## Credits
+
 - Built for Ruaha Catholic University Students' Organization (RUCUSO).
-- Vanilla HTML/CSS/JS, Supabase (Postgres, Auth, Storage, Edge Functions), jsPDF.
+- Vanilla HTML/CSS/JS and Supabase (Postgres, Auth, Storage, Edge Functions).

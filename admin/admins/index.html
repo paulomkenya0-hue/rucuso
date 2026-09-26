@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Msimamizi | RUCUSO</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="/css/portal.css">
+<style>
+  .twrap { overflow-x: auto; }
+
+  table { min-width: 820px; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .badge.on { color: var(--ok); background: var(--ok-bg); }
+  .badge.off { color: var(--crit); background: var(--crit-bg); }
+  .badge.warn { color: var(--warn); background: var(--warn-bg); }
+
+  .perm {
+    display: inline-block;
+    padding: 2px 7px;
+    margin: 2px 3px 2px 0;
+    border-radius: 6px;
+    font-size: 10.5px;
+    font-weight: 600;
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    color: var(--muted-2);
+  }
+
+  .perm--none { background: transparent; border-style: dashed; }
+
+  .empty { text-align: center; color: var(--muted); padding: 26px; }
+</style>
+</head>
+
+<body>
+
+<header class="top">
+  <div class="brand"><span class="crest">R</span><b>RUCUSO</b><span>Administrator Accounts</span></div>
+  <div>
+    <span id="whoami" class="muted" style="color:#cdd9ee;font-size:12px;margin-right:10px;"></span>
+    <button class="sec" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Logout</button>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <a href="/admin/dashboard/">Dashibodi</a>
+    <a href="/admin/students/" data-perm="manage_students">Wanafunzi</a>
+    <a href="/admin/leaders/" data-perm="__super_admin_only">Viongozi</a>
+    <a href="/admin/ministries/" data-perm="manage_ministries">Wizara</a>
+    <a href="/admin/categories/" data-perm="manage_categories">Categories</a>
+    <a href="/admin/feedback/" data-perm="view_feedback">Maoni &amp; Malalamiko</a>
+    <a href="/admin/services/" data-perm="manage_services">Huduma</a>
+    <a href="/admin/announcements/" data-perm="manage_announcements">Matangazo</a>
+    <a href="/admin/documents/" data-perm="manage_documents">Nyaraka</a>
+    <a href="/admin/reports/" data-perm="manage_reports">Ripoti</a>
+    <a href="/admin/ai/" data-perm="__super_admin_only">RUCUSO AI</a>
+    <a href="/admin/admins/" class="active" data-perm="__super_admin_only">Msimamizi</a>
+    <a href="/admin/audit-logs/" data-perm="view_audit_logs">Audit Logs</a>
+    <a href="/admin/settings/" data-perm="__super_admin_only">Mipangilio</a>
+  </nav>
+
+  <main class="content">
+    <div id="gate" class="card"><p class="muted">Inathibitisha akaunti...</p></div>
+
+    <div id="body" class="hidden">
+
+      <div class="pagehead">
+        <div class="accent"></div>
+        <h2>Akaunti za Msimamizi</h2>
+        <p>Orodha ya watumishi wote wenye mfumo wa mfumo — wakiwa na jukumu la mfumo, viongozi na wanafunzi.</p>
+      </div>
+
+      <div class="statgrid">
+        <div class="card"><b id="s_total">–</b><span>Jumla ya Akaunti</span></div>
+        <div class="card"><b id="s_active">–</b><span>Zilizo Active</span></div>
+        <div class="card"><b id="s_admins">–</b><span>Admins</span></div>
+        <div class="card"><b id="s_leaders">–</b><span>Viongozi</span></div>
+        <div class="card"><b id="s_inactive">–</b><span>Zilizozimwa</span></div>
+      </div>
+
+      <div class="card">
+        <h3>Orodha</h3>
+        <div class="twrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Jina</th>
+                <th>Username</th>
+                <th>Nafasi</th>
+                <th>Hali</th>
+                <th>Password</th>
+                <th>Maadili</th>
+                <th>Imetengenezwa</th>
+              </tr>
+            </thead>
+            <tbody id="staffBody">
+              <tr><td colspan="7" class="empty">Inapakia akaunti...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card card--quiet" style="margin-top:var(--sp-3);">
+        <p class="muted" style="margin:0;font-size:var(--fs-xs);">
+          Ukurasa huu ni wa kusoma tu. Kuunda au kufuta akaunti inahitaji
+          kuingia kwenye Supabase Dashboard (kutengeneza mtumizi wa
+          <code>auth.users</code>) — browser hawezi kutumia service-role key.
+          Akaunti za viongozi husarajiwa kupitia modulii ya
+          <a href="/admin/leaders/">Viongozi</a>.
+        </p>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase/config.js" onerror="console.warn('supabase/config.js haipo.')"></script>
+<script src="/supabase/supabase-client.js"></script>
+<script src="/js/auth-guard.js"></script>
+<script>
+(async function () {
+  // super_admin only: this roster exposes permission flags for every account.
+  const session = await window.RucusoGuard.requireRole(["super_admin"], { loginUrl: "/admin/login/" });
+  if (!session) return;
+
+  const profile = session.profile;
+  document.getElementById("gate").classList.add("hidden");
+  document.getElementById("body").classList.remove("hidden");
+  document.getElementById("whoami").textContent = profile.full_name + " (" + profile.role + ")";
+  document.getElementById("logoutBtn").addEventListener("click", () => window.RucusoGuard.logout("/"));
+
+  document.querySelectorAll("#sidebar a[data-perm]").forEach((a) => {
+    const perm = a.dataset.perm;
+    const allowed = perm === "__super_admin_only"
+      ? profile.role === "super_admin"
+      : window.RucusoGuard.hasPermission(profile, perm);
+    if (!allowed) a.remove();
+  });
+
+  const client = window.RucusoAPI.client;
+
+  const POSITION_LABELS = {
+    president: "President",
+    secretary_general: "Secretary General",
+    minister: "Minister",
+    deputy_minister: "Deputy Minister",
+    representative: "Representative",
+    officer: "Officer",
+  };
+
+  const PERMISSION_LABELS = {
+    view_feedback: "View feedback",
+    manage_feedback: "Manage feedback",
+    view_all_feedback: "View all feedback",
+    manage_students: "Students",
+    manage_announcements: "Announcements",
+    manage_reports: "Reports",
+    manage_documents: "Documents",
+    manage_ministries: "Ministries",
+    manage_categories: "Categories",
+    manage_services: "Services",
+    manage_admins: "Admins",
+    manage_settings: "Settings",
+    view_audit_logs: "Audit logs",
+    manage_ai_config: "AI config",
+  };
+
+  function escapeHtml(v) {
+    return String(v == null ? "" : v)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+
+  function formatDate(value) {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (isNaN(d)) return "—";
+    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  }
+
+  function roleLabel(p) {
+    if (p.role === "super_admin") return "Super Admin";
+    if (p.role === "admin") return "Admin";
+    return POSITION_LABELS[p.position] || "Kiongozi";
+  }
+
+  function render(list) {
+    const body = document.getElementById("staffBody");
+
+    if (!list.length) {
+      body.innerHTML = '<tr><td colspan="7" class="empty">Hakuna akaunti zilizopatikana.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = list.map(function (p) {
+      const active = p.active === true;
+      const state = active
+        ? '<span class="badge on">Active</span>'
+        : '<span class="badge off">Zimezimwa</span>';
+
+      const pw = p.must_change_password
+        ? '<span class="badge warn">Badilisha</span>'
+        : '<span class="badge on">Imekaa</span>';
+
+      // super_admin holds every permission implicitly, so the map is not shown.
+      let perms;
+      if (p.role === "super_admin") {
+        perms = '<span class="perm perm--none">Maadili yote</span>';
+      } else {
+        const granted = Object.keys(p.permissions || {}).filter((k) => p.permissions[k] === true);
+        perms = granted.length
+          ? granted.map((k) => '<span class="perm">' + escapeHtml(PERMISSION_LABELS[k] || k) + "</span>").join("")
+          : '<span class="perm perm--none">Hakuna</span>';
+      }
+
+      return (
+        "<tr>" +
+        "<td><strong>" + escapeHtml(p.full_name) + "</strong></td>" +
+        "<td>" + escapeHtml(p.username || "—") + "</td>" +
+        "<td>" + escapeHtml(roleLabel(p)) + "</td>" +
+        "<td>" + state + "</td>" +
+        "<td>" + pw + "</td>" +
+        '<td><div style="max-width:280px">' + perms + "</div></td>" +
+        "<td>" + escapeHtml(formatDate(p.created_at)) + "</td>" +
+        "</tr>"
+      );
+    }).join("");
+
+    document.getElementById("s_total").textContent = list.length;
+    document.getElementById("s_active").textContent = list.filter((p) => p.active === true).length;
+    document.getElementById("s_inactive").textContent = list.filter((p) => p.active !== true).length;
+    document.getElementById("s_admins").textContent = list.filter((p) => p.role === "admin").length;
+    document.getElementById("s_leaders").textContent =
+      list.filter((p) => p.role === "leader" || p.role === "super_admin").length;
+  }
+
+  const { data, error } = await client
+    .from("profiles")
+    .select("id, full_name, username, role, position, active, must_change_password, permissions, created_at")
+    .order("role")
+    .order("full_name");
+
+  if (error) {
+    console.error(error);
+    document.getElementById("staffBody").innerHTML =
+      '<tr><td colspan="7" class="empty" style="color:var(--crit)">Imeshindikana kupakia akaunti.</td></tr>';
+    return;
+  }
+
+  render(data || []);
+})();
+</script>
+</body>
+</html>

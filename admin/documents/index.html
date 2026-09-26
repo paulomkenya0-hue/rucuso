@@ -797,6 +797,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase/config.js"></script>
 <script src="../../supabase/supabase-client.js"></script>
+<script src="../../js/auth-guard.js"></script>
 
 
 <script>
@@ -1327,22 +1328,18 @@
 
     try {
 
-      const session =
-        await window.RucusoAPI.currentSession();
+      // Shared guard replaces the hand-rolled session check.
+      const session = await window.RucusoGuard.requireRole(
+        ["super_admin", "admin"],
+        { loginUrl: "../login/" }
+      );
 
       if (!session) {
-
-        window.location.href = "../login/";
-
         return;
-
       }
 
-      const profile =
-        session.profile;
-
       elements.userName.textContent =
-        profile?.full_name ||
+        session.profile?.full_name ||
         session.user?.email ||
         "Msimamizi";
 
