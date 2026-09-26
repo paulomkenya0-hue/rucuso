@@ -23,3 +23,21 @@ test("admin dashboard HESLB permission gate parses", () => {
   assert.ok(scripts.length > 0);
   assert.doesNotThrow(() => scripts.forEach((script) => new vm.Script(script)));
 });
+
+test("leader dashboard HESLB summary script parses", () => {
+  const html = fs.readFileSync(path.join(root, "leader/dashboard/index.html"), "utf8");
+  const scripts = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)]
+    .map((match) => match[1])
+    .filter((script) => script.trim());
+  assert.ok(scripts.length > 0);
+  assert.doesNotThrow(() => scripts.forEach((script) => new vm.Script(script)));
+});
+
+test("HESLB import controls include template, preview, and explicit update opt-in", () => {
+  const html = fs.readFileSync(path.join(root, "admin/heslb/index.html"), "utf8");
+  assert.match(html, /id="downloadTemplate"/);
+  assert.match(html, /id="csvDropzone"/);
+  assert.match(html, /id="importPreview"/);
+  assert.match(html, /id="updateExisting"/);
+  assert.match(html, /id="confirmImport"/);
+});

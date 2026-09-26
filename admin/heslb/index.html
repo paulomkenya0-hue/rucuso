@@ -16,7 +16,13 @@
   .faculty-item { border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px; text-align:center; }
   .faculty-item b { display:block; font-size:var(--fs-lg); color:var(--text-strong); }
   .faculty-item span { color:var(--muted); font-size:var(--fs-xs); }
+  .year-bars { display:grid; gap:8px; }
+  .year-bar { display:grid; grid-template-columns:84px 1fr 52px; align-items:center; gap:10px; font-size:var(--fs-sm); }
+  .year-bar__track { height:10px; overflow:hidden; background:var(--bg-alt); border-radius:99px; }
+  .year-bar__fill { height:100%; background:var(--gold); border-radius:inherit; transform-origin:left; }
   .import-errors { max-height:260px; overflow:auto; }
+  .csv-drop { display:block; border:1px dashed var(--border-strong); border-radius:var(--radius-sm); padding:18px; text-align:center; background:var(--bg-alt); }
+  .csv-drop.is-over { border-color:var(--info); background:var(--info-bg); }
   .status-active { color:var(--ok); }
   .status-inactive { color:var(--crit); }
   .status-graduated { color:var(--muted); }
@@ -68,6 +74,10 @@
         <h3 id="facultyHeading" style="margin-top:0">Muhtasari kwa Kitivo</h3>
         <div id="facultyStats" class="faculty-grid"></div>
       </section>
+      <section class="card" aria-labelledby="yearHeading">
+        <h3 id="yearHeading" style="margin-top:0">Wanufaika kwa Mwaka wa Masomo</h3>
+        <div id="yearStats" class="year-bars"></div>
+      </section>
       <section class="card" aria-labelledby="recordHeading">
         <h3 id="recordHeading" style="margin-top:0">Rekodi za Wanufaika</h3>
         <div class="heslb-filters">
@@ -108,8 +118,11 @@
       </section>
       <section class="card" aria-labelledby="importHeading">
         <h3 id="importHeading" style="margin-top:0">Uingizaji wa CSV kwa Mpigo</h3>
-        <p class="muted">Pakua faili la CSV lenye vichwa: full_name,index_number,phone,faculty,year_of_study,status. Faili litathibitishwa na kuonyeshwa kwa ukaguzi kabla ya kuhifadhiwa.</p>
-        <label for="csvFile">Chagua faili la CSV (hadi 5 MB)</label><input id="csvFile" type="file" accept=".csv,text/csv">
+        <p class="muted">Safu zinazokubalika: <code>full_name,index_number,phone,faculty,year_of_study,status</code>. Faili litathibitishwa na kuonyeshwa kwa ukaguzi kabla ya kuhifadhiwa.</p>
+        <div class="btnrow"><button class="sec" id="downloadTemplate" type="button">Pakua kiolezo cha CSV</button></div>
+        <label class="csv-drop" id="csvDropzone" for="csvFile">Buruta faili la CSV hapa au chagua faili (hadi 5 MB)
+          <input id="csvFile" type="file" accept=".csv,text/csv">
+        </label>
         <label class="check" for="updateExisting"><input id="updateExisting" type="checkbox"><span>Ruhusu kusasisha rekodi zilizopo zinazolingana kwa namba ya usajili</span></label>
         <div id="importPreview" class="hidden" aria-live="polite"></div>
         <div class="btnrow"><button class="sec" id="downloadErrors" type="button" hidden>Pakua orodha ya masuala</button><button class="pri" id="confirmImport" type="button" disabled>Thibitisha uingizaji</button></div>
@@ -184,7 +197,7 @@
   }
 
   async function loadStats() {
-    const rows = await API.heslbBeneficiaryStats();
+    const [rows, years] = await Promise.all([API.heslbBeneficiaryStats(), API.heslbBeneficiaryYearStats()]);
     const first = rows[0] || {};
     byId("totalStat").textContent = first.total ?? 0;
     byId("activeStat").textContent = first.active ?? 0;
@@ -194,6 +207,12 @@
       const target = document.querySelector(`[data-faculty-count="${row.faculty}"]`);
       if (target) target.textContent = row.faculty_total;
     });
+    const maxYear = Math.max(1, ...years.map((row) => Number(row.total) || 0));
+    byId("yearStats").innerHTML = years.length ? years.map((row) => `
+      <div class="year-bar"><span>Mwaka ${esc(row.year_of_study)}</span>
+        <div class="year-bar__track" role="img" aria-label="Mwaka ${esc(row.year_of_study)}: wanufaika ${esc(row.total)}">
+          <div class="year-bar__fill" style="width:${Math.max(0, Math.min(100, (Number(row.total) / maxYear) * 100))}%"></div>
+        </div><b>${esc(row.total)}</b></div>`).join("") : '<p class="muted">Hakuna takwimu za miaka kwa sasa.</p>';
   }
 
   async function loadRows() {
@@ -208,7 +227,7 @@
         <tr>
           <td>${esc(row.full_name)}</td><td>${esc(row.index_number)}</td><td><span aria-label="Namba ya simu iliyofichwa">${esc(maskPhone(row.phone))}</span></td>
           <td>${esc(row.faculty)}</td><td>${esc(row.year_of_study)}</td><td><span class="status-${esc(row.status)}">${esc(statusText(row.status))}</span></td>
-          <td><div class="heslb-actions"><button class="sec" type="button" data-edit="${esc(row.index_number)}">Hariri</button>${row.status === "active" ? `<button class="sec" type="button" data-deactivate="${esc(row.index_number)}">Zima</button>` : ""}</div></td>
+          <td><div class="heslb-actions"><button class="sec" type="button" data-edit="${esc(row.index_number)}">Hariri</button>${row.status === "active" ? `<button class="sec" type="button" data-deactivate="${esc(row.index_number)}">Zima</button>` : `<button class="sec" type="button" data-activate="${esc(row.index_number)}">Washa</button>`}</div></td>
         </tr>`).join("") : '<tr><td colspan="7" class="muted">Hakuna rekodi zinazolingana na vichujio.</td></tr>';
       byId("listMessage").textContent = `${resultCount.toLocaleString()} rekodi`;
       byId("pageLabel").textContent = resultCount ? `Ukurasa ${page + 1} kati ya ${Math.ceil(resultCount / pageSize)}` : "Hakuna kurasa";
@@ -257,9 +276,15 @@
   });
 
   byId("cancelEdit").addEventListener("click", clearForm);
+  byId("addButton").addEventListener("click", () => {
+    clearForm();
+    byId("formHeading").scrollIntoView({ behavior: "smooth", block: "start" });
+    byId("fullName").focus({ preventScroll: true });
+  });
   byId("beneficiaryRows").addEventListener("click", async (event) => {
     const edit = event.target.closest("[data-edit]");
     const deactivate = event.target.closest("[data-deactivate]");
+    const activate = event.target.closest("[data-activate]");
     if (edit) {
       try {
         const row = await API.getHeslbBeneficiary(edit.dataset.edit);
@@ -280,6 +305,13 @@
       try {
         const row = await API.getHeslbBeneficiary(deactivate.dataset.deactivate);
         await API.saveHeslbBeneficiary({ ...row, recordKey: row.index_number, status: "inactive" });
+        await refresh();
+      } catch (error) { notify(error.message, true); }
+    }
+    if (activate && confirm("Unathibitisha kuwezesha tena mnufaika huyu?")) {
+      try {
+        const row = await API.getHeslbBeneficiary(activate.dataset.activate);
+        await API.saveHeslbBeneficiary({ ...row, recordKey: row.index_number, status: "active" });
         await refresh();
       } catch (error) { notify(error.message, true); }
     }
@@ -340,6 +372,12 @@
     importSourceText = "";
     byId("importMessage").textContent = "";
     if (!file) { byId("updateExisting").disabled = false; renderPreview(); return; }
+    if (!/\.csv$/i.test(file.name) || (file.type && file.type !== "text/csv" && file.type !== "application/vnd.ms-excel")) {
+      byId("updateExisting").disabled = false;
+      notify("Chagua faili la CSV pekee.", true);
+      renderPreview();
+      return;
+    }
     if (file.size > 5 * 1024 * 1024) { byId("updateExisting").disabled = false; notify("Faili linazidi ukubwa wa 5 MB.", true); renderPreview(); return; }
     byId("updateExisting").disabled = true;
     try {
@@ -353,6 +391,28 @@
     finally { if (version === importVersion) byId("updateExisting").disabled = false; }
   }
   byId("csvFile").addEventListener("change", prepareImport);
+  byId("downloadTemplate").addEventListener("click", () => {
+    const contents = HESLBImport.HEADERS.join(",") + "\r\n";
+    const url = URL.createObjectURL(new Blob(["\uFEFF" + contents], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a"); link.href = url; link.download = "heslb-template.csv"; link.click(); URL.revokeObjectURL(url);
+  });
+  const dropzone = byId("csvDropzone");
+  ["dragenter", "dragover"].forEach((type) => dropzone.addEventListener(type, (event) => {
+    event.preventDefault();
+    dropzone.classList.add("is-over");
+  }));
+  ["dragleave", "drop"].forEach((type) => dropzone.addEventListener(type, (event) => {
+    event.preventDefault();
+    dropzone.classList.remove("is-over");
+  }));
+  dropzone.addEventListener("drop", (event) => {
+    const file = event.dataTransfer.files && event.dataTransfer.files[0];
+    if (!file) return;
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    byId("csvFile").files = transfer.files;
+    byId("csvFile").dispatchEvent(new Event("change", { bubbles: true }));
+  });
   byId("updateExisting").addEventListener("change", () => {
     if (!byId("csvFile").files?.[0]) return;
     pendingImport = { ...HESLBImport.validateCsv(importSourceText, existingKeys, byId("updateExisting").checked), updateExisting: byId("updateExisting").checked };
@@ -367,16 +427,41 @@
   byId("confirmImport").addEventListener("click", async () => {
     if (!pendingImport || !pendingImport.valid.length || !confirm(`Hifadhi ${pendingImport.valid.length} rekodi?${pendingImport.updateExisting ? " Rekodi zinazolingana zitasasishwa." : " Rudufu zilizopo zitarukwa."}`)) return;
     const button = byId("confirmImport"); button.disabled = true;
-    const records = pendingImport.valid.map((row) => row.record);
+    const validated = pendingImport.valid;
+    const updateExisting = pendingImport.updateExisting;
+    const records = validated.map((row) => row.record);
     await audit("HESLB Bulk Import Started", `Import started for ${records.length} validated records.`);
+    let saved = 0;
+    let failed = 0;
+    const failures = [];
     try {
-      await API.importHeslbBeneficiaries(records, pendingImport.updateExisting);
-      await audit("HESLB Bulk Import Completed", `Imported ${records.length} records; update-existing=${pendingImport.updateExisting}.`);
-      notify(`Rekodi ${records.length} zimeingizwa au kusasishwa.`, false);
-      byId("csvFile").value = ""; pendingImport = null; renderPreview(); await refresh();
+      for (let offset = 0; offset < records.length; offset += 100) {
+        const chunk = records.slice(offset, offset + 100);
+        try {
+          await API.importHeslbBeneficiaries(chunk, updateExisting);
+          saved += chunk.length;
+        } catch (error) {
+          failed += chunk.length;
+          failures.push({
+            line: `${validated[offset].line}-${validated[offset + chunk.length - 1].line}`,
+            message: error.message || "Uingizaji wa kundi hili umeshindikana.",
+            values: {},
+          });
+        }
+      }
+      await audit("HESLB Bulk Import Completed", `Succeeded ${saved}; failed ${failed}; update-existing=${updateExisting}.`);
+      if (failed) await audit("HESLB Bulk Import Failed", `Failed ${failed} of ${records.length} validated records.`);
+      notify(`Zilizohifadhiwa: ${saved}. Zilizoshindikana: ${failed}. Rudufu: ${pendingImport.duplicates.length}. Batili: ${pendingImport.invalid.length}.`, failed > 0);
+      if (failed) {
+        pendingImport = { ...pendingImport, valid: [], invalid: [...pendingImport.invalid, ...failures] };
+        renderPreview();
+      } else {
+        byId("csvFile").value = ""; pendingImport = null; renderPreview();
+      }
+      await refresh();
     } catch (error) {
-      await audit("HESLB Bulk Import Failed", `Import failed for ${records.length} validated records.`);
-      notify(error.message, true);
+      await audit("HESLB Bulk Import Failed", `Import failed after saving ${saved} records.`);
+      notify(`Zilizohifadhiwa: ${saved}. Zilizobaki hazikukamilika. ${error.message}`, true);
     } finally { button.disabled = !pendingImport || pendingImport.valid.length === 0; }
   });
 

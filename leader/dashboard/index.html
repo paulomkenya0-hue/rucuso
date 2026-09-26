@@ -34,6 +34,16 @@
         <div class="card"><b id="st_progress">–</b><span>Yanayoshughulikiwa</span></div>
         <div class="card"><b id="st_resolved">–</b><span>Yaliyotatuliwa</span></div>
       </div>
+      <section class="card hidden" id="heslbModule" aria-labelledby="heslbHeading">
+        <h3 id="heslbHeading" style="margin-top:0">HESLB — Wanufaika wa Mikopo</h3>
+        <div class="statgrid">
+          <div class="card"><b id="heslbTotal">–</b><span>Jumla ya wanufaika</span></div>
+          <div class="card"><b id="heslbActive">–</b><span>Wanufaika hai</span></div>
+          <div class="card"><b id="heslbGraduated">–</b><span>Wahitimu</span></div>
+        </div>
+        <div id="heslbFaculties" class="heslb-faculty-summary" aria-label="Mgawanyo kwa vitivo"></div>
+        <a class="btn btn--primary" id="openHeslb" href="/admin/heslb/">Fungua Wanufaika wa HESLB</a>
+      </section>
       <div class="card">
         <h3 style="margin-top:0" id="scopeTitle">Masuala</h3>
         <div style="overflow-x:auto">
@@ -71,6 +81,21 @@
     : "Masuala ya Wizara Yangu";
 
   const client = window.RucusoAPI.client;
+  try {
+    const { data: canManageHeslb } = await client.rpc("is_heslb_manager");
+    if (canManageHeslb === true) {
+      const { data: summary, error: summaryError } = await client.rpc("heslb_beneficiary_stats");
+      if (!summaryError && summary && summary.length) {
+        const stats = summary[0];
+        document.getElementById("heslbTotal").textContent = stats.total;
+        document.getElementById("heslbActive").textContent = stats.active;
+        document.getElementById("heslbGraduated").textContent = stats.graduated;
+        document.getElementById("heslbFaculties").innerHTML = summary.map((row) =>
+          `<span class="pill neutral">${esc(row.faculty)}: ${esc(row.faculty_total)}</span>`).join(" ");
+        document.getElementById("heslbModule").classList.remove("hidden");
+      }
+    }
+  } catch (_) { /* an unavailable HESLB migration must not break the existing leader dashboard */ }
   // RLS (migration 004) already restricts this query to the leader's own
   // ministry unless they hold an executive position or view_all_feedback —
   // no client-side filtering is needed or trusted here.

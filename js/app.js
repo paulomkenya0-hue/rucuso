@@ -12,7 +12,12 @@ const DB = D.DB;
 const STATUSES = ["New", "Under Review", "Assigned", "In Progress", "Awaiting Information", "Resolved", "Closed", "Rejected/Invalid"];
 const STCLASS = { "New": "st-new", "Under Review": "st-review", "Assigned": "st-review", "In Progress": "st-progress", "Awaiting Information": "st-review", "Resolved": "st-resolved", "Closed": "st-closed", "Rejected/Invalid": "st-rejected" };
 const PRCLASS = { "Low": "pr-low", "Medium": "pr-medium", "High": "pr-high", "Critical": "pr-critical" };
-const TRACK_STEPS = ["New", "Under Review", "In Progress", "Resolved"];
+const TRACK_STEPS = ["Imepokelewa", "Inafanyiwa Kazi", "Imekamilika"];
+const STATUS_LABELS = {
+  New: "Imepokelewa", "Under Review": "Inakaguliwa", Assigned: "Imekabidhiwa",
+  "In Progress": "Inafanyiwa kazi", "Awaiting Information": "Inasubiri taarifa",
+  Resolved: "Imekamilika", Closed: "Imefungwa", "Rejected/Invalid": "Haijakubaliwa",
+};
 
 const OTP_MESSAGES = {
   INVALID_PHONE: "Namba ya simu si sahihi. Tumia mfumo 07XXXXXXXX au +255XXXXXXXXX.",
@@ -61,6 +66,159 @@ function randomFolder() {
     (Math.floor(Math.random() * 16) + (c === "x" ? 0 : 10)).toString(16));
 }
 function todayISO() { return new Date().toISOString().slice(0, 10); }
+
+function updatePortalClock() {
+  const now = new Date();
+  const date = new Intl.DateTimeFormat("sw-TZ", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Dar_es_Salaam",
+  }).format(now);
+  const time = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23", timeZone: "Africa/Dar_es_Salaam",
+  }).format(now);
+  const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "2-digit", hourCycle: "h23", timeZone: "Africa/Dar_es_Salaam" }).format(now));
+  const greeting = hour >= 5 && hour < 12 ? "Habari za asubuhi" : hour >= 12 && hour < 18 ? "Habari za mchana" : "Habari za jioni";
+  const clock = document.getElementById("portalClock");
+  const greetingEl = document.getElementById("portalGreeting");
+  const heroGreeting = document.getElementById("heroGreeting");
+  if (clock) clock.textContent = `${date} · ${time}`;
+  if (greetingEl) greetingEl.textContent = greeting;
+  if (heroGreeting) heroGreeting.textContent = `${greeting} · Ruaha Catholic University`;
+}
+
+function paintThemeToggle(theme) {
+  const button = document.getElementById("themeToggle");
+  if (!button) return;
+  const dark = theme === "dark";
+  const target = dark ? "mepesi" : "meusi";
+  button.setAttribute("aria-label", `Washa mandhari ${target}`);
+  button.title = `Washa mandhari ${target}`;
+  button.innerHTML = dark
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.5 15.5A8.5 8.5 0 018.5 3.5a8.5 8.5 0 1012 12z"/></svg>';
+}
+
+function toggleTheme() {
+  const root = document.documentElement;
+  const current = root.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const next = current === "dark" ? "light" : "dark";
+  root.setAttribute("data-theme", next);
+  D.writeUI({ theme: next });
+  paintThemeToggle(next);
+}
+
+function initHeroCanvas() {
+  const canvas = document.getElementById("heroCanvas");
+  const hero = canvas && canvas.closest(".hero");
+  const context = canvas && canvas.getContext("2d");
+  if (!canvas || !hero || !context) return;
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+  if (reduced.matches) return;
+  let width = 0;
+  let height = 0;
+  let frame = 0;
+  let active = false;
+  let visible = false;
+  let particles = [];
+  let pointer = { x: -1000, y: -1000 };
+  const resize = () => {
+    const rect = hero.getBoundingClientRect();
+    const ratio = Math.min(devicePixelRatio || 1, 1.5);
+    width = rect.width;
+    height = rect.height;
+    canvas.width = Math.round(width * ratio);
+    canvas.height = Math.round(height * ratio);
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    const count = width < 600 ? 14 : 30;
+    particles = Array.from({ length: count }, () => ({
+      x: Math.random() * width, y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 0.18, vy: (Math.random() - 0.5) * 0.18,
+    }));
+  };
+  const draw = () => {
+    if (!active) return;
+    context.clearRect(0, 0, width, height);
+    particles.forEach((particle, index) => {
+      particle.x += particle.vx;
+      particle.y += particle.vy;
+      if (particle.x < 0 || particle.x > width) particle.vx *= -1;
+      if (particle.y < 0 || particle.y > height) particle.vy *= -1;
+      const dx = particle.x - pointer.x;
+      const dy = particle.y - pointer.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance < 110) {
+        particle.x += dx / Math.max(distance, 1) * 0.12;
+        particle.y += dy / Math.max(distance, 1) * 0.12;
+      }
+      context.fillStyle = "rgba(217,189,126,.32)";
+      context.fillRect(particle.x, particle.y, 2, 2);
+      for (let other = index + 1; other < particles.length; other++) {
+        const next = particles[other];
+        const gap = Math.hypot(particle.x - next.x, particle.y - next.y);
+        if (gap < 94) {
+          context.strokeStyle = `rgba(217,189,126,${0.10 * (1 - gap / 94)})`;
+          context.beginPath(); context.moveTo(particle.x, particle.y); context.lineTo(next.x, next.y); context.stroke();
+        }
+      }
+    });
+    frame = requestAnimationFrame(draw);
+  };
+  const start = () => {
+    if (active || !visible || reduced.matches) return;
+    resize();
+    active = true;
+    draw();
+  };
+  const stop = () => {
+    active = false;
+    cancelAnimationFrame(frame);
+  };
+  hero.addEventListener("pointermove", (event) => {
+    const rect = hero.getBoundingClientRect();
+    pointer = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+  }, { passive: true });
+  hero.addEventListener("pointerleave", () => { pointer = { x: -1000, y: -1000 }; }, { passive: true });
+  addEventListener("resize", () => { if (active) resize(); }, { passive: true });
+  if ("IntersectionObserver" in window) {
+    const visibility = new IntersectionObserver((entries) => {
+      visible = entries.some((entry) => entry.isIntersecting);
+      if (visible) start(); else stop();
+    });
+    visibility.observe(hero);
+  } else { visible = true; start(); }
+  reduced.addEventListener("change", () => {
+    if (reduced.matches) { stop(); context.clearRect(0, 0, width, height); }
+    else start();
+  });
+}
+
+function initScrollReveals() {
+  const home = document.getElementById("homeview");
+  if (!home || !("IntersectionObserver" in window)) return;
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
+    if (!entry.isIntersecting) return;
+    entry.target.classList.add("is-revealed");
+    observer.unobserve(entry.target);
+  }), { threshold: 0.12 });
+  const observe = (root) => {
+    const selectors = ".section,.quickcard,.hero__panel,.servicecard,.annfeature,.annitem,.section > .container > .sectionhead-row";
+    const nodes = [];
+    if (root.matches?.(selectors)) nodes.push(root);
+    nodes.push(...root.querySelectorAll?.(selectors) || []);
+    nodes.forEach((node, index) => {
+      if (node.dataset.revealObserved) return;
+      node.dataset.revealObserved = "true";
+      node.classList.add("reveal");
+      node.style.setProperty("--reveal-delay", `${Math.min(index, 5) * 45}ms`);
+      if (reduced) node.classList.add("is-revealed");
+      else observer.observe(node);
+    });
+  };
+  observe(home);
+  new MutationObserver((mutations) => mutations.forEach((mutation) => mutation.addedNodes.forEach((node) => {
+    if (node.nodeType === Node.ELEMENT_NODE) observe(node);
+  }))).observe(home, { childList: true, subtree: true });
+}
 
 // Edge Functions answer with a small JSON body even on failure; surface those
 // codes as Kiswahili instead of a generic HTTP error.
@@ -353,29 +511,56 @@ document.addEventListener("change", (e) => {
 });
 
 const heslbVerifyForm = document.getElementById("heslbVerifyForm");
-if (heslbVerifyForm) heslbVerifyForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
+if (heslbVerifyForm) {
   const button = document.getElementById("heslbVerifyButton");
   const message = document.getElementById("heslbVerifyMessage");
   const success = document.getElementById("heslbVerified");
-  const indexNumber = document.getElementById("heslbIndex").value.trim();
-  const phone = document.getElementById("heslbPhone").value.trim();
-  message.textContent = "";
-  success.classList.add("hidden");
-  button.disabled = true;
-  button.textContent = "Inathibitisha...";
-  try {
-    const verified = await API.verifyHeslbBeneficiary(indexNumber, phone);
-    if (!verified) throw new Error("verification_failed");
-    success.classList.remove("hidden");
-    success.focus({ preventScroll: true });
-  } catch (_) {
-    message.textContent = "Taarifa hazijaweza kuthibitishwa. Hakiki namba zako au wasiliana na Wizara ya Mikopo na Uwezeshaji.";
-  } finally {
-    button.disabled = false;
-    button.textContent = "Thibitisha";
+  const step1 = document.getElementById("heslbStep1");
+  const step2 = document.getElementById("heslbStep2");
+  const step3 = document.getElementById("heslbStep3");
+  const stepItems = [...document.querySelectorAll("[data-heslb-step]")];
+  function setHeslbStep(step) {
+    step1.classList.toggle("hidden", step !== 1);
+    step2.classList.toggle("hidden", step !== 2);
+    step3.classList.toggle("hidden", step !== 3);
+    stepItems.forEach((item) => {
+      const number = Number(item.dataset.heslbStep);
+      item.dataset.state = number < step ? "done" : number === step ? "active" : "todo";
+    });
+    if (step === 1) document.getElementById("heslbIndex").focus();
+    if (step === 2) document.getElementById("heslbPhone").focus();
   }
-});
+  document.getElementById("heslbContinue").addEventListener("click", () => {
+    const index = document.getElementById("heslbIndex");
+    if (!index.reportValidity()) return;
+    message.textContent = "";
+    setHeslbStep(2);
+  });
+  document.getElementById("heslbPrevious").addEventListener("click", () => setHeslbStep(1));
+  heslbVerifyForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const phoneInput = document.getElementById("heslbPhone");
+    if (!phoneInput.reportValidity()) return;
+    const indexNumber = document.getElementById("heslbIndex").value.trim();
+    const phone = phoneInput.value.trim();
+    message.textContent = "";
+    success.classList.add("hidden");
+    button.disabled = true;
+    button.textContent = "Inathibitisha...";
+    try {
+      const verified = await API.verifyHeslbBeneficiary(indexNumber, phone);
+      if (!verified) throw new Error("verification_failed");
+      setHeslbStep(3);
+      success.classList.remove("hidden");
+      success.focus({ preventScroll: true });
+    } catch (_) {
+      message.textContent = "Hatukuweza kuthibitisha taarifa ulizoingiza. Hakikisha Namba ya Usajili na namba ya simu ni sahihi.";
+    } finally {
+      button.disabled = false;
+      button.textContent = "Thibitisha";
+    }
+  });
+}
 
 // ---------- Mobile drawer ----------
 // The panel is display:none until .active lands, and focus() on a
@@ -453,8 +638,22 @@ function restoreOpener(bg) {
 // Esc closes the topmost transient surface, and focus returns to whatever
 // opened it. Without this a keyboard user can get trapped behind an overlay.
 document.addEventListener("keydown", (e) => {
-  if (e.key !== "Escape") return;
   const ai = document.getElementById("aiModalBg");
+  if (e.key === "Tab" && ai && ai.classList.contains("active")) {
+    const focusable = [...ai.querySelectorAll('button:not([disabled]),input:not([disabled]),[href], [tabindex]:not([tabindex="-1"])')]
+      .filter((element) => element.getClientRects().length > 0);
+    if (focusable.length) {
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && (document.activeElement === first || !ai.contains(document.activeElement))) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && (document.activeElement === last || !ai.contains(document.activeElement))) {
+        e.preventDefault(); first.focus();
+      }
+    }
+    return;
+  }
+  if (e.key !== "Escape") return;
   if (ai && ai.classList.contains("active")) { closeAI(); return; }
   const open = ["issueModalBg", "leaderModalBg", "serviceModalBg", "annModalBg"]
     .map((id) => document.getElementById(id))
@@ -512,7 +711,27 @@ function renderHeroStats() {
   };
   Object.keys(n).forEach((id) => {
     const el = document.getElementById(id);
-    if (el) el.textContent = n[id];
+    if (!el || el.dataset.counterDone === "true") return;
+    const target = n[id];
+    if (!("IntersectionObserver" in window) || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      el.textContent = target;
+      el.dataset.counterDone = "true";
+      return;
+    }
+    el.textContent = "0";
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      observer.disconnect();
+      const start = performance.now();
+      const step = (now) => {
+        const progress = Math.min(1, (now - start) / 650);
+        el.textContent = String(Math.round(target * (1 - Math.pow(1 - progress, 3))));
+        if (progress < 1) requestAnimationFrame(step);
+        else el.dataset.counterDone = "true";
+      };
+      requestAnimationFrame(step);
+    }, { threshold: 0.6 });
+    observer.observe(el);
   });
 }
 
@@ -524,15 +743,17 @@ function renderContacts() {
   const set = (id, value, href, txt) => {
     const el = document.getElementById(id);
     if (!el) return;
-    if (!value) { el.textContent = txt; el.removeAttribute("href"); el.className = "footercontact__none"; return; }
+    const icon = el.parentElement && el.parentElement.querySelector("svg");
+    if (!value) { el.textContent = txt; el.removeAttribute("href"); el.className = "footercontact__none"; if (icon) icon.hidden = true; return; }
     el.textContent = value;
-    if (href) el.href = href;
+    if (href && el.tagName === "A") el.href = href;
     el.className = "";
+    if (icon) icon.hidden = false;
   };
-  set("footPhone", phone, "tel:" + phone.replace(/\s+/g, ""), "Haijawekwa bado");
-  set("footEmail", email, "mailto:" + email, "Haijawekwa bado");
-  set("contactPhone", phone, "tel:" + phone.replace(/\s+/g, ""), "Msimamizi wa mfumo bado hajaweka namba.");
-  set("contactEmail", email, "mailto:" + email, "Msimamizi wa mfumo bado hajaweka barua pepe.");
+  set("footPhone", phone, "tel:" + phone.replace(/\s+/g, ""), "Taarifa za mawasiliano zitawekwa na msimamizi.");
+  set("footEmail", email, "mailto:" + email, "Taarifa za mawasiliano zitawekwa na msimamizi.");
+  set("contactPhone", phone, "tel:" + phone.replace(/\s+/g, ""), "Taarifa za mawasiliano zitawekwa na msimamizi.");
+  set("contactEmail", email, "mailto:" + email, "Taarifa za mawasiliano zitawekwa na msimamizi.");
   set("utilPhone", phone, "tel:" + phone.replace(/\s+/g, ""), "—");
   set("utilEmail", email, "mailto:" + email, "—");
   const pw = document.getElementById("utilPhoneWrap");
@@ -1056,10 +1277,9 @@ async function doTrack(ev) {
       return;
     }
     const steps = TRACK_STEPS;
-    let idx = steps.indexOf(rec.status);
-    if (idx < 0) idx = ["Closed", "Rejected/Invalid"].includes(rec.status) ? 3
-      : rec.status === "Assigned" || rec.status === "Awaiting Information" ? 1 : 0;
-    const closed = ["Closed", "Rejected/Invalid"].includes(rec.status);
+    const completed = rec.status === "Resolved";
+    const progressing = ["Under Review", "Assigned", "In Progress", "Awaiting Information"].includes(rec.status);
+    const currentStep = completed ? 2 : progressing || ["Closed", "Rejected/Invalid"].includes(rec.status) ? 1 : 0;
 
     const meta = [
       ["Aina ya maoni", rec.submission_type],
@@ -1070,20 +1290,22 @@ async function doTrack(ev) {
     out.innerHTML =
       '<div class="trackresult__head">'
       + '<div><p class="trackresult__ref">' + esc(ref) + '</p>'
-      + '<p class="trackresult__status">Hali ya sasa: <span class="pill ' + (STCLASS[rec.status] || "neutral") + '">' + esc(rec.status) + "</span></p></div>"
-      + (closed ? "" : '<span class="pill info">Inaendelea kushughulikiwa</span>')
+      + '<p class="trackresult__status">Hali ya sasa: <span class="pill ' + (STCLASS[rec.status] || "neutral") + '">' + esc(STATUS_LABELS[rec.status] || rec.status) + "</span></p></div>"
+      + (progressing ? '<span class="pill info">Inaendelea kushughulikiwa</span>' : "")
       + "</div>"
       + '<dl class="metagrid">' + meta.map(([k, v]) =>
         "<div><dt>" + esc(k) + "</dt><dd>" + esc(v) + "</dd></div>").join("") + "</dl>"
       + (rec.response
         ? '<div class="notebox"><p class="notebox__label">Majibu ya msimamizi</p><p>' + esc(rec.response) + "</p></div>"
         : '<p class="muted" style="margin-top:var(--sp-4)">Bado hakuna jibu. Msimamizi atashughulikia maoni yako; unaweza kufuatilia majibu kupitia ukurasa huu.</p>')
-      + '<ol class="timeline">' + steps.map((s, i) => {
-        const state = closed && i === 3 ? "current" : i < idx ? "done" : i === idx ? "current" : "todo";
+      + '<ol class="timeline" aria-label="Hatua za ufuatiliaji">' + steps.map((s, i) => {
+        const state = i === 0 ? (currentStep === 0 ? "current" : "done")
+          : i === 1 ? (currentStep > 1 ? "done" : currentStep === 1 ? "current" : "todo")
+          : completed ? "current" : "todo";
         return '<li class="timeline__item" data-state="' + state + '">'
           + '<span class="timeline__dot">' + (state === "done" ? navIcon("M20 6L9 17l-5-5") : String(i + 1)) + "</span>"
           + '<div><p class="timeline__name">' + esc(s) + "</p>"
-          + (i === idx ? '<p class="timeline__when">' + esc(rec.status) + "</p>" : "")
+          + (i === currentStep ? '<p class="timeline__when">' + esc(STATUS_LABELS[rec.status] || rec.status) + "</p>" : "")
           + "</div></li>";
       }).join("") + "</ol>";
   } catch (e) {
@@ -1510,7 +1732,11 @@ function closeModal(bgId) {
 function publicLeaderPosition(position) {
   const labels = {
     president: "Rais",
+    vice_president: "Makamu wa Rais",
     secretary_general: "Katibu Mkuu",
+    prime_minister: "Waziri Mkuu",
+    prime_minister_secretary: "Katibu wa Ofisi ya Waziri Mkuu",
+    deputy_secretary_general: "Naibu Katibu Mkuu",
     minister: "Waziri",
     deputy_minister: "Naibu Waziri",
     representative: "Mwakilishi",
@@ -1545,7 +1771,7 @@ function openService(i) {
   if (!s) return;
   modalShell("serviceModalBg", publicServiceName(s.name),
     '<p style="color:var(--muted);line-height:1.75;margin-top:0">'
-    + (s.description ? esc(s.description) : "Maelezo ya huduma hii bado hayajawekwa na msimamizi wa mfumo.") + "</p>"
+    + (s.description ? esc(s.description) : "Maelezo ya huduma yataongezwa hivi karibuni.") + "</p>"
     + (s.contact ? '<p class="servicecard__contact">' + navIcon(ICON_PHONE) + esc(s.contact) + "</p>" : ""),
     "Huduma ya RUCUSO");
 }
@@ -1589,7 +1815,7 @@ async function renderServices() {
         <span class="servicecard__icon">${navIcon(serviceIcon(s.name))}</span>
         <span class="servicecard__name">${esc(publicServiceName(s.name))}</span>
       </span>
-      <span class="servicecard__desc">${s.description ? esc(s.description) : '<span class="muted">Maelezo ya huduma hii bado hayajawekwa.</span>'}</span>
+      <span class="servicecard__desc">${s.description ? esc(s.description) : '<span class="muted">Maelezo ya huduma yataongezwa hivi karibuni.</span>'}</span>
       ${s.contact ? '<span class="servicecard__contact">' + navIcon("M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012 4.2 2 2 0 014 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.8.7a2 2 0 011.8 2z") + esc(s.contact) + "</span>" : ""}
       <span class="servicecard__foot">
         <span class="servicecard__cta">Soma zaidi ${navIcon("M5 12h14M13 6l6 6-6 6")}</span>
@@ -1661,6 +1887,12 @@ async function renderAnnouncements() {
     .filter((a) => (!a.publishDate || a.publishDate <= today) && (!a.expiryDate || a.expiryDate >= today))
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   visibleAnns = visible;
+  const ticker = document.getElementById("announcementTicker");
+  const tickerButton = document.getElementById("tickerAnnouncement");
+  if (ticker && tickerButton) {
+    ticker.hidden = visible.length === 0;
+    if (visible.length) tickerButton.textContent = `${visible[0].title} · ${new Date(visible[0].createdAt).toLocaleDateString("sw-TZ")}`;
+  }
 
   // A remove control for every announcement, and only for a signed-in admin.
   // It sits *beside* the card rather than inside it: the cards are <button>
@@ -2096,6 +2328,9 @@ let aiHistory = [];
 function openAI() {
   const p = document.getElementById("aiModalBg");
   if (!p) return;
+  p.inert = false;
+  p.setAttribute("aria-hidden", "false");
+  p.setAttribute("aria-modal", "true");
   p.classList.add("active");
   const fab = document.getElementById("aiFab");
   if (fab) fab.setAttribute("aria-expanded", "true");
@@ -2110,6 +2345,9 @@ function closeAI() {
   const p = document.getElementById("aiModalBg");
   if (!p) return;
   p.classList.remove("active");
+  p.setAttribute("aria-hidden", "true");
+  p.setAttribute("aria-modal", "false");
+  p.inert = true;
   const fab = document.getElementById("aiFab");
   if (fab) fab.setAttribute("aria-expanded", "false");
   restoreOpener(p);
@@ -2250,6 +2488,21 @@ async function boot() {
   DB.studentSession = D.loadStudentSession();
   const ui = D.readUI();
   if (ui.theme) document.documentElement.setAttribute("data-theme", ui.theme);
+  else document.documentElement.removeAttribute("data-theme");
+  const initialTheme = ui.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  paintThemeToggle(initialTheme);
+  const themeToggle = document.getElementById("themeToggle");
+  if (themeToggle) themeToggle.addEventListener("click", toggleTheme);
+  const colorScheme = matchMedia("(prefers-color-scheme: dark)");
+  colorScheme.addEventListener("change", (event) => {
+    if (!D.readUI().theme) paintThemeToggle(event.matches ? "dark" : "light");
+  });
+  updatePortalClock();
+  setInterval(updatePortalClock, 1000);
+  initHeroCanvas();
+  initScrollReveals();
+  const ticker = document.getElementById("tickerAnnouncement");
+  if (ticker) ticker.addEventListener("click", () => openAnnouncement(0));
 
   initDrawer();
   initWizard();

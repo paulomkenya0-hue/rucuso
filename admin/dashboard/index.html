@@ -51,6 +51,16 @@
         <div class="card"><b id="s_pending">–</b><span>Yanayosubiri</span></div>
         <div class="card"><b id="s_resolved">–</b><span>Yaliyotatuliwa</span></div>
       </div>
+      <section class="card hidden" id="heslbModule" aria-labelledby="heslbHeading">
+        <h3 id="heslbHeading" style="margin-top:0">HESLB — Wanufaika wa Mikopo</h3>
+        <div class="statgrid">
+          <div class="card"><b id="heslbTotal">–</b><span>Jumla ya wanufaika</span></div>
+          <div class="card"><b id="heslbActive">–</b><span>Wanufaika hai</span></div>
+          <div class="card"><b id="heslbGraduated">–</b><span>Wahitimu</span></div>
+        </div>
+        <div id="heslbFacultySummary" class="heslb-faculty-summary" aria-label="Mgawanyo kwa vitivo"></div>
+        <a class="btn btn--primary" href="/admin/heslb/">Fungua Wanufaika wa HESLB</a>
+      </section>
       <div class="card">
         <p class="muted" style="margin:0">
           Charts (Issues by Ministry / Category / Status, Feedback by Month, Satisfaction Rating) na
@@ -88,6 +98,19 @@
       : window.RucusoGuard.hasPermission(profile, perm);
     if (!allowed) a.remove();
   });
+
+  if (canManageHeslb === true) {
+    const { data: summary, error } = await window.RucusoAPI.client.rpc("heslb_beneficiary_stats");
+    if (!error && summary && summary.length) {
+      const first = summary[0];
+      document.getElementById("heslbTotal").textContent = first.total;
+      document.getElementById("heslbActive").textContent = first.active;
+      document.getElementById("heslbGraduated").textContent = first.graduated;
+      document.getElementById("heslbFacultySummary").textContent = summary
+        .map((row) => `${row.faculty}: ${row.faculty_total}`).join(" · ");
+      document.getElementById("heslbModule").classList.remove("hidden");
+    }
+  }
 
   const client = window.RucusoAPI.client;
   const [{ count: leaderCount }, { count: ministryCount }, { data: feedbackRows }, studentCountRes] = await Promise.all([

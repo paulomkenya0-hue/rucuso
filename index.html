@@ -29,6 +29,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
         <span>Mwaka wa Masomo <b id="utilYear">2026/2027</b></span>
       </span>
+      <span class="utilitybar__item" aria-live="off"><span id="portalGreeting">Habari</span><time id="portalClock"></time></span>
     </div>
     <div class="utilitybar__group utilitybar__group--secondary">
       <span class="utilitybar__item" id="utilPhoneWrap" hidden>
@@ -72,12 +73,19 @@
       <button class="btn btn--primary btn--sm" onclick="go('submit')">Toa Maoni</button>
     </div>
 
+    <button class="btn btn--ghost btn--sm theme-toggle" id="themeToggle" type="button" aria-label="Badilisha mandhari" title="Badilisha mandhari"></button>
+
     <button class="hamburger" id="hamburger" aria-label="Fungua menyu" aria-expanded="false" aria-controls="drawer">
       <span></span>
     </button>
   </div>
   <span id="loginState" class="sr-only" aria-live="polite"></span>
 </header>
+
+<div class="announcement-ticker hidden" id="announcementTicker" aria-label="Tangazo jipya">
+  <span class="announcement-ticker__label">TAARIFA</span>
+  <button type="button" id="tickerAnnouncement"></button>
+</div>
 
 <!-- ============ mobile drawer ============ -->
 <div class="drawer" id="drawer" hidden>
@@ -126,12 +134,13 @@
 
   <!-- ---------- hero ---------- -->
   <section class="hero" aria-labelledby="heroTitle">
+    <canvas class="hero__canvas" id="heroCanvas" aria-hidden="true"></canvas>
     <div class="container hero__inner">
       <div>
-        <p class="hero__eyebrow">Ruaha Catholic University</p>
+        <p class="hero__eyebrow"><span id="heroGreeting">Ruaha Catholic University</span></p>
         <h1 class="hero__title" id="heroTitle">
           RUCUSO
-          <em>Sauti yako. Chuo chako. Maendeleo yako.</em>
+          <em>Sauti yako. Chuo chako. Mustakabali wako.</em>
         </h1>
         <p class="hero__lede">
           Tunawawezesha wanafunzi kupata huduma, kutoa maoni na kufuatilia uwajibikaji wa viongozi.
@@ -379,12 +388,12 @@
             <h3>Mawasiliano rasmi</h3>
             <div class="footercontact" style="margin-top:var(--sp-3);">
               <div class="footercontact__row">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012 4.2 2 2 0 014 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.1a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"/></svg>
-                <span id="contactPhone" class="footercontact__none">Msimamizi wa mfumo bado hajaweka namba.</span>
+                <svg hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012 4.2 2 2 0 014 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.1a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"/></svg>
+                <a id="contactPhone" class="footercontact__none">Taarifa za mawasiliano zitawekwa na msimamizi.</a>
               </div>
               <div class="footercontact__row">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg>
-                <span id="contactEmail" class="footercontact__none">Msimamizi wa mfumo bado hajaweka barua pepe.</span>
+                <svg hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg>
+                <a id="contactEmail" class="footercontact__none">Taarifa za mawasiliano zitawekwa na msimamizi.</a>
               </div>
             </div>
           </div>
@@ -411,7 +420,7 @@
     <div class="toolpanel">
       <div class="toolview__head">
         <div>
-          <h2 class="toolview__title" id="heslbTitle">HESLB / Wanufaika wa Mikopo</h2>
+          <div class="heslb-brand"><img src="https://www.heslb.go.tz/images/static_files/heslblogo.png" alt="Nembo rasmi ya HESLB" width="52" height="52"><div><span>HESLB</span><h2 class="toolview__title" id="heslbTitle">Wanufaika wa Mikopo</h2></div></div>
           <p class="toolview__sub">Thibitisha taarifa zako kwa kutumia namba ya usajili na namba ya simu iliyosajiliwa.</p>
         </div>
         <button class="backlink" type="button" onclick="go('home')">
@@ -420,11 +429,27 @@
         </button>
       </div>
       <form id="heslbVerifyForm" class="card">
-        <label for="heslbIndex">Namba ya usajili</label>
-        <input id="heslbIndex" required maxlength="80" autocomplete="off" autocapitalize="characters" spellcheck="false">
-        <label for="heslbPhone">Namba ya simu</label>
-        <input id="heslbPhone" required type="tel" inputmode="tel" autocomplete="tel" placeholder="07XXXXXXXX au +2557XXXXXXXX">
-        <button class="pri" id="heslbVerifyButton" type="submit">Thibitisha</button>
+        <ol class="stepper heslb-steps" aria-label="Hatua za uthibitisho">
+          <li class="stepper__item" data-heslb-step="1" data-state="active"><span class="stepper__dot">1</span><span class="stepper__label">Namba ya Usajili</span></li>
+          <li class="stepper__item" data-heslb-step="2"><span class="stepper__dot">2</span><span class="stepper__label">Namba ya Simu</span></li>
+          <li class="stepper__item" data-heslb-step="3"><span class="stepper__dot">3</span><span class="stepper__label">Uthibitisho</span></li>
+        </ol>
+        <div id="heslbStep1">
+          <h3>Ingiza Namba ya Usajili</h3>
+          <label for="heslbIndex">Namba ya usajili</label>
+          <input id="heslbIndex" required maxlength="80" autocomplete="off" autocapitalize="characters" spellcheck="false">
+          <button class="pri" id="heslbContinue" type="button">Endelea</button>
+        </div>
+        <div id="heslbStep2" class="hidden">
+          <h3>Thibitisha Namba ya Simu</h3>
+          <label for="heslbPhone">Namba ya simu</label>
+          <input id="heslbPhone" required type="tel" inputmode="tel" autocomplete="tel" placeholder="07XXXXXXXX au +2557XXXXXXXX">
+          <div class="btnrow"><button class="sec" id="heslbPrevious" type="button">Rudi</button><button class="pri" id="heslbVerifyButton" type="submit">Thibitisha</button></div>
+        </div>
+        <div id="heslbStep3" class="hidden">
+          <h3>Uthibitisho</h3>
+          <p class="muted">Uthibitishaji unalinganisha namba ya usajili na namba ya simu iliyosajiliwa. Huu si uthibitisho wa OTP.</p>
+        </div>
         <p id="heslbVerifyMessage" role="status" aria-live="polite"></p>
       </form>
       <div id="heslbVerified" class="card hidden" role="status" tabindex="-1">
@@ -965,7 +990,7 @@
   <span class="aifab__label">Uliza RUCUSO AI</span>
 </button>
 
-<div class="aipanel" id="aiModalBg" role="dialog" aria-modal="false" aria-label="RUCUSO AI">
+<div class="aipanel" id="aiModalBg" role="dialog" aria-modal="false" aria-label="RUCUSO AI" aria-hidden="true" inert>
   <div class="aipanel__head">
     <span class="aipanel__avatar" aria-hidden="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 00-3 3v1a3 3 0 00-3 3v1a3 3 0 000 6v1a3 3 0 003 3v1a3 3 0 006 0v-1a3 3 0 003-3v-1a3 3 0 000-6V9a3 3 0 00-3-3V5a3 3 0 00-3-3z"/></svg>
@@ -1034,12 +1059,12 @@
         <h3>Mawasiliano</h3>
         <div class="footercontact">
           <div class="footercontact__row">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012 4.2 2 2 0 014 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.1a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"/></svg>
-            <span id="footPhone" class="footercontact__none">Haijawekwa bado</span>
+            <svg hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012 4.2 2 2 0 014 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.1a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"/></svg>
+            <a id="footPhone" class="footercontact__none">Taarifa za mawasiliano zitawekwa na msimamizi.</a>
           </div>
           <div class="footercontact__row">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg>
-            <span id="footEmail" class="footercontact__none">Haijawekwa bado</span>
+            <svg hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg>
+            <a id="footEmail" class="footercontact__none">Taarifa za mawasiliano zitawekwa na msimamizi.</a>
           </div>
         </div>
         <h3 style="margin-top:var(--sp-5);">Viungo vya Kuingia</h3>

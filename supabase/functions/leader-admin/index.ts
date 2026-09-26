@@ -15,7 +15,15 @@
 import { json, preflight, readJson, getSupabase } from "../_shared/otp.ts";
 import { requireSuperAdmin, isResponse, logAudit, generateTempPassword } from "../_shared/admin.ts";
 
-const POSITIONS = ["president", "secretary_general", "minister", "deputy_minister", "representative", "officer"];
+const POSITIONS = [
+  "president", "vice_president", "secretary_general", "prime_minister",
+  "prime_minister_secretary", "deputy_secretary_general", "minister",
+  "deputy_minister", "representative", "officer",
+];
+const STANDALONE_POSITIONS = new Set([
+  "president", "vice_president", "secretary_general", "prime_minister",
+  "prime_minister_secretary", "deputy_secretary_general",
+]);
 
 // deno-lint-ignore no-explicit-any
 async function handle(req: Request): Promise<Response> {
@@ -42,7 +50,7 @@ async function handle(req: Request): Promise<Response> {
 async function createLeader(req: Request, supabase: any, caller: { id: string; full_name: string }, body: Record<string, unknown>) {
   const full_name = String(body.full_name ?? "").trim();
   const position = String(body.position ?? "").trim();
-  const ministry_id = body.ministry_id ? String(body.ministry_id) : null;
+  let ministry_id = body.ministry_id ? String(body.ministry_id) : null;
   const username = String(body.username ?? "").trim();
   const phone_number = body.phone_number ? String(body.phone_number).trim() : null;
   const email = body.email ? String(body.email).trim().toLowerCase() : "";
@@ -55,6 +63,7 @@ async function createLeader(req: Request, supabase: any, caller: { id: string; f
 
   if (!full_name) return json(req, { error: "FULL_NAME_REQUIRED" }, 400);
   if (!POSITIONS.includes(position)) return json(req, { error: "INVALID_POSITION" }, 400);
+  if (STANDALONE_POSITIONS.has(position)) ministry_id = null;
   if (!/^[a-z0-9._-]{3,32}$/i.test(username)) {
     return json(req, { error: "INVALID_USERNAME" }, 400);
   }

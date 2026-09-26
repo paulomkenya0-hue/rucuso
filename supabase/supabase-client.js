@@ -149,6 +149,9 @@
     async heslbBeneficiaryStats() {
       return ok(await client.rpc("heslb_beneficiary_stats"));
     },
+    async heslbBeneficiaryYearStats() {
+      return ok(await client.rpc("heslb_beneficiary_year_stats"));
+    },
     async listHeslbBeneficiaries(filters = {}) {
       let query = client.from("heslb_beneficiaries").select(
         "full_name, index_number, phone, faculty, year_of_study, status, created_at, updated_at",

@@ -18,7 +18,7 @@
   // Expected leadership positions. These are NOT stored in the database and
   // are NOT fake leaders: the admin list uses them to show which posts are
   // still unfilled, derived from the ministries that actually exist.
-  const SINGULAR_POSITIONS = ["Rais", "Makamu wa Rais", "Katibu Mkuu", "Naibu Katibu Mkuu"];
+  const SINGULAR_POSITIONS = ["president", "vice_president", "secretary_general", "prime_minister", "prime_minister_secretary", "deputy_secretary_general"];
   const MINISTRY_ROLES = ["Waziri", "Naibu Waziri", "Katibu"];
 
   const DB = {
@@ -290,9 +290,17 @@
   // Unfilled posts, derived from the real data. Nothing is written to the DB.
   function vacantSlots() {
     const filled = DB.leaders.filter((l) => l.name);
+    const positionAliases = {
+      "Rais": "president",
+      "Makamu wa Rais": "vice_president",
+      "Katibu Mkuu": "secretary_general",
+      "Waziri Mkuu": "prime_minister",
+      "Katibu wa Ofisi ya Waziri Mkuu": "prime_minister_secretary",
+      "Naibu Katibu Mkuu": "deputy_secretary_general",
+    };
     const out = [];
     SINGULAR_POSITIONS.forEach((pos) => {
-      if (!filled.some((l) => l.position === pos)) {
+      if (!filled.some((l) => l.position === pos || positionAliases[l.position] === pos)) {
         out.push({ position: pos, ministry: "", ministry_id: null, vacant: true });
       }
     });

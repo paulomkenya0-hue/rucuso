@@ -303,16 +303,20 @@
           <label for="position">Nafasi *</label>
           <select id="position" required>
             <option value="">Chagua nafasi</option>
-            <option value="president">President</option>
-            <option value="secretary_general">Secretary General</option>
-            <option value="minister">Minister</option>
-            <option value="deputy_minister">Deputy Minister</option>
+            <option value="president">Rais</option>
+            <option value="vice_president">Makamu wa Rais</option>
+            <option value="secretary_general">Katibu Mkuu</option>
+            <option value="prime_minister">Waziri Mkuu</option>
+            <option value="prime_minister_secretary">Katibu wa Ofisi ya Waziri Mkuu</option>
+            <option value="deputy_secretary_general">Naibu Katibu Mkuu</option>
+            <option value="minister">Waziri</option>
+            <option value="deputy_minister">Naibu Waziri</option>
             <option value="representative">Representative</option>
             <option value="officer">Officer</option>
           </select>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" id="ministryGroup">
           <label for="ministry_id">Wizara</label>
           <select id="ministry_id">
             <option value="">Hakuna / Haijawekwa</option>
@@ -636,12 +640,16 @@
   function positionLabel(position) {
 
     const labels = {
-      president: "President",
-      secretary_general: "Secretary General",
-      minister: "Minister",
-      deputy_minister: "Deputy Minister",
-      representative: "Representative",
-      officer: "Officer"
+      president: "Rais",
+      vice_president: "Makamu wa Rais",
+      secretary_general: "Katibu Mkuu",
+      prime_minister: "Waziri Mkuu",
+      prime_minister_secretary: "Katibu wa Ofisi ya Waziri Mkuu",
+      deputy_secretary_general: "Naibu Katibu Mkuu",
+      minister: "Waziri",
+      deputy_minister: "Naibu Waziri",
+      representative: "Mwakilishi",
+      officer: "Afisa"
     };
 
     return labels[position] || position || "—";
@@ -784,6 +792,17 @@
       .focus();
   }
 
+  const standalonePositions = new Set([
+    "president", "vice_president", "secretary_general", "prime_minister",
+    "prime_minister_secretary", "deputy_secretary_general",
+  ]);
+  function updateMinistryField() {
+    const standalone = standalonePositions.has(document.getElementById("position").value);
+    document.getElementById("ministryGroup").hidden = standalone;
+    if (standalone) document.getElementById("ministry_id").value = "";
+  }
+  document.getElementById("position").addEventListener("change", updateMinistryField);
+
   function closeCreateModal() {
 
     document
@@ -801,6 +820,7 @@
     document
       .getElementById("active_status")
       .checked = true;
+    updateMinistryField();
   }
 
   function showPassword(password) {
