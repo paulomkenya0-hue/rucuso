@@ -1418,6 +1418,8 @@ input[type="checkbox"] {
 /* --------------------------------------------------------------------------
    17. Tool views (verify / submit / track)
    -------------------------------------------------------------------------- */
+.view { display: none; }
+.view.active { display: block; }
 .toolview { display: none; }
 .toolview.active { display: block; }
 .toolview__head {

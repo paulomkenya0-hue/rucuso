@@ -45,7 +45,7 @@ async function createLeader(req: Request, supabase: any, caller: { id: string; f
   const ministry_id = body.ministry_id ? String(body.ministry_id) : null;
   const username = String(body.username ?? "").trim();
   const phone_number = body.phone_number ? String(body.phone_number).trim() : null;
-  const email = body.email ? String(body.email).trim() : null;
+  const email = body.email ? String(body.email).trim().toLowerCase() : "";
   const programme = body.programme ? String(body.programme).trim() : null;
   const year_of_study = body.year_of_study ? String(body.year_of_study).trim() : null;
   const bio = body.biography ? String(body.biography).trim() : null;
@@ -58,6 +58,9 @@ async function createLeader(req: Request, supabase: any, caller: { id: string; f
   if (!/^[a-z0-9._-]{3,32}$/i.test(username)) {
     return json(req, { error: "INVALID_USERNAME" }, 400);
   }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return json(req, { error: "VALID_EMAIL_REQUIRED" }, 400);
+  }
 
   const { data: existing } = await supabase
     .from("profiles")
@@ -66,13 +69,9 @@ async function createLeader(req: Request, supabase: any, caller: { id: string; f
     .maybeSingle();
   if (existing) return json(req, { error: "USERNAME_TAKEN" }, 409);
 
-  const tempPassword = generateTempPassword();
-  const authEmail = email && email.includes("@") ? email : `${username}@login.rucuso.online`;
-
-  const { data: created, error: createErr } = await supabase.auth.admin.createUser({
-    email: authEmail,
-    password: tempPassword,
-    email_confirm: true,
+  const siteUrl = (Deno.env.get("SITE_URL") || "https://rucuso.online").replace(/\/+$/, "");
+  const { data: created, error: createErr } = await supabase.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${siteUrl}/change-password/`,
   });
   if (createErr || !created?.user) {
     return json(req, { error: "AUTH_CREATE_FAILED", detail: createErr?.message }, 500);
@@ -124,11 +123,10 @@ async function createLeader(req: Request, supabase: any, caller: { id: string; f
 
   return json(req, {
     ok: true,
-    message: "Account ya kiongozi imeundwa kikamilifu.",
+    message: "Akaunti imeundwa. Kiungo cha kuthibitisha barua pepe kimetumwa kwa kiongozi.",
     leader_id: leaderRow.id,
     profile_id: newUserId,
     username,
-    temporary_password: tempPassword, // shown ONCE to the super admin; never stored in plaintext elsewhere
   });
 }
 

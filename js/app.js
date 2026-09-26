@@ -117,6 +117,7 @@ const DRAWER_STAFF = [
 ];
 
 let currentView = "home";
+let navigationVersion = 0;
 let verifyTarget = { preset: null };
 
 function navIcon(path) {
@@ -221,6 +222,7 @@ function goSection(id) {
   closeDrawer(false);
   const el = document.getElementById(id);
   if (!el) return;
+  navigationVersion++;
   // A section link pressed while a tool view is open: return to the page first.
   if (currentView !== "home") {
     currentView = "home";
@@ -241,6 +243,7 @@ function prefersReducedMotion() {
 }
 
 function go(id, presetType) {
+  navigationVersion++;
   if (STAFF_NAV.some(([s]) => s === id) && !DB.session) {
     // The legacy staff views have no in-page login form — send an
     // unauthenticated visitor to the real portal instead of doing nothing.
@@ -250,15 +253,26 @@ function go(id, presetType) {
   if (id === "submit" && !DB.studentSession) { verifyTarget = { preset: presetType || null }; id = "verify"; }
   if (id.indexOf("sec-") === 0) { goSection(id); return; }
 
+  const previousView = currentView;
   currentView = id;
   document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
   const target = document.getElementById(id === "home" ? "homeview" : "view-" + id);
   if (!target) { goSection("sec-about"); return; }
   target.classList.add("active");
+  if (id !== "home") {
+    target.setAttribute("tabindex", "-1");
+    target.focus({ preventScroll: true });
+  } else if (previousView !== "home") {
+    const heading = document.getElementById("heroTitle");
+    if (heading) {
+      heading.setAttribute("tabindex", "-1");
+      heading.focus({ preventScroll: true });
+    }
+  }
   renderTabs();
   onEnterView(id, presetType);
 
-  window.scrollTo({ top: 0, behavior: "auto" });
+  window.scrollTo({ top: 0, behavior: "instant" });
   if (history.replaceState) history.replaceState(null, "", id === "home" ? location.pathname : "#" + id);
 }
 
@@ -490,8 +504,8 @@ function renderContacts() {
     if (href) el.href = href;
     el.className = "";
   };
-  set("footPhone", phone, "tel:" + phone.replace(/\s+/g, ""), "Haijawekwa");
-  set("footEmail", email, "mailto:" + email, "Haijawekwa");
+  set("footPhone", phone, "tel:" + phone.replace(/\s+/g, ""), "Haijawekwa bado");
+  set("footEmail", email, "mailto:" + email, "Haijawekwa bado");
   set("contactPhone", phone, "tel:" + phone.replace(/\s+/g, ""), "Msimamizi wa mfumo bado hajaweka namba.");
   set("contactEmail", email, "mailto:" + email, "Msimamizi wa mfumo bado hajaweka barua pepe.");
   set("utilPhone", phone, "tel:" + phone.replace(/\s+/g, ""), "—");
@@ -504,7 +518,7 @@ function renderContacts() {
   const y = document.getElementById("utilYear");
   if (y) y.textContent = year;
   const f = document.getElementById("footAcadYear");
-  if (f) f.textContent = "Academic Year " + year;
+  if (f) f.textContent = "Mwaka wa Masomo " + year;
   const fy = document.getElementById("footYear");
   if (fy) fy.textContent = String(new Date().getFullYear());
 }
@@ -1038,7 +1052,7 @@ async function doTrack(ev) {
         "<div><dt>" + esc(k) + "</dt><dd>" + esc(v) + "</dd></div>").join("") + "</dl>"
       + (rec.response
         ? '<div class="notebox"><p class="notebox__label">Majibu ya msimamizi</p><p>' + esc(rec.response) + "</p></div>"
-        : '<p class="muted" style="margin-top:var(--sp-4)">Bado hakuna majibu. Msimamizi atasajilia maoni yako na utapotiwa kupitia ukurasa huu.</p>')
+        : '<p class="muted" style="margin-top:var(--sp-4)">Bado hakuna jibu. Msimamizi atashughulikia maoni yako; unaweza kufuatilia majibu kupitia ukurasa huu.</p>')
       + '<ol class="timeline">' + steps.map((s, i) => {
         const state = closed && i === 3 ? "current" : i < idx ? "done" : i === idx ? "current" : "todo";
         return '<li class="timeline__item" data-state="' + state + '">'
@@ -1468,6 +1482,18 @@ function closeModal(bgId) {
   restoreOpener(bg);
 }
 
+function publicLeaderPosition(position) {
+  const labels = {
+    president: "Rais",
+    secretary_general: "Katibu Mkuu",
+    minister: "Waziri",
+    deputy_minister: "Naibu Waziri",
+    representative: "Mwakilishi",
+    officer: "Afisa",
+  };
+  return labels[position] || position;
+}
+
 function openLeader(i) {
   const l = visibleLeaders[i];
   if (!l) return;
@@ -1478,17 +1504,21 @@ function openLeader(i) {
     '<span class="avatar" style="width:84px;height:84px;margin:0 0 var(--sp-4)">' + (l.photo
       ? '<img src="' + esc(l.photo) + '" alt="" width="84" height="84">'
       : navIcon("M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2")) + "</span>"
-    + '<p class="leadercard__role" style="margin:0 0 var(--sp-3)">' + esc(l.position) + "</p>"
+    + '<p class="leadercard__role" style="margin:0 0 var(--sp-3)">' + esc(publicLeaderPosition(l.position)) + "</p>"
     + (l.ministry ? '<p class="muted" style="margin:0 0 var(--sp-3)">' + esc(l.ministry) + "</p>" : "")
     + '<p style="color:var(--muted);line-height:1.75">' + (l.bio ? esc(l.bio) : "Maelezo ya majukumu ya kiongozi huyu bado hayajawekwa.") + "</p>"
     + '<div class="btnrow" style="margin-top:var(--sp-4);justify-content:flex-start">' + contact + "</div>",
     l.ministry || "Uongozi wa RUCUSO");
 }
 
+function publicServiceName(name) {
+  return String(name || "").trim().toLowerCase() === "other services" ? "Huduma Nyingine" : name;
+}
+
 function openService(i) {
   const s = visibleServices[i];
   if (!s) return;
-  modalShell("serviceModalBg", s.name,
+  modalShell("serviceModalBg", publicServiceName(s.name),
     '<p style="color:var(--muted);line-height:1.75;margin-top:0">'
     + (s.description ? esc(s.description) : "Maelezo ya huduma hii bado hayajawekwa na msimamizi wa mfumo.") + "</p>"
     + (s.contact ? '<p class="servicecard__contact">' + navIcon(ICON_PHONE) + esc(s.contact) + "</p>" : ""),
@@ -1532,7 +1562,7 @@ async function renderServices() {
     <button type="button" class="servicecard" onclick="openService(${i})">
       <span class="servicecard__top">
         <span class="servicecard__icon">${navIcon(serviceIcon(s.name))}</span>
-        <span class="servicecard__name">${esc(s.name)}</span>
+        <span class="servicecard__name">${esc(publicServiceName(s.name))}</span>
       </span>
       <span class="servicecard__desc">${s.description ? esc(s.description) : '<span class="muted">Maelezo ya huduma hii bado hayajawekwa.</span>'}</span>
       ${s.contact ? '<span class="servicecard__contact">' + navIcon("M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012 4.2 2 2 0 014 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.8.7a2 2 0 011.8 2z") + esc(s.contact) + "</span>" : ""}
@@ -1729,7 +1759,7 @@ async function renderLeadership() {
     <button type="button" class="leadercard" onclick="openLeader(${i})">
       <span class="avatar">${l.photo ? '<img src="' + esc(l.photo) + '" alt="" loading="lazy" width="92" height="92">' : navIcon("M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2")}</span>
       <span class="leadercard__name">${esc(l.name)}</span>
-      <span class="leadercard__role">${esc(l.position)}</span>
+      <span class="leadercard__role">${esc(publicLeaderPosition(l.position))}</span>
       ${l.ministry ? '<span class="leadercard__ministry">' + esc(l.ministry) + "</span>" : ""}
       <span class="leadercard__more">${l.phone ? "Wasiliana" : "Maelezo"} ${navIcon("M5 12h14M13 6l6 6-6 6")}</span>
     </button>`).join("")
@@ -2190,6 +2220,7 @@ function answerAI(q) {
 
 // ---------- init ----------
 async function boot() {
+  const startupNavigationVersion = navigationVersion;
   D.purgePrototypeStorage();
   DB.studentSession = D.loadStudentSession();
   const ui = D.readUI();
@@ -2229,7 +2260,8 @@ async function boot() {
   // Paint the page from whatever is cached, then let each renderer swap its
   // own placeholder for real content as the read lands. A visitor never sees a
   // blank page because one table was slow.
-  go("home");
+  if (navigationVersion === startupNavigationVersion) go("home");
+  else renderHomeSections();
 
   // A deep link like /#sec-services or /#sec-contact should land on the right
   // section, and the browser's own back button should work from there.
