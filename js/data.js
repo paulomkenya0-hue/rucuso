@@ -37,6 +37,7 @@
     staff: [],
     auditLog: [],
     studentCount: 0,
+    studentsFull: [], // [{ id, registration_number, full_name, programme, faculty, department, year_of_study, academic_year, phone_number, email, gender, student_status }]
     contacts: { phone: "", email: "" },
     acadYear: "2026/2027",
   };
@@ -317,6 +318,11 @@
     await refreshMinistries();
     return rows[0];
   }
+  async function updateMinistryDetails(id, name, description) {
+    await API.updateMinistry(id, { name, description: description || null });
+    await audit("Ministry Updated", name);
+    await refreshMinistries();
+  }
   async function toggleMinistry(id, active) {
     await API.updateMinistry(id, { active });
     const m = DB.ministries.find((x) => x.id === id);
@@ -414,6 +420,29 @@
   async function refreshStudents() {
     DB.studentCount = await API.studentCount();
   }
+  // Full record set for /admin/students/ (search/filter/edit/deactivate).
+  // Kept separate from refreshStudents() (which only tracks the count used
+  // elsewhere) so pages that don't need the full registry stay cheap.
+  async function refreshStudentsFull() {
+    DB.studentsFull = await API.listStudentsFull();
+  }
+  async function saveStudentFull(row) {
+    await API.upsertStudent(row);
+    await audit("Student Added/Updated", row.registration_number);
+    await refreshStudents();
+    await refreshStudentsFull();
+  }
+  async function setStudentStatus(id, status, label) {
+    await API.setStudentStatus(id, status);
+    await audit(status === "inactive" ? "Student Deactivated" : "Student Activated", label || String(id));
+    await refreshStudentsFull();
+  }
+  async function deleteStudentRow(id, label) {
+    await API.deleteStudent(id);
+    await audit("Student Deleted", label || String(id));
+    await refreshStudents();
+    await refreshStudentsFull();
+  }
   async function saveStudent(name, reg) {
     const parts = String(name).trim().split(/\s+/);
     const last = parts.length > 1 ? parts.pop() : parts[0] || "";
@@ -486,11 +515,12 @@
     mapLeader, mapFeedback,
     loadPublic, loadAdmin, setSession, audit,
     refreshLeaders, saveLeader, toggleLeader, removeLeader, vacantSlots,
-    refreshMinistries, saveMinistry, toggleMinistry, removeMinistry,
+    refreshMinistries, saveMinistry, updateMinistryDetails, toggleMinistry, removeMinistry,
     refreshServices, saveService, toggleService, removeService,
     refreshAnnouncements, saveAnnouncement, removeAnnouncement,
     refreshDocuments, saveDocument, removeDocument,
     refreshStudents, saveStudent, importStudents, clearStudents,
+    refreshStudentsFull, saveStudentFull, setStudentStatus, deleteStudentRow,
     refreshCategories, saveCategory, removeCategory,
     refreshProgrammes, saveProgramme, removeProgramme,
     saveContacts, setAcadYear,

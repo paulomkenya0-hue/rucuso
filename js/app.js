@@ -153,6 +153,8 @@ function go(id, presetType) {
       document.getElementById("verifiedBanner").classList.remove("hidden");
       document.getElementById("vb_name").textContent = s.name;
       document.getElementById("vb_reg").textContent = s.reg;
+      const otpNotice = document.getElementById("otpBypassNotice");
+      if (otpNotice) otpNotice.classList.toggle("hidden", s.otp_verified !== false);
       document.getElementById("f_reg").value = s.reg;
       document.getElementById("f_reg").readOnly = true;
       document.getElementById("f_name").value = s.name;
@@ -236,6 +238,15 @@ function lookupReg() {
 }
 
 // ---------- Student verification: reg number -> phone -> OTP ----------
+//
+// REQUIRE_SMS_OTP: SMS delivery isn't wired to a live provider yet, so real
+// OTP codes can't reach students right now. While this is false, step 2
+// verifies the phone number already on file (via verify_student_identity,
+// migration 006) instead of sending/checking an SMS code, and step 3 is
+// skipped entirely. Flip this back to true the moment SMS is live — nothing
+// else needs to change, sendOtp()/verifyOtp() below are untouched.
+const REQUIRE_SMS_OTP = false;
+
 let verifyMatch = null;
 async function verifyStep1(ev) {
   const btn = ev && ev.currentTarget;
@@ -260,8 +271,51 @@ async function verifyStep1(ev) {
     document.getElementById("ver_year").textContent = verifyMatch.year ? "Mwaka wa " + verifyMatch.year : "—";
     document.getElementById("ver-step1").classList.add("hidden");
     document.getElementById("ver-step2").classList.remove("hidden");
+    // Swap step-2's copy/button between "send OTP" and "confirm phone on
+    // file" depending on REQUIRE_SMS_OTP, without touching the HTML.
+    document.getElementById("ver2_hint").textContent = REQUIRE_SMS_OTP
+      ? "Ingiza namba yako ya simu ya Tanzania (mfano 07XXXXXXXX au +255XXXXXXXXX)."
+      : "Ingiza namba yako ya simu iliyosajiliwa RUCUSO (mfano 07XXXXXXXX au +255XXXXXXXXX).";
+    const btn2 = document.getElementById("ver2_btn");
+    btn2.textContent = REQUIRE_SMS_OTP ? "TUMA OTP" : "THIBITISHA";
+    btn2.onclick = REQUIRE_SMS_OTP ? sendOtp : confirmPhoneOnFile;
   } catch (e) {
     msg.innerHTML = `<p class="err">${esc(D.errText(e))}</p>`;
+  } finally {
+    busy(btn, false);
+  }
+}
+
+// Bypass path: reg number (step 1) + phone-on-file (step 2), no SMS involved.
+// Session is marked otp_verified:false so the UI can show the disclosure
+// banner, and so a future step can require real OTP before, say, letting a
+// bypass session do something higher-stakes.
+async function confirmPhoneOnFile(ev) {
+  const btn = ev && ev.currentTarget;
+  const norm = normalizeTzPhone(document.getElementById("ver_phone").value);
+  const emsg = document.getElementById("ver2_msg");
+  if (!norm) {
+    emsg.textContent = "Namba ya simu si sahihi. Tumia mfumo 07XXXXXXXX au +255XXXXXXXXX.";
+    return;
+  }
+  emsg.textContent = "";
+  busy(btn, true, "Inathibitisha...");
+  try {
+    const match = await API.verifyStudentIdentity(verifyMatch.reg, norm);
+    if (!match) {
+      emsg.textContent = "Namba ya usajili na namba ya simu hazilingani na kumbukumbu zetu.";
+      return;
+    }
+    DB.studentSession = {
+      reg: verifyMatch.reg, name: match.full_name || verifyMatch.name,
+      programme: match.programme || verifyMatch.programme, year: match.year_of_study || verifyMatch.year,
+      phone: norm, verifiedAt: new Date().toISOString(), otp_verified: false,
+    };
+    D.saveStudentSession(DB.studentSession);
+    await API.logPublicAction("Student Verification (Reg+Phone, OTP pending)", verifyMatch.reg + " — " + norm);
+    go("submit", verifyTarget.preset);
+  } catch (e) {
+    emsg.textContent = await functionErrorText(e);
   } finally {
     busy(btn, false);
   }

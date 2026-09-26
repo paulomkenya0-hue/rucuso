@@ -1,864 +1,429 @@
 <!DOCTYPE html>
 <html lang="sw">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Wanafunzi | RUCUSO</title>
-
-  <style>
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f4f7fb;
-      color: #172033;
-    }
-
-    .layout {
-      display: flex;
-      min-height: 100vh;
-    }
-
-    .sidebar {
-      width: 240px;
-      background: #0b1f3a;
-      color: white;
-      padding: 22px 14px;
-      flex-shrink: 0;
-    }
-
-    .brand {
-      font-size: 24px;
-      font-weight: 800;
-      padding: 0 10px 24px;
-    }
-
-    .nav a {
-      display: block;
-      color: #dbe7f5;
-      text-decoration: none;
-      padding: 12px 10px;
-      border-radius: 8px;
-      margin-bottom: 4px;
-      font-size: 14px;
-    }
-
-    .nav a:hover,
-    .nav a.active {
-      background: #17375f;
-      color: white;
-    }
-
-    .main {
-      flex: 1;
-      min-width: 0;
-      padding: 28px;
-    }
-
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 15px;
-      margin-bottom: 25px;
-    }
-
-    .topbar h1 {
-      margin: 0 0 5px;
-      font-size: 28px;
-    }
-
-    .topbar p {
-      margin: 0;
-      color: #687386;
-    }
-
-    .user {
-      text-align: right;
-      color: #4d596b;
-      font-size: 14px;
-    }
-
-    .logout {
-      border: 0;
-      background: transparent;
-      color: #c62828;
-      cursor: pointer;
-      margin-top: 5px;
-      font-weight: 600;
-    }
-
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-
-    .card {
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 4px 18px rgba(0,0,0,.06);
-    }
-
-    .card small {
-      color: #687386;
-      display: block;
-      margin-bottom: 8px;
-    }
-
-    .card strong {
-      font-size: 28px;
-    }
-
-    .panel {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 18px rgba(0,0,0,.06);
-      overflow: hidden;
-    }
-
-    .panel-head {
-      padding: 18px;
-      border-bottom: 1px solid #e7ebf0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .panel-head h2 {
-      margin: 0;
-      font-size: 19px;
-    }
-
-    .actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    input,
-    select {
-      border: 1px solid #ccd4df;
-      border-radius: 8px;
-      padding: 10px 12px;
-      font-size: 14px;
-      outline: none;
-    }
-
-    input:focus,
-    select:focus {
-      border-color: #246bce;
-    }
-
-    button {
-      border: 0;
-      border-radius: 8px;
-      padding: 10px 14px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    .btn-primary {
-      background: #1261a0;
-      color: white;
-    }
-
-    .btn-secondary {
-      background: #edf2f7;
-      color: #26364a;
-    }
-
-    .btn-danger {
-      background: #feecec;
-      color: #b42318;
-    }
-
-    .table-wrap {
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      min-width: 950px;
-      border-collapse: collapse;
-    }
-
-    th,
-    td {
-      padding: 13px 15px;
-      border-bottom: 1px solid #edf0f4;
-      text-align: left;
-      font-size: 14px;
-      vertical-align: middle;
-    }
-
-    th {
-      background: #f8fafc;
-      color: #596579;
-      font-size: 13px;
-    }
-
-    .status {
-      display: inline-block;
-      padding: 5px 9px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .status.active {
-      background: #e8f7ee;
-      color: #16834b;
-    }
-
-    .status.inactive {
-      background: #f1f3f5;
-      color: #697386;
-    }
-
-    .empty,
-    .loading,
-    .error {
-      padding: 30px;
-      text-align: center;
-      color: #687386;
-    }
-
-    .error {
-      color: #b42318;
-      background: #fff5f5;
-    }
-
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.45);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      z-index: 1000;
-    }
-
-    .modal.show {
-      display: flex;
-    }
-
-    .modal-card {
-      background: white;
-      width: min(760px, 100%);
-      max-height: 90vh;
-      overflow: auto;
-      border-radius: 14px;
-      padding: 22px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.25);
-    }
-
-    .modal-card h2 {
-      margin-top: 0;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .field.full {
-      grid-column: 1 / -1;
-    }
-
-    .field label {
-      font-size: 13px;
-      font-weight: 700;
-      color: #455267;
-    }
-
-    .modal-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-      margin-top: 20px;
-    }
-
-    @media (max-width: 900px) {
-      .sidebar {
-        width: 205px;
-      }
-
-      .cards {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 700px) {
-      .layout {
-        display: block;
-      }
-
-      .sidebar {
-        width: 100%;
-      }
-
-      .nav {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .main {
-        padding: 16px;
-      }
-
-      .topbar {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
-      .user {
-        text-align: left;
-      }
-
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .field.full {
-        grid-column: auto;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Database ya Wanafunzi | RUCUSO</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="/css/portal.css">
 </head>
-
 <body>
-
+<header class="top">
+  <div class="brand"><span class="crest">R</span><b>RUCUSO</b><span>Super Admin Portal</span></div>
+  <div>
+    <span id="whoami" class="muted" style="color:#cdd9ee;font-size:12px;margin-right:10px;"></span>
+    <button class="sec" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Logout</button>
+  </div>
+</header>
 <div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <a href="/admin/dashboard/">Dashibodi</a>
+    <a href="/admin/students/" class="active" data-perm="manage_students">Wanafunzi</a>
+    <a href="/admin/leaders/" data-perm="__super_admin_only">Viongozi</a>
+    <a href="/admin/ministries/" data-perm="manage_ministries">Wizara</a>
+    <a href="/admin/categories/" data-perm="manage_categories">Categories</a>
+    <a href="/admin/feedback/" data-perm="view_feedback">Maoni &amp; Malalamiko</a>
+    <a href="/admin/services/" data-perm="manage_services">Huduma</a>
+    <a href="/admin/announcements/" data-perm="manage_announcements">Matangazo</a>
+    <a href="/admin/documents/" data-perm="manage_documents">Nyaraka</a>
+    <a href="/admin/reports/" data-perm="manage_reports">Ripoti</a>
+    <a href="/admin/audit-logs/" data-perm="view_audit_logs">Audit Logs</a>
+  </nav>
+  <main class="content">
+    <div id="gate" class="card"><p class="muted">Inathibitisha akaunti...</p></div>
+    <div id="denied" class="card hidden"><p class="err">Huna ruhusa ya kufikia moduli hii. Wasiliana na Msimamizi Mkuu.</p></div>
 
-  <aside class="sidebar">
-    <div class="brand">RUCUSO</div>
-
-    <nav class="nav">
-      <a href="/admin/dashboard/">Dashibodi</a>
-      <a href="/admin/students/" class="active">Wanafunzi</a>
-      <a href="/admin/leaders/" data-perm="__super_admin_only">Viongozi</a>
-      <a href="/admin/ministries/" data-perm="manage_ministries">Wizara</a>
-      <a href="/admin/feedback/" data-perm="view_feedback">Maoni &amp; Malalamiko</a>
-      <a href="/admin/services/" data-perm="manage_services">Huduma</a>
-      <a href="/admin/announcements/" data-perm="manage_announcements">Matangazo</a>
-      <a href="/admin/documents/" data-perm="manage_documents">Nyaraka</a>
-      <a href="/admin/reports/" data-perm="manage_reports">Ripoti</a>
-      <a href="/admin/ai/" data-perm="__super_admin_only">RUCUSO AI</a>
-      <a href="/admin/audit-logs/" data-perm="view_audit_logs">Audit Logs</a>
-      <a href="/admin/settings/" data-perm="__super_admin_only">Mipangilio</a>
-    </nav>
-  </aside>
-
-  <main class="main">
-
-    <div class="topbar">
-      <div>
-        <h1>Wanafunzi</h1>
-        <p>Usimamizi wa taarifa za wanafunzi wa RUCUSO.</p>
+    <div id="body" class="hidden">
+      <div class="pagehead">
+        <div class="accent"></div>
+        <h2>Database ya Wanafunzi</h2>
+        <p><span id="totalCount">0</span> wanafunzi kwa jumla — tafuta, sajili, au leta kwa mpigo.</p>
       </div>
 
-      <div class="user">
-        <div id="userName">RUCUSO Administrator</div>
-        <div id="userRole">super_admin</div>
-        <button class="logout" id="logoutBtn">Logout</button>
-      </div>
-    </div>
-
-    <section class="cards">
-      <div class="card">
-        <small>Jumla ya Wanafunzi</small>
-        <strong id="studentCount">–</strong>
+      <div class="tabbtns">
+        <button class="active" data-tab="list">Orodha ya Wanafunzi</button>
+        <button data-tab="single">Sajili Mmoja Mmoja</button>
+        <button data-tab="csv">Leta kwa Mpigo (CSV)</button>
       </div>
 
-      <div class="card">
-        <small>Wanafunzi Wanaoonekana</small>
-        <strong id="visibleCount">–</strong>
-      </div>
-
-      <div class="card">
-        <small>Status</small>
-        <strong style="font-size:18px;">Database Connected</strong>
-      </div>
-    </section>
-
-    <section class="panel">
-
-      <div class="panel-head">
-        <h2>Student Registry</h2>
-
-        <div class="actions">
-          <input
-            type="search"
-            id="searchInput"
-            placeholder="Tafuta registration, jina..."
-          >
-
-          <button class="btn-secondary" id="refreshBtn">
-            Refresh
-          </button>
-
-          <button class="btn-primary" id="addBtn">
-            + Ongeza Mwanafunzi
-          </button>
+      <!-- ===== LIST + SEARCH/FILTER ===== -->
+      <section id="tab-list">
+        <div class="card">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;">
+            <input id="q_text" placeholder="Tafuta: Namba ya Usajili au Jina">
+            <select id="q_programme"><option value="">Programme — Zote</option></select>
+            <select id="q_faculty"><option value="">Faculty — Zote</option></select>
+            <select id="q_year"><option value="">Mwaka — Yote</option></select>
+            <select id="q_status">
+              <option value="">Hali — Zote</option>
+              <option value="active">Amilifu</option>
+              <option value="inactive">Amezimwa</option>
+            </select>
+          </div>
         </div>
-      </div>
+        <div class="card">
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr>
+                <th>Reg No</th><th>Jina</th><th>Programme</th><th>Faculty</th><th>Mwaka</th>
+                <th>Mwaka wa Masomo</th><th>Simu</th><th>Hali</th><th>Vitendo</th>
+              </tr></thead>
+              <tbody id="studentRows"><tr><td colspan="9" class="muted">Inapakia...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
 
-      <div id="tableState" class="loading">
-        Inapakia wanafunzi...
-      </div>
+      <!-- ===== MANUAL SINGLE REGISTRATION ===== -->
+      <section id="tab-single" class="hidden">
+        <div class="card" style="max-width:520px;">
+          <h3 style="margin-top:0">Sajili Mwanafunzi</h3>
+          <label>Namba ya Usajili *</label><input id="s_reg" placeholder="RUCU/2024/0001">
+          <label>Jina la Kwanza *</label><input id="s_first">
+          <label>Jina la Kati</label><input id="s_middle">
+          <label>Jina la Mwisho *</label><input id="s_last">
+          <label>Programme</label><input id="s_prog" placeholder="Bachelor of Accounting and Finance with IT">
+          <label>Faculty</label><input id="s_fac" placeholder="Faculty of Computing and Information Technology">
+          <label>Department</label><input id="s_dept">
+          <label>Mwaka wa Masomo</label>
+          <select id="s_year"><option value="">—</option><option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option></select>
+          <label>Mwaka wa Masomo (Academic Year)</label><input id="s_acadyear" value="2026/2027">
+          <label>Namba ya Simu</label><input id="s_phone" placeholder="07XXXXXXXX">
+          <label>Barua Pepe</label><input id="s_email" type="email">
+          <button class="pri" id="s_saveBtn">SAJILI MWANAFUNZI</button>
+          <div id="s_msg"></div>
+        </div>
+      </section>
 
-      <div class="table-wrap" id="tableWrap" style="display:none;">
-        <table>
-          <thead>
-            <tr>
-              <th>Registration</th>
-              <th>Jina Kamili</th>
-              <th>Programme</th>
-              <th>Year</th>
-              <th>Phone</th>
-              <th>Email</th>
-              <th>Status</th>
-              <th>Vitendo</th>
-            </tr>
-          </thead>
-
-          <tbody id="studentsBody"></tbody>
-        </table>
-      </div>
-
-    </section>
-
+      <!-- ===== CSV BULK IMPORT ===== -->
+      <section id="tab-csv" class="hidden">
+        <div class="card">
+          <h3 style="margin-top:0">Leta Wanafunzi kwa Mpigo (CSV)</h3>
+          <p class="muted">Safu zinazotambulika: REGISTRATION NUMBER*, FIRST NAME*, MIDDLE NAME, LAST NAME*, PROGRAMME,
+            FACULTY, DEPARTMENT, YEAR OF STUDY, ACADEMIC YEAR, PHONE, EMAIL. Wanafunzi walio tayari kwenye database
+            (kwa Namba ya Usajili sawa) <b>hawataandikwa upya</b> na uagizaji huu — tumia "Hariri" kwenye orodha
+            kubadilisha taarifa za mtu mmoja.</p>
+          <button class="sec" id="downloadTemplateBtn">Pakua Fomu Mfano ya CSV</button>
+          <div id="csvDrop" class="dropzone" style="margin-top:12px;">
+            Bofya hapa au buruta faili la .csv hapa
+            <input id="csv_file" type="file" accept=".csv" class="hidden">
+          </div>
+          <div style="margin-top:12px;"><button class="pri" id="csvImportBtn" disabled>LETA WANAFUNZI</button></div>
+          <div id="csvSummary" style="margin-top:12px;"></div>
+        </div>
+      </section>
+    </div>
   </main>
 </div>
-
-
-<!-- ADD / EDIT MODAL -->
-
-<div class="modal" id="studentModal">
-  <div class="modal-card">
-
-    <h2 id="modalTitle">Ongeza Mwanafunzi</h2>
-
-    <form id="studentForm">
-
-      <div class="form-grid">
-
-        <div class="field">
-          <label>Registration Number *</label>
-          <input id="registration_number" required>
-        </div>
-
-        <div class="field">
-          <label>First Name *</label>
-          <input id="first_name" required>
-        </div>
-
-        <div class="field">
-          <label>Middle Name</label>
-          <input id="middle_name">
-        </div>
-
-        <div class="field">
-          <label>Last Name *</label>
-          <input id="last_name" required>
-        </div>
-
-        <div class="field">
-          <label>Programme</label>
-          <input id="programme">
-        </div>
-
-        <div class="field">
-          <label>Faculty</label>
-          <input id="faculty">
-        </div>
-
-        <div class="field">
-          <label>Department</label>
-          <input id="department">
-        </div>
-
-        <div class="field">
-          <label>Year of Study</label>
-          <input id="year_of_study">
-        </div>
-
-        <div class="field">
-          <label>Academic Year</label>
-          <input id="academic_year" placeholder="2026/2027">
-        </div>
-
-        <div class="field">
-          <label>Phone Number</label>
-          <input id="phone_number">
-        </div>
-
-        <div class="field full">
-          <label>Email</label>
-          <input id="email" type="email">
-        </div>
-
-      </div>
-
-      <div id="formError" class="error" style="display:none;"></div>
-
-      <div class="modal-actions">
-        <button type="button" class="btn-secondary" id="cancelBtn">
-          Cancel
-        </button>
-
-        <button type="submit" class="btn-primary" id="saveBtn">
-          Save Student
-        </button>
-      </div>
-
-    </form>
-
-  </div>
-</div>
-
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase/config.js"></script>
+<script src="/supabase/config.js" onerror="console.warn('supabase/config.js haipo.')"></script>
 <script src="/supabase/supabase-client.js"></script>
-
+<script src="/js/data.js"></script>
+<script src="/js/auth-guard.js"></script>
 <script>
-(function () {
-
-  "use strict";
-
-  let students = [];
-  let editingId = null;
-
-  const $ = (id) => document.getElementById(id);
-
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  }
-
-  function showState(message, type = "loading") {
-    $("tableState").className = type;
-    $("tableState").textContent = message;
-    $("tableState").style.display = "block";
-    $("tableWrap").style.display = "none";
-  }
-
-  function renderStudents(list) {
-
-    $("visibleCount").textContent = list.length;
-
-    if (!list.length) {
-      showState("Hakuna wanafunzi waliopatikana.", "empty");
-      return;
-    }
-
-    $("tableState").style.display = "none";
-    $("tableWrap").style.display = "block";
-
-    $("studentsBody").innerHTML = list.map(student => {
-
-      const fullName =
-        student.full_name ||
-        [
-          student.first_name,
-          student.middle_name,
-          student.last_name
-        ].filter(Boolean).join(" ");
-
-      const status = student.student_status || "active";
-      const isActive = status.toLowerCase() === "active";
-
-      return `
-        <tr>
-          <td><strong>${escapeHtml(student.registration_number)}</strong></td>
-
-          <td>${escapeHtml(fullName)}</td>
-
-          <td>${escapeHtml(student.programme || "—")}</td>
-
-          <td>${escapeHtml(student.year_of_study || "—")}</td>
-
-          <td>${escapeHtml(student.phone_number || "—")}</td>
-
-          <td>${escapeHtml(student.email || "—")}</td>
-
-          <td>
-            <span class="status ${isActive ? "active" : "inactive"}">
-              ${escapeHtml(status)}
-            </span>
-          </td>
-
-          <td>
-            <button
-              class="btn-secondary"
-              onclick="window.editStudent('${student.id}')">
-              Edit
-            </button>
-          </td>
-        </tr>
-      `;
-
-    }).join("");
-  }
-
-
-  async function loadStudents() {
-
-    if (!window.RucusoAPI) {
-      showState(
-        "RucusoAPI haikupatikana. Hakikisha config.js na supabase-client.js zime-load.",
-        "error"
-      );
-      return;
-    }
-
-    showState("Inapakia wanafunzi...", "loading");
-
-    try {
-
-      const [rows, count] = await Promise.all([
-        window.RucusoAPI.listStudents(),
-        window.RucusoAPI.studentCount()
-      ]);
-
-      students = rows || [];
-
-      $("studentCount").textContent = count;
-      renderStudents(students);
-
-    } catch (error) {
-
-      console.error(error);
-
-      showState(
-        error?.message || "Imeshindikana kupakia wanafunzi.",
-        "error"
-      );
-
-      $("studentCount").textContent = "—";
-      $("visibleCount").textContent = "—";
-    }
-  }
-
-
-  function openAddModal() {
-
-    editingId = null;
-
-    $("modalTitle").textContent = "Ongeza Mwanafunzi";
-    $("saveBtn").textContent = "Save Student";
-
-    $("studentForm").reset();
-    $("formError").style.display = "none";
-
-    $("studentModal").classList.add("show");
-  }
-
-
-  window.editStudent = function (id) {
-
-    const student = students.find(s => s.id === id);
-
-    if (!student) return;
-
-    editingId = id;
-
-    $("modalTitle").textContent = "Hariri Mwanafunzi";
-    $("saveBtn").textContent = "Update Student";
-
-    $("registration_number").value = student.registration_number || "";
-    $("first_name").value = student.first_name || "";
-    $("middle_name").value = student.middle_name || "";
-    $("last_name").value = student.last_name || "";
-    $("programme").value = student.programme || "";
-    $("faculty").value = student.faculty || "";
-    $("department").value = student.department || "";
-    $("year_of_study").value = student.year_of_study || "";
-    $("academic_year").value = student.academic_year || "";
-    $("phone_number").value = student.phone_number || "";
-    $("email").value = student.email || "";
-
-    $("formError").style.display = "none";
-
-    $("studentModal").classList.add("show");
-  };
-
-
-  function closeModal() {
-    $("studentModal").classList.remove("show");
-  }
-
-
-  $("studentForm").addEventListener("submit", async function (event) {
-
-    event.preventDefault();
-
-    $("formError").style.display = "none";
-    $("saveBtn").disabled = true;
-    $("saveBtn").textContent = "Inahifadhi...";
-
-    const row = {
-      registration_number: $("registration_number").value.trim(),
-      first_name: $("first_name").value.trim(),
-      middle_name: $("middle_name").value.trim() || null,
-      last_name: $("last_name").value.trim(),
-      programme: $("programme").value.trim() || null,
-      faculty: $("faculty").value.trim() || null,
-      department: $("department").value.trim() || null,
-      year_of_study: $("year_of_study").value.trim() || null,
-      academic_year: $("academic_year").value.trim() || null,
-      phone_number: $("phone_number").value.trim() || null,
-      email: $("email").value.trim() || null
-    };
-
-    try {
-
-      if (editingId) {
-
-        await window.RucusoAPI.upsertStudent({
-          ...row,
-          id: editingId
-        });
-
-      } else {
-
-        await window.RucusoAPI.upsertStudent(row);
-
-      }
-
-      closeModal();
-      await loadStudents();
-
-    } catch (error) {
-
-      console.error(error);
-
-      $("formError").textContent =
-        error?.message || "Imeshindikana kuhifadhi mwanafunzi.";
-
-      $("formError").style.display = "block";
-
-    } finally {
-
-      $("saveBtn").disabled = false;
-      $("saveBtn").textContent =
-        editingId ? "Update Student" : "Save Student";
-    }
-
+(async function () {
+  const session = await window.RucusoGuard.requireRole(["super_admin", "admin"], { loginUrl: "/admin/login/" });
+  if (!session) return;
+  const profile = session.profile;
+  const canManage = window.RucusoGuard.hasPermission(profile, "manage_students");
+
+  document.getElementById("gate").classList.add("hidden");
+  if (!canManage) { document.getElementById("denied").classList.remove("hidden"); return; }
+  document.getElementById("body").classList.remove("hidden");
+  document.getElementById("whoami").textContent = profile.full_name + " (" + profile.role + ")";
+  document.getElementById("logoutBtn").addEventListener("click", () => window.RucusoGuard.logout("/"));
+  document.querySelectorAll("#sidebar a[data-perm]").forEach((a) => {
+    const perm = a.dataset.perm;
+    const allowed = perm === "__super_admin_only" ? profile.role === "super_admin" : window.RucusoGuard.hasPermission(profile, perm);
+    if (!allowed) a.remove();
   });
 
+  const D = window.RucusoData;
+  const API = window.RucusoAPI;
+  await D.setSession(session);
 
-  $("searchInput").addEventListener("input", function () {
+  function esc(v) {
+    return String(v == null ? "" : v)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function toast(msg, kind) { D.toast(msg, kind); }
 
-    const q = this.value.trim().toLowerCase();
+  // ---------- tabs ----------
+  document.querySelectorAll(".tabbtns button").forEach((b) => {
+    b.addEventListener("click", () => {
+      document.querySelectorAll(".tabbtns button").forEach((x) => x.classList.remove("active"));
+      b.classList.add("active");
+      ["list", "single", "csv"].forEach((t) =>
+        document.getElementById("tab-" + t).classList.toggle("hidden", t !== b.dataset.tab));
+    });
+  });
 
-    if (!q) {
-      renderStudents(students);
+  // ---------- load + render list ----------
+  async function loadAndRender() {
+    document.getElementById("studentRows").innerHTML = '<tr><td colspan="9" class="muted">Inapakia...</td></tr>';
+    try {
+      await D.refreshStudentsFull();
+    } catch (e) {
+      document.getElementById("studentRows").innerHTML = `<tr><td colspan="9" class="err">${esc(D.errText(e))}</td></tr>`;
       return;
     }
+    document.getElementById("totalCount").textContent = D.DB.studentsFull.length;
+    populateFilterOptions();
+    renderRows();
+  }
 
-    const filtered = students.filter(student => {
+  function populateFilterOptions() {
+    const progs = new Set(), facs = new Set(), years = new Set();
+    D.DB.studentsFull.forEach((s) => {
+      if (s.programme) progs.add(s.programme);
+      if (s.faculty) facs.add(s.faculty);
+      if (s.year_of_study) years.add(s.year_of_study);
+    });
+    const fill = (id, values) => {
+      const el = document.getElementById(id);
+      const current = el.value;
+      el.innerHTML = el.querySelector("option").outerHTML +
+        Array.from(values).sort().map((v) => `<option ${v === current ? "selected" : ""}>${esc(v)}</option>`).join("");
+    };
+    fill("q_programme", progs);
+    fill("q_faculty", facs);
+    fill("q_year", years);
+  }
 
-      const text = [
-        student.registration_number,
-        student.full_name,
-        student.first_name,
-        student.middle_name,
-        student.last_name,
-        student.programme,
-        student.year_of_study,
-        student.phone_number,
-        student.email
-      ].join(" ").toLowerCase();
+  function renderRows() {
+    const q = document.getElementById("q_text").value.trim().toLowerCase();
+    const fProg = document.getElementById("q_programme").value;
+    const fFac = document.getElementById("q_faculty").value;
+    const fYear = document.getElementById("q_year").value;
+    const fStatus = document.getElementById("q_status").value;
 
-      return text.includes(q);
+    const rows = D.DB.studentsFull.filter((s) => {
+      if (q && !((s.full_name || "").toLowerCase().includes(q) || (s.registration_number || "").toLowerCase().includes(q))) return false;
+      if (fProg && s.programme !== fProg) return false;
+      if (fFac && s.faculty !== fFac) return false;
+      if (fYear && s.year_of_study !== fYear) return false;
+      if (fStatus && (s.student_status || "active") !== fStatus) return false;
+      return true;
     });
 
-    renderStudents(filtered);
-  });
+    const tbody = document.getElementById("studentRows");
+    tbody.innerHTML = rows.length ? rows.map((s) => {
+      const active = (s.student_status || "active") !== "inactive";
+      return `<tr>
+        <td>${esc(s.registration_number)}</td>
+        <td>${esc(s.full_name)}</td>
+        <td>${esc(s.programme || "—")}</td>
+        <td>${esc(s.faculty || "—")}</td>
+        <td>${esc(s.year_of_study || "—")}</td>
+        <td>${esc(s.academic_year || "—")}</td>
+        <td>${esc(s.phone_number || "—")}</td>
+        <td><span class="pill ${active ? "ok" : "crit"}">${active ? "Amilifu" : "Amezimwa"}</span></td>
+        <td style="white-space:nowrap;">
+          <a class="link" href="#" data-act="edit" data-id="${s.id}">Hariri</a> ·
+          <a class="link" href="#" data-act="toggle" data-id="${s.id}">${active ? "Zima" : "Washa"}</a> ·
+          <a class="link" href="#" data-act="delete" data-id="${s.id}">Futa</a>
+        </td>
+      </tr>`;
+    }).join("") : `<tr><td colspan="9" class="muted">Hakuna mwanafunzi anayelingana na utafutaji.</td></tr>`;
+  }
 
+  ["q_text", "q_programme", "q_faculty", "q_year", "q_status"].forEach((id) =>
+    document.getElementById(id).addEventListener("input", renderRows));
 
-  $("addBtn").addEventListener("click", openAddModal);
+  document.getElementById("studentRows").addEventListener("click", async (ev) => {
+    const a = ev.target.closest("a[data-act]");
+    if (!a) return;
+    ev.preventDefault();
+    const id = a.dataset.id;
+    const s = D.DB.studentsFull.find((x) => x.id === id);
+    if (!s) return;
 
-  $("cancelBtn").addEventListener("click", closeModal);
-
-  $("refreshBtn").addEventListener("click", loadStudents);
-
-
-  $("studentModal").addEventListener("click", function (event) {
-
-    if (event.target === $("studentModal")) {
-      closeModal();
+    if (a.dataset.act === "edit") {
+      const prog = prompt("Programme:", s.programme || "");
+      if (prog === null) return;
+      const fac = prompt("Faculty:", s.faculty || "");
+      if (fac === null) return;
+      const dept = prompt("Department:", s.department || "");
+      if (dept === null) return;
+      const year = prompt("Mwaka wa Masomo (mfano Year 2):", s.year_of_study || "");
+      if (year === null) return;
+      const phone = prompt("Namba ya Simu:", s.phone_number || "");
+      if (phone === null) return;
+      const email = prompt("Barua Pepe:", s.email || "");
+      if (email === null) return;
+      try {
+        await D.saveStudentFull({
+          registration_number: s.registration_number,
+          first_name: s.first_name, middle_name: s.middle_name, last_name: s.last_name,
+          programme: prog.trim() || null, faculty: fac.trim() || null, department: dept.trim() || null,
+          year_of_study: year.trim() || null, phone_number: phone.trim() || null, email: email.trim() || null,
+        });
+        toast("Mabadiliko yamehifadhiwa.");
+        renderRows();
+      } catch (e) { toast(D.errText(e), "err"); }
     }
 
-  });
-
-
-  $("logoutBtn").addEventListener("click", async function () {
-
-    try {
-      await window.RucusoAPI.adminLogout();
-    } finally {
-      window.location.href = "/admin/login/";
+    if (a.dataset.act === "toggle") {
+      const nextStatus = (s.student_status || "active") !== "inactive" ? "inactive" : "active";
+      try {
+        await D.setStudentStatus(id, nextStatus, s.full_name);
+        toast(nextStatus === "inactive" ? "Mwanafunzi amezimwa." : "Mwanafunzi amewezeshwa.");
+        renderRows();
+      } catch (e) { toast(D.errText(e), "err"); }
     }
 
+    if (a.dataset.act === "delete") {
+      if (!confirm(`Futa kabisa rekodi ya ${s.full_name} (${s.registration_number})? Hatua hii haiwezi kutenduliwa.`)) return;
+      try {
+        await D.deleteStudentRow(id, s.full_name);
+        toast("Mwanafunzi amefutwa.");
+        renderRows();
+      } catch (e) { toast(D.errText(e), "err"); }
+    }
   });
 
-
-  async function init() {
-
+  // ---------- manual single registration ----------
+  document.getElementById("s_saveBtn").addEventListener("click", async () => {
+    const msg = document.getElementById("s_msg");
+    msg.innerHTML = "";
+    const row = {
+      registration_number: document.getElementById("s_reg").value.trim(),
+      first_name: document.getElementById("s_first").value.trim(),
+      middle_name: document.getElementById("s_middle").value.trim() || null,
+      last_name: document.getElementById("s_last").value.trim(),
+      programme: document.getElementById("s_prog").value.trim() || null,
+      faculty: document.getElementById("s_fac").value.trim() || null,
+      department: document.getElementById("s_dept").value.trim() || null,
+      year_of_study: document.getElementById("s_year").value || null,
+      academic_year: document.getElementById("s_acadyear").value.trim() || null,
+      phone_number: document.getElementById("s_phone").value.trim() || null,
+      email: document.getElementById("s_email").value.trim() || null,
+    };
+    if (!row.registration_number || !row.first_name || !row.last_name) {
+      msg.innerHTML = '<p class="err">Jaza Namba ya Usajili, Jina la Kwanza na Jina la Mwisho (sehemu za lazima *).</p>';
+      return;
+    }
     try {
+      await D.saveStudentFull(row);
+      msg.innerHTML = '<p class="ok-msg">Mwanafunzi amesajiliwa kikamilifu.</p>';
+      ["s_reg", "s_first", "s_middle", "s_last", "s_prog", "s_fac", "s_dept", "s_phone", "s_email"]
+        .forEach((id) => document.getElementById(id).value = "");
+      document.getElementById("s_year").value = "";
+      await loadAndRender();
+    } catch (e) {
+      msg.innerHTML = `<p class="err">${esc(D.errText(e))}</p>`;
+    }
+  });
 
-      const session = await window.RucusoAPI.currentSession();
+  // ---------- CSV template download ----------
+  document.getElementById("downloadTemplateBtn").addEventListener("click", () => {
+    const headers = ["REGISTRATION NUMBER", "FIRST NAME", "MIDDLE NAME", "LAST NAME", "PROGRAMME", "FACULTY", "DEPARTMENT", "YEAR OF STUDY", "ACADEMIC YEAR", "PHONE", "EMAIL"];
+    const example = ["RUCU/2024/0001", "Juma", "", "Mwakalinga", "Bachelor of Accounting and Finance with IT", "Faculty of Computing and Information Technology", "Department of IT", "Year 2", "2026/2027", "0712345678", "juma@example.com"];
+    const csv = headers.join(",") + "\n" + example.join(",") + "\n";
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "rucuso_wanafunzi_template.csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
 
-      if (!session || !session.user) {
-        window.location.href = "/admin/login/";
+  // ---------- CSV dropzone ----------
+  const drop = document.getElementById("csvDrop");
+  const fileInput = document.getElementById("csv_file");
+  let pendingFile = null;
+
+  drop.addEventListener("click", () => fileInput.click());
+  drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("drag"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("drag"));
+  drop.addEventListener("drop", (e) => {
+    e.preventDefault(); drop.classList.remove("drag");
+    if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener("change", () => { if (fileInput.files[0]) setFile(fileInput.files[0]); });
+
+  function setFile(file) {
+    pendingFile = file;
+    drop.textContent = "Faili: " + file.name;
+    document.getElementById("csvImportBtn").disabled = false;
+  }
+
+  document.getElementById("csvImportBtn").addEventListener("click", async () => {
+    const summary = document.getElementById("csvSummary");
+    const btn = document.getElementById("csvImportBtn");
+    if (!pendingFile) { toast("Chagua faili la CSV kwanza.", "err"); return; }
+    btn.disabled = true; btn.textContent = "Inaagiza...";
+    summary.innerHTML = "";
+    try {
+      const text = await pendingFile.text();
+      const lines = String(text).split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      if (lines.length < 2) { toast("Faili haina data ya kutosha.", "err"); return; }
+      const headers = lines[0].split(",").map((h) => h.trim().toUpperCase());
+      const idx = (name) => headers.indexOf(name);
+      const iReg = idx("REGISTRATION NUMBER"), iFirst = idx("FIRST NAME"), iMiddle = idx("MIDDLE NAME"),
+            iLast = idx("LAST NAME"), iProg = idx("PROGRAMME"), iFac = idx("FACULTY"), iDept = idx("DEPARTMENT"),
+            iYear = idx("YEAR OF STUDY"), iAcad = idx("ACADEMIC YEAR"), iPhone = idx("PHONE"), iEmail = idx("EMAIL");
+
+      const missing = ["REGISTRATION NUMBER", "FIRST NAME", "LAST NAME"].filter((h) => idx(h) === -1);
+      if (missing.length) {
+        summary.innerHTML = `<p class="err">Safu za lazima hazipo kwenye faili: ${missing.join(", ")}.</p>`;
         return;
       }
 
-      if (session.profile) {
-
-        $("userName").textContent =
-          session.profile.full_name || "RUCUSO Administrator";
-
-        $("userRole").textContent =
-          session.profile.role || "";
+      const existing = new Set(D.DB.studentsFull.map((s) => s.registration_number.toLowerCase()));
+      const rows = [], skippedInvalid = [], skippedDupInFile = [], willUpdate = [];
+      const seen = new Set();
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(",").map((c) => c.trim());
+        const reg = cols[iReg] || "";
+        const first = iFirst > -1 ? (cols[iFirst] || "") : "";
+        const last = iLast > -1 ? (cols[iLast] || "") : "";
+        if (!reg || !first || !last) { skippedInvalid.push(reg || `mstari ${i + 1}`); continue; }
+        const key = reg.toLowerCase();
+        if (seen.has(key)) { skippedDupInFile.push(reg); continue; }
+        seen.add(key);
+        if (existing.has(key)) { willUpdate.push(reg); continue; } // ignored by bulk upsert, see note above table
+        rows.push({
+          registration_number: reg,
+          first_name: first,
+          middle_name: iMiddle > -1 ? (cols[iMiddle] || null) : null,
+          last_name: last,
+          programme: iProg > -1 ? (cols[iProg] || null) : null,
+          faculty: iFac > -1 ? (cols[iFac] || null) : null,
+          department: iDept > -1 ? (cols[iDept] || null) : null,
+          year_of_study: iYear > -1 ? (cols[iYear] || null) : null,
+          academic_year: iAcad > -1 ? (cols[iAcad] || null) : null,
+          phone_number: iPhone > -1 ? (cols[iPhone] || null) : null,
+          email: iEmail > -1 ? (cols[iEmail] || null) : null,
+        });
       }
 
-      await loadStudents();
+      let added = 0;
+      if (rows.length) {
+        const result = await D.importStudents(rows);
+        added = result.added;
+      }
 
-    } catch (error) {
-
-      console.error(error);
-
-      window.location.href = "/admin/login/";
+      summary.innerHTML = `
+        <div class="card" style="background:transparent;">
+          <p class="ok-msg" style="margin:0 0 6px;">Wanafunzi ${added} wameongezwa kikamilifu.</p>
+          ${willUpdate.length ? `<p class="muted">Tayari wapo (hawakubadilishwa): ${willUpdate.length} — ${esc(willUpdate.slice(0, 10).join(", "))}${willUpdate.length > 10 ? "…" : ""}</p>` : ""}
+          ${skippedDupInFile.length ? `<p class="muted">Nakala ndani ya faili moja (zilirukwa): ${skippedDupInFile.length}</p>` : ""}
+          ${skippedInvalid.length ? `<p class="err">Walioshindwa/isiyo sahihi: ${skippedInvalid.length} — ${esc(skippedInvalid.slice(0, 10).join(", "))}${skippedInvalid.length > 10 ? "…" : ""}</p>` : ""}
+        </div>`;
+      fileInput.value = "";
+      pendingFile = null;
+      drop.textContent = "Bofya hapa au buruta faili la .csv hapa";
+      await loadAndRender();
+    } catch (e) {
+      summary.innerHTML = `<p class="err">${esc(D.errText(e))}</p>`;
+    } finally {
+      btn.disabled = false; btn.textContent = "LETA WANAFUNZI";
     }
-  }
+  });
 
-
-  init();
-
+  await loadAndRender();
 })();
 </script>
-
 </body>
 </html>

@@ -1,1024 +1,180 @@
 <!DOCTYPE html>
 <html lang="sw">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Wizara | RUCUSO</title>
-
-  <style>
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f4f7fb;
-      color: #172033;
-    }
-
-    .layout {
-      display: flex;
-      min-height: 100vh;
-    }
-
-    .sidebar {
-      width: 240px;
-      background: #0b1f3a;
-      color: white;
-      padding: 22px 14px;
-      flex-shrink: 0;
-    }
-
-    .brand {
-      font-size: 24px;
-      font-weight: 800;
-      padding: 0 10px 24px;
-    }
-
-    .nav a {
-      display: block;
-      color: #dbe7f5;
-      text-decoration: none;
-      padding: 12px 10px;
-      border-radius: 8px;
-      margin-bottom: 4px;
-      font-size: 14px;
-    }
-
-    .nav a:hover,
-    .nav a.active {
-      background: #17375f;
-      color: white;
-    }
-
-    .main {
-      flex: 1;
-      min-width: 0;
-      padding: 28px;
-    }
-
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 15px;
-      margin-bottom: 25px;
-    }
-
-    .topbar h1 {
-      margin: 0 0 5px;
-      font-size: 28px;
-    }
-
-    .topbar p {
-      margin: 0;
-      color: #687386;
-    }
-
-    .user {
-      text-align: right;
-      color: #4d596b;
-      font-size: 14px;
-    }
-
-    .logout {
-      border: 0;
-      background: transparent;
-      color: #c62828;
-      cursor: pointer;
-      margin-top: 5px;
-      font-weight: 600;
-    }
-
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-
-    .card {
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 4px 18px rgba(0,0,0,.06);
-    }
-
-    .card small {
-      color: #687386;
-      display: block;
-      margin-bottom: 8px;
-    }
-
-    .card strong {
-      font-size: 28px;
-    }
-
-    .panel {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 18px rgba(0,0,0,.06);
-      overflow: hidden;
-    }
-
-    .panel-head {
-      padding: 18px;
-      border-bottom: 1px solid #e7ebf0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .panel-head h2 {
-      margin: 0;
-      font-size: 19px;
-    }
-
-    .actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    input,
-    select,
-    textarea {
-      width: 100%;
-      border: 1px solid #ccd4df;
-      border-radius: 8px;
-      padding: 10px 12px;
-      font-size: 14px;
-      outline: none;
-      font-family: inherit;
-    }
-
-    input:focus,
-    select:focus,
-    textarea:focus {
-      border-color: #246bce;
-    }
-
-    button {
-      border: 0;
-      border-radius: 8px;
-      padding: 10px 14px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    button:disabled {
-      opacity: .6;
-      cursor: not-allowed;
-    }
-
-    .btn-primary {
-      background: #1261a0;
-      color: white;
-    }
-
-    .btn-secondary {
-      background: #edf2f7;
-      color: #26364a;
-    }
-
-    .btn-danger {
-      background: #feecec;
-      color: #b42318;
-    }
-
-    .btn-small {
-      padding: 7px 10px;
-      font-size: 12px;
-    }
-
-    .table-wrap {
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      min-width: 800px;
-      border-collapse: collapse;
-    }
-
-    th,
-    td {
-      padding: 13px 15px;
-      border-bottom: 1px solid #edf0f4;
-      text-align: left;
-      font-size: 14px;
-      vertical-align: middle;
-    }
-
-    th {
-      background: #f8fafc;
-      color: #596579;
-      font-size: 13px;
-    }
-
-    .status {
-      display: inline-block;
-      padding: 5px 9px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .status.active {
-      background: #e8f7ee;
-      color: #16834b;
-    }
-
-    .status.inactive {
-      background: #f1f3f5;
-      color: #697386;
-    }
-
-    .empty,
-    .loading,
-    .error {
-      padding: 30px;
-      text-align: center;
-      color: #687386;
-    }
-
-    .error {
-      color: #b42318;
-      background: #fff5f5;
-    }
-
-    .toast {
-      position: fixed;
-      right: 20px;
-      bottom: 20px;
-      z-index: 2000;
-      min-width: 280px;
-      max-width: 420px;
-      padding: 14px 16px;
-      border-radius: 10px;
-      color: white;
-      background: #26364a;
-      box-shadow: 0 12px 35px rgba(0,0,0,.2);
-      display: none;
-    }
-
-    .toast.show {
-      display: block;
-    }
-
-    .toast.success {
-      background: #16834b;
-    }
-
-    .toast.error {
-      background: #b42318;
-    }
-
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.45);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      z-index: 1000;
-    }
-
-    .modal.show {
-      display: flex;
-    }
-
-    .modal-card {
-      background: white;
-      width: min(650px, 100%);
-      max-height: 90vh;
-      overflow: auto;
-      border-radius: 14px;
-      padding: 22px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.25);
-    }
-
-    .modal-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .modal-head h2 {
-      margin: 0;
-    }
-
-    .close {
-      background: #edf2f7;
-      color: #26364a;
-      padding: 7px 10px;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-    }
-
-    .field.full {
-      grid-column: 1 / -1;
-    }
-
-    .field label {
-      font-size: 13px;
-      color: #596579;
-      font-weight: 700;
-    }
-
-    textarea {
-      min-height: 110px;
-      resize: vertical;
-    }
-
-    .form-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-      margin-top: 22px;
-    }
-
-    .confirm-text {
-      color: #596579;
-      line-height: 1.6;
-    }
-
-    @media (max-width: 900px) {
-      .sidebar {
-        width: 205px;
-      }
-
-      .cards {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 700px) {
-      .layout {
-        display: block;
-      }
-
-      .sidebar {
-        width: 100%;
-        padding: 15px;
-      }
-
-      .brand {
-        padding-bottom: 12px;
-      }
-
-      .nav {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 4px;
-      }
-
-      .nav a {
-        margin: 0;
-      }
-
-      .main {
-        padding: 18px;
-      }
-
-      .topbar {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
-      .user {
-        text-align: left;
-      }
-
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .field.full {
-        grid-column: auto;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Usimamizi wa Wizara | RUCUSO</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="/css/portal.css">
 </head>
-
 <body>
-
+<header class="top">
+  <div class="brand"><span class="crest">R</span><b>RUCUSO</b><span>Super Admin Portal</span></div>
+  <div>
+    <span id="whoami" class="muted" style="color:#cdd9ee;font-size:12px;margin-right:10px;"></span>
+    <button class="sec" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Logout</button>
+  </div>
+</header>
 <div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <a href="/admin/dashboard/">Dashibodi</a>
+    <a href="/admin/students/" data-perm="manage_students">Wanafunzi</a>
+    <a href="/admin/leaders/" data-perm="__super_admin_only">Viongozi</a>
+    <a href="/admin/ministries/" class="active" data-perm="manage_ministries">Wizara</a>
+    <a href="/admin/categories/" data-perm="manage_categories">Categories</a>
+    <a href="/admin/feedback/" data-perm="view_feedback">Maoni &amp; Malalamiko</a>
+    <a href="/admin/services/" data-perm="manage_services">Huduma</a>
+    <a href="/admin/announcements/" data-perm="manage_announcements">Matangazo</a>
+    <a href="/admin/documents/" data-perm="manage_documents">Nyaraka</a>
+    <a href="/admin/reports/" data-perm="manage_reports">Ripoti</a>
+    <a href="/admin/audit-logs/" data-perm="view_audit_logs">Audit Logs</a>
+  </nav>
+  <main class="content">
+    <div id="gate" class="card"><p class="muted">Inathibitisha akaunti...</p></div>
+    <div id="denied" class="card hidden"><p class="err">Huna ruhusa ya kufikia moduli hii. Wasiliana na Msimamizi Mkuu.</p></div>
 
-  <aside class="sidebar">
-    <div class="brand">RUCUSO</div>
-
-    <nav class="nav">
-      <a href="/admin/dashboard/">Dashibodi</a>
-      <a href="/admin/students/" data-perm="manage_students">Wanafunzi</a>
-      <a href="/admin/leaders/" data-perm="__super_admin_only">Viongozi</a>
-      <a href="/admin/ministries/" class="active" data-perm="manage_ministries">Wizara</a>
-      <a href="/admin/feedback/" data-perm="view_feedback">Maoni &amp; Malalamiko</a>
-      <a href="/admin/services/" data-perm="manage_services">Huduma</a>
-      <a href="/admin/announcements/" data-perm="manage_announcements">Matangazo</a>
-      <a href="/admin/documents/" data-perm="manage_documents">Nyaraka</a>
-      <a href="/admin/reports/" data-perm="manage_reports">Ripoti</a>
-      <a href="/admin/ai/" data-perm="__super_admin_only">RUCUSO AI</a>
-      <a href="/admin/audit-logs/" data-perm="view_audit_logs">Audit Logs</a>
-      <a href="/admin/settings/" data-perm="__super_admin_only">Mipangilio</a>
-    </nav>
-  </aside>
-
-  <main class="main">
-
-    <div class="topbar">
-      <div>
-        <h1>Wizara</h1>
-        <p>Usimamizi wa wizara za RUCUSO.</p>
+    <div id="body" class="hidden">
+      <div class="pagehead">
+        <div class="accent"></div>
+        <h2>Usimamizi wa Wizara</h2>
+        <p>Ongeza, hariri, au zima wizara. Kuweka Waziri/Naibu Waziri hufanyika kwenye ukurasa wa Viongozi.</p>
       </div>
 
-      <div class="user">
-        <div id="userName">Inapakia...</div>
-        <div id="userRole"></div>
-        <button class="logout" id="logoutBtn">Logout</button>
+      <div class="card">
+        <h3 style="margin-top:0">Ongeza Wizara</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12px;">
+          <div><label>Jina la Wizara *</label><input id="mn_name" placeholder="Wizara ya Mikopo na Uwezeshaji"></div>
+          <div><label>Maelezo</label><input id="mn_desc" placeholder="Maelezo mafupi ya wizara"></div>
+        </div>
+        <button class="pri" id="mn_addBtn">ONGEZA WIZARA</button>
+        <div id="mn_msg"></div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">Orodha ya Wizara</h3>
+        <div id="ministryList" class="rowlist"><p class="muted">Inapakia...</p></div>
       </div>
     </div>
-
-    <section class="cards">
-      <div class="card">
-        <small>Jumla ya Wizara</small>
-        <strong id="totalCount">–</strong>
-      </div>
-
-      <div class="card">
-        <small>Wizara Zilizo Hai</small>
-        <strong id="activeCount">–</strong>
-      </div>
-
-      <div class="card">
-        <small>Wizara Zilizozimwa</small>
-        <strong id="inactiveCount">–</strong>
-      </div>
-    </section>
-
-    <section class="panel">
-
-      <div class="panel-head">
-        <h2>Orodha ya Wizara</h2>
-
-        <div class="actions">
-          <input
-            id="searchInput"
-            type="search"
-            placeholder="Tafuta wizara..."
-            style="min-width:220px;"
-          >
-
-          <select id="statusFilter">
-            <option value="all">Status zote</option>
-            <option value="active">Hai</option>
-            <option value="inactive">Imezimwa</option>
-          </select>
-
-          <button class="btn-primary" id="addBtn">
-            + Ongeza Wizara
-          </button>
-        </div>
-      </div>
-
-      <div id="message"></div>
-
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Jina la Wizara</th>
-              <th>Maelezo</th>
-              <th>Status</th>
-              <th>Tarehe</th>
-              <th>Vitendo</th>
-            </tr>
-          </thead>
-
-          <tbody id="ministriesBody">
-            <tr>
-              <td colspan="6" class="loading">
-                Inapakia wizara...
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-    </section>
-
   </main>
 </div>
-
-<!-- Add/Edit modal -->
-<div class="modal" id="formModal">
-  <div class="modal-card">
-
-    <div class="modal-head">
-      <h2 id="formTitle">Ongeza Wizara</h2>
-      <button class="close" id="closeFormBtn">✕</button>
-    </div>
-
-    <form id="ministryForm">
-
-      <div class="form-grid">
-
-        <div class="field full">
-          <label for="name">Jina la Wizara *</label>
-          <input
-            id="name"
-            name="name"
-            type="text"
-            maxlength="150"
-            required
-            placeholder="Mfano: Academic Affairs"
-          >
-        </div>
-
-        <div class="field full">
-          <label for="description">Maelezo</label>
-          <textarea
-            id="description"
-            name="description"
-            maxlength="1000"
-            placeholder="Andika maelezo ya wizara..."
-          ></textarea>
-        </div>
-
-        <div class="field">
-          <label for="active">Status</label>
-          <select id="active" name="active">
-            <option value="true">Hai</option>
-            <option value="false">Imezimwa</option>
-          </select>
-        </div>
-
-      </div>
-
-      <div class="form-actions">
-        <button type="button" class="btn-secondary" id="cancelFormBtn">
-          Ghairi
-        </button>
-
-        <button type="submit" class="btn-primary" id="saveBtn">
-          Hifadhi
-        </button>
-      </div>
-
-    </form>
-  </div>
-</div>
-
-<!-- Delete confirmation -->
-<div class="modal" id="deleteModal">
-  <div class="modal-card">
-
-    <div class="modal-head">
-      <h2>Futa Wizara</h2>
-      <button class="close" id="closeDeleteBtn">✕</button>
-    </div>
-
-    <p class="confirm-text">
-      Una uhakika unataka kufuta wizara
-      <strong id="deleteName"></strong>?
-      <br><br>
-      Kitendo hiki hakiwezi kutenduliwa.
-    </p>
-
-    <div class="form-actions">
-      <button class="btn-secondary" id="cancelDeleteBtn">
-        Ghairi
-      </button>
-
-      <button class="btn-danger" id="confirmDeleteBtn">
-        Futa Wizara
-      </button>
-    </div>
-
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<!-- RUCUSO configuration -->
-<script src="/supabase/config.js"></script>
-
-<!-- RUCUSO API -->
+<script src="/supabase/config.js" onerror="console.warn('supabase/config.js haipo.')"></script>
 <script src="/supabase/supabase-client.js"></script>
-
+<script src="/js/data.js"></script>
+<script src="/js/auth-guard.js"></script>
 <script>
-(function () {
-  "use strict";
+(async function () {
+  const session = await window.RucusoGuard.requireRole(["super_admin", "admin"], { loginUrl: "/admin/login/" });
+  if (!session) return;
+  const profile = session.profile;
+  const canManage = window.RucusoGuard.hasPermission(profile, "manage_ministries");
 
-  const state = {
-    ministries: [],
-    editingId: null,
-    deletingId: null
-  };
+  document.getElementById("gate").classList.add("hidden");
+  if (!canManage) { document.getElementById("denied").classList.remove("hidden"); return; }
+  document.getElementById("body").classList.remove("hidden");
+  document.getElementById("whoami").textContent = profile.full_name + " (" + profile.role + ")";
+  document.getElementById("logoutBtn").addEventListener("click", () => window.RucusoGuard.logout("/"));
+  document.querySelectorAll("#sidebar a[data-perm]").forEach((a) => {
+    const perm = a.dataset.perm;
+    const allowed = perm === "__super_admin_only" ? profile.role === "super_admin" : window.RucusoGuard.hasPermission(profile, perm);
+    if (!allowed) a.remove();
+  });
 
-  const $ = (id) => document.getElementById(id);
+  const D = window.RucusoData;
+  await D.setSession(session);
 
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+  function esc(v) {
+    return String(v == null ? "" : v)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
-  function showToast(message, type = "") {
-    const toast = $("toast");
-
-    toast.textContent = message;
-    toast.className = "toast show " + type;
-
-    clearTimeout(showToast.timer);
-
-    showToast.timer = setTimeout(() => {
-      toast.className = "toast";
-    }, 3500);
-  }
-
-  function showTableMessage(message, type = "loading") {
-    $("ministriesBody").innerHTML = `
-      <tr>
-        <td colspan="6" class="${type}">
-          ${escapeHtml(message)}
-        </td>
-      </tr>
-    `;
-  }
-
-  function updateStats() {
-    const total = state.ministries.length;
-    const active = state.ministries.filter(x => x.active).length;
-    const inactive = total - active;
-
-    $("totalCount").textContent = total;
-    $("activeCount").textContent = active;
-    $("inactiveCount").textContent = inactive;
-  }
-
-  function filteredMinistries() {
-    const search = $("searchInput").value.trim().toLowerCase();
-    const status = $("statusFilter").value;
-
-    return state.ministries.filter(ministry => {
-      const matchesSearch =
-        !search ||
-        String(ministry.name || "").toLowerCase().includes(search) ||
-        String(ministry.description || "").toLowerCase().includes(search);
-
-      const matchesStatus =
-        status === "all" ||
-        (status === "active" && ministry.active) ||
-        (status === "inactive" && !ministry.active);
-
-      return matchesSearch && matchesStatus;
-    });
+  async function loadAndRender() {
+    const el = document.getElementById("ministryList");
+    el.innerHTML = '<p class="muted">Inapakia...</p>';
+    try {
+      await D.loadAdmin(); // pulls ministries + leaders + feedback together, so stats below are free
+    } catch (e) {
+      el.innerHTML = `<p class="err">${esc(D.errText(e))}</p>`;
+      return;
+    }
+    render();
   }
 
   function render() {
-    const rows = filteredMinistries();
-
-    if (!rows.length) {
-      showTableMessage("Hakuna wizara iliyopatikana.", "empty");
+    const el = document.getElementById("ministryList");
+    const DB = D.DB;
+    if (!DB.ministries.length) {
+      el.innerHTML = '<div class="emptystate"><div class="glyph">🏛️</div><p>Hakuna wizara bado. Ongeza ya kwanza hapo juu.</p></div>';
       return;
     }
-
-    $("ministriesBody").innerHTML = rows.map((ministry, index) => {
-      const date = ministry.created_at
-        ? new Date(ministry.created_at).toLocaleDateString("sw-TZ")
-        : "—";
-
+    el.innerHTML = DB.ministries.map((m) => {
+      const leaderCount = DB.leaders.filter((l) => l.ministry_id === m.id).length;
+      const openIssues = DB.feedback.filter((f) => f.ministry_id === m.id && !["Resolved", "Closed", "Rejected/Invalid"].includes(f.status)).length;
       return `
-        <tr>
-          <td>${index + 1}</td>
-
-          <td>
-            <strong>${escapeHtml(ministry.name)}</strong>
-          </td>
-
-          <td>
-            ${escapeHtml(ministry.description || "—")}
-          </td>
-
-          <td>
-            <span class="status ${ministry.active ? "active" : "inactive"}">
-              ${ministry.active ? "Hai" : "Imezimwa"}
-            </span>
-          </td>
-
-          <td>${escapeHtml(date)}</td>
-
-          <td>
-            <div class="actions">
-              <button
-                class="btn-secondary btn-small"
-                data-action="edit"
-                data-id="${escapeHtml(ministry.id)}"
-              >
-                Hariri
-              </button>
-
-              <button
-                class="btn-danger btn-small"
-                data-action="delete"
-                data-id="${escapeHtml(ministry.id)}"
-              >
-                Futa
-              </button>
-            </div>
-          </td>
-        </tr>
-      `;
+      <div class="rowitem">
+        <div class="rowmain">
+          <b>${esc(m.name)} <span class="pill ${m.active ? "ok" : "crit"}">${m.active ? "Amilifu" : "Imezimwa"}</span></b>
+          <span class="desc">${m.description ? esc(m.description) : "Hakuna maelezo"} · ${leaderCount} kiongozi · ${openIssues} masuala yanayosubiri</span>
+        </div>
+        <div class="rowacts">
+          <a class="link" href="#" data-act="edit" data-id="${m.id}">Hariri</a>
+          <a class="link" href="#" data-act="toggle" data-id="${m.id}">${m.active ? "Zima" : "Washa"}</a>
+          <a class="link" href="#" data-act="remove" data-id="${m.id}">Ondoa</a>
+        </div>
+      </div>`;
     }).join("");
   }
 
-  async function loadProfile() {
-    const session = await RucusoAPI.currentSession();
+  document.getElementById("ministryList").addEventListener("click", async (ev) => {
+    const a = ev.target.closest("a[data-act]");
+    if (!a) return;
+    ev.preventDefault();
+    const id = a.dataset.id;
+    const m = D.DB.ministries.find((x) => x.id === id);
+    if (!m) return;
 
-    if (!session || !session.user) {
-      window.location.href = "/admin/login/";
-      return false;
+    if (a.dataset.act === "edit") {
+      const name = prompt("Jina la wizara:", m.name);
+      if (name === null || !name.trim()) return;
+      const desc = prompt("Maelezo ya wizara '" + name.trim() + "':", m.description || "");
+      if (desc === null) return;
+      try { await D.updateMinistryDetails(m.id, name.trim(), desc.trim()); render(); D.toast("Wizara imesasishwa."); }
+      catch (e) { D.toast(D.errText(e), "err"); }
     }
-
-    if (!session.profile) {
-      showToast(
-        "Akaunti hii haina profili ya msimamizi.",
-        "error"
-      );
-
-      await RucusoAPI.adminLogout();
-      window.location.href = "/admin/login/";
-      return false;
+    if (a.dataset.act === "toggle") {
+      try { await D.toggleMinistry(id, !m.active); render(); }
+      catch (e) { D.toast(D.errText(e), "err"); }
     }
-
-    $("userName").textContent =
-      session.profile.full_name || session.user.email || "Msimamizi";
-
-    $("userRole").textContent =
-      `(${session.profile.role || "staff"})`;
-
-    if (!session.profile.active) {
-      await RucusoAPI.adminLogout();
-      window.location.href = "/admin/login/";
-      return false;
+    if (a.dataset.act === "remove") {
+      if (!confirm(`Ondoa wizara "${m.name}"? Viongozi walioko kwenye wizara hii hawatafutwa, lakini hawataonyesha wizara.`)) return;
+      try { await D.removeMinistry(id); render(); D.toast("Wizara imeondolewa."); }
+      catch (e) { D.toast(D.errText(e), "err"); }
     }
+  });
 
-    return true;
-  }
-
-  async function loadMinistries() {
-    showTableMessage("Inapakia wizara...", "loading");
-
+  document.getElementById("mn_addBtn").addEventListener("click", async () => {
+    const btn = document.getElementById("mn_addBtn");
+    const msg = document.getElementById("mn_msg");
+    const name = document.getElementById("mn_name").value.trim();
+    const desc = document.getElementById("mn_desc").value.trim();
+    msg.innerHTML = "";
+    if (!name) { msg.innerHTML = '<p class="err">Weka jina la wizara.</p>'; return; }
+    btn.disabled = true; btn.textContent = "Inahifadhi...";
     try {
-      state.ministries = await RucusoAPI.listAllMinistries() || [];
-
-      updateStats();
+      await D.saveMinistry(name, desc);
+      document.getElementById("mn_name").value = "";
+      document.getElementById("mn_desc").value = "";
+      msg.innerHTML = '<p class="ok-msg">Wizara imeongezwa. Nafasi za uongozi zimeonekana kwenye ukurasa wa Viongozi.</p>';
       render();
-
-    } catch (error) {
-      console.error(error);
-
-      showTableMessage(
-        error.message || "Imeshindikana kupakia wizara.",
-        "error"
-      );
-    }
-  }
-
-  function openForm(ministry = null) {
-    state.editingId = ministry ? ministry.id : null;
-
-    $("formTitle").textContent =
-      ministry ? "Hariri Wizara" : "Ongeza Wizara";
-
-    $("name").value = ministry?.name || "";
-    $("description").value = ministry?.description || "";
-    $("active").value = String(
-      ministry?.active ?? true
-    );
-
-    $("formModal").classList.add("show");
-
-    setTimeout(() => $("name").focus(), 50);
-  }
-
-  function closeForm() {
-    $("formModal").classList.remove("show");
-    $("ministryForm").reset();
-    state.editingId = null;
-  }
-
-  async function saveMinistry(event) {
-    event.preventDefault();
-
-    const name = $("name").value.trim();
-    const description = $("description").value.trim();
-    const active = $("active").value === "true";
-
-    if (!name) {
-      showToast("Jina la wizara linahitajika.", "error");
-      $("name").focus();
-      return;
-    }
-
-    const saveBtn = $("saveBtn");
-    saveBtn.disabled = true;
-    saveBtn.textContent = "Inahifadhi...";
-
-    try {
-      if (state.editingId) {
-        await RucusoAPI.updateMinistry(
-          state.editingId,
-          {
-            name,
-            description: description || null,
-            active
-          }
-        );
-
-        showToast("Wizara imehaririwa kikamilifu.", "success");
-
-      } else {
-        await RucusoAPI.createMinistry({
-          name,
-          description: description || null,
-          active
-        });
-
-        showToast("Wizara imeongezwa kikamilifu.", "success");
-      }
-
-      closeForm();
-      await loadMinistries();
-
-    } catch (error) {
-      console.error(error);
-
-      showToast(
-        error.message || "Imeshindikana kuhifadhi wizara.",
-        "error"
-      );
-
+    } catch (e) {
+      msg.innerHTML = `<p class="err">${esc(D.errText(e))}</p>`;
     } finally {
-      saveBtn.disabled = false;
-      saveBtn.textContent = "Hifadhi";
-    }
-  }
-
-  function openDelete(ministry) {
-    state.deletingId = ministry.id;
-
-    $("deleteName").textContent = ministry.name;
-    $("deleteModal").classList.add("show");
-  }
-
-  function closeDelete() {
-    $("deleteModal").classList.remove("show");
-    state.deletingId = null;
-  }
-
-  async function confirmDelete() {
-    if (!state.deletingId) return;
-
-    const id = state.deletingId;
-    const button = $("confirmDeleteBtn");
-
-    button.disabled = true;
-    button.textContent = "Inafuta...";
-
-    try {
-      await RucusoAPI.deleteMinistry(id);
-
-      closeDelete();
-
-      showToast("Wizara imefutwa.", "success");
-
-      await loadMinistries();
-
-    } catch (error) {
-      console.error(error);
-
-      showToast(
-        error.message || "Imeshindikana kufuta wizara.",
-        "error"
-      );
-
-    } finally {
-      button.disabled = false;
-      button.textContent = "Futa Wizara";
-    }
-  }
-
-  $("addBtn").addEventListener("click", () => {
-    openForm();
-  });
-
-  $("closeFormBtn").addEventListener("click", closeForm);
-  $("cancelFormBtn").addEventListener("click", closeForm);
-
-  $("ministryForm").addEventListener(
-    "submit",
-    saveMinistry
-  );
-
-  $("closeDeleteBtn").addEventListener(
-    "click",
-    closeDelete
-  );
-
-  $("cancelDeleteBtn").addEventListener(
-    "click",
-    closeDelete
-  );
-
-  $("confirmDeleteBtn").addEventListener(
-    "click",
-    confirmDelete
-  );
-
-  $("searchInput").addEventListener("input", render);
-  $("statusFilter").addEventListener("change", render);
-
-  $("ministriesBody").addEventListener("click", event => {
-    const button = event.target.closest("button[data-action]");
-
-    if (!button) return;
-
-    const ministry = state.ministries.find(
-      item => item.id === button.dataset.id
-    );
-
-    if (!ministry) return;
-
-    if (button.dataset.action === "edit") {
-      openForm(ministry);
-    }
-
-    if (button.dataset.action === "delete") {
-      openDelete(ministry);
+      btn.disabled = false; btn.textContent = "ONGEZA WIZARA";
     }
   });
 
-  $("logoutBtn").addEventListener("click", async () => {
-    try {
-      await RucusoAPI.adminLogout();
-    } finally {
-      window.location.href = "/admin/login/";
-    }
-  });
-
-  $("formModal").addEventListener("click", event => {
-    if (event.target === $("formModal")) {
-      closeForm();
-    }
-  });
-
-  $("deleteModal").addEventListener("click", event => {
-    if (event.target === $("deleteModal")) {
-      closeDelete();
-    }
-  });
-
-  (async function init() {
-    if (!window.RucusoAPI) {
-      showTableMessage(
-        "RUCUSO API haijapatikana. Hakiki configuration.",
-        "error"
-      );
-      return;
-    }
-
-    const authenticated = await loadProfile();
-
-    if (!authenticated) return;
-
-    await loadMinistries();
-  })();
-
+  await loadAndRender();
 })();
 </script>
-
 </body>
 </html>

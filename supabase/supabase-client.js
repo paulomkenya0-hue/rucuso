@@ -152,6 +152,14 @@
       const rows = await ok(await client.rpc("lookup_student", { p_reg: regNumber }));
       return rows && rows.length ? rows[0] : null;
     },
+    // Temporary OTP-bypass path (see migration 006): confirms the phone
+    // number on file matches, without ever exposing that phone number.
+    // Returns null on any mismatch — caller cannot tell whether the
+    // registration number or the phone number was the problem.
+    async verifyStudentIdentity(regNumber, phone) {
+      const rows = await ok(await client.rpc("verify_student_identity", { p_reg: regNumber, p_phone: phone }));
+      return rows && rows.length ? rows[0] : null;
+    },
     // student_count() returns a scalar, so PostgREST replies with a bare number.
     async studentCount() {
       return Number((await ok(await client.rpc("student_count"))) || 0);
@@ -161,6 +169,21 @@
         .from("students")
         .select("id, registration_number, first_name, middle_name, last_name, full_name, programme, year_of_study, phone_number, email")
         .order("registration_number"));
+    },
+    // Full column set for the /admin/students/ management table (search,
+    // filter by faculty/programme/year/academic year, edit, deactivate).
+    async listStudentsFull() {
+      return ok(await client
+        .from("students")
+        .select("id, registration_number, first_name, middle_name, last_name, full_name, programme, faculty, department, year_of_study, academic_year, phone_number, email, gender, student_status")
+        .order("registration_number")
+        .limit(5000));
+    },
+    async setStudentStatus(id, status) {
+      return ok(await client.from("students").update({ student_status: status }).eq("id", id).select());
+    },
+    async deleteStudent(id) {
+      return ok(await client.from("students").delete().eq("id", id));
     },
     async upsertStudent(row) {
       return ok(await client.from("students").upsert(row, { onConflict: "registration_number" }).select());

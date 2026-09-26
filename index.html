@@ -137,10 +137,10 @@ a.link{color:var(--info);cursor:pointer;}
         <h3 class="ok-msg">UTHIBITISHO UMEFANIKIWA</h3>
         <p><b>Jina:</b> <span id="ver_name"></span><br><b>Programu:</b> <span id="ver_prog"></span><br><b>Mwaka:</b> <span id="ver_year"></span></p>
         <label>THIBITISHA NAMBA YA SIMU</label>
-        <p class="muted">Ingiza namba yako ya simu ya Tanzania (mfano 07XXXXXXXX au +255XXXXXXXXX).</p>
+        <p class="muted" id="ver2_hint">Ingiza namba yako ya simu ya Tanzania (mfano 07XXXXXXXX au +255XXXXXXXXX).</p>
         <input id="ver_phone" placeholder="07XXXXXXXX">
         <div id="ver2_msg" class="err" style="margin-top:6px;"></div>
-        <div style="margin-top:12px;"><button class="pri" onclick="sendOtp(event)">TUMA OTP</button></div>
+        <div style="margin-top:12px;"><button class="pri" id="ver2_btn" onclick="sendOtp(event)">TUMA OTP</button></div>
       </div>
       <div id="ver-step3" class="hidden">
         <p class="muted">Ingiza namba yako ya OTP ya tarakimu 6 iliyotumwa kwa <span id="ver_phone_out"></span>.</p>
@@ -157,6 +157,9 @@ a.link{color:var(--info);cursor:pointer;}
     <div class="card">
       <h2 style="margin-top:0">Submit Feedback</h2>
       <div id="verifiedBanner" class="hidden ok-msg" style="margin-bottom:8px;">✓ Umethibitishwa kama <span id="vb_name"></span> (<span id="vb_reg"></span>) — <a class="link" onclick="studentLogout()">Toka</a></div>
+      <div id="otpBypassNotice" class="hidden" style="margin-bottom:8px;padding:8px 10px;border-radius:6px;background:#fdf1e3;color:var(--warn);font-size:13px;">
+        Akaunti yako imethibitishwa kupitia Namba ya Usajili. (Usalama wa OTP utaongezwa hivi karibuni)
+      </div>
       <div id="privacyGate">
         <p class="muted">Your feedback will be used to understand student experiences and identify areas for service improvement. If you choose anonymous submission, your identity should not be displayed to normal administrators.</p>
         <label><input type="checkbox" id="agreeChk" onchange="document.getElementById('formArea').classList.toggle('hidden',!this.checked)"> I understand</label>

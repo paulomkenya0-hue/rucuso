@@ -1,1258 +1,164 @@
 <!DOCTYPE html>
 <html lang="sw">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Huduma za Wanafunzi | RUCUSO</title>
-
-  <style>
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f4f7fb;
-      color: #172033;
-    }
-
-    .layout {
-      display: flex;
-      min-height: 100vh;
-    }
-
-    .sidebar {
-      width: 240px;
-      background: #0b1f3a;
-      color: white;
-      padding: 22px 14px;
-      flex-shrink: 0;
-    }
-
-    .brand {
-      font-size: 24px;
-      font-weight: 800;
-      padding: 0 10px 24px;
-    }
-
-    .brand span {
-      color: #55a7ff;
-    }
-
-    .nav a {
-      display: block;
-      color: #dbe7f5;
-      text-decoration: none;
-      padding: 12px 10px;
-      border-radius: 8px;
-      margin-bottom: 4px;
-      font-size: 14px;
-    }
-
-    .nav a:hover,
-    .nav a.active {
-      background: #17375f;
-      color: white;
-    }
-
-    .main {
-      flex: 1;
-      min-width: 0;
-      padding: 28px;
-    }
-
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 15px;
-      margin-bottom: 25px;
-    }
-
-    .topbar h1 {
-      margin: 0 0 5px;
-      font-size: 28px;
-    }
-
-    .topbar p {
-      margin: 0;
-      color: #687386;
-    }
-
-    .user {
-      text-align: right;
-      color: #4d596b;
-      font-size: 14px;
-    }
-
-    .user strong {
-      display: block;
-      color: #172033;
-    }
-
-    .logout {
-      border: 0;
-      background: transparent;
-      color: #c62828;
-      cursor: pointer;
-      margin-top: 5px;
-      font-weight: 600;
-      padding: 4px;
-    }
-
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-
-    .card {
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 4px 18px rgba(0,0,0,.06);
-    }
-
-    .card small {
-      color: #687386;
-      display: block;
-      margin-bottom: 8px;
-    }
-
-    .card strong {
-      font-size: 28px;
-    }
-
-    .card .green {
-      color: #16834b;
-    }
-
-    .card .gray {
-      color: #697386;
-    }
-
-    .panel {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 18px rgba(0,0,0,.06);
-      overflow: hidden;
-    }
-
-    .panel-head {
-      padding: 18px;
-      border-bottom: 1px solid #e7ebf0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .panel-head h2 {
-      margin: 0;
-      font-size: 19px;
-    }
-
-    .panel-head p {
-      margin: 4px 0 0;
-      color: #687386;
-      font-size: 13px;
-    }
-
-    .actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    input,
-    textarea {
-      width: 100%;
-      border: 1px solid #ccd4df;
-      border-radius: 8px;
-      padding: 10px 12px;
-      font-size: 14px;
-      outline: none;
-      font-family: inherit;
-    }
-
-    input:focus,
-    textarea:focus {
-      border-color: #246bce;
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 100px;
-    }
-
-    button {
-      border: 0;
-      border-radius: 8px;
-      padding: 10px 14px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    button:disabled {
-      opacity: .6;
-      cursor: not-allowed;
-    }
-
-    .btn-primary {
-      background: #1261a0;
-      color: white;
-    }
-
-    .btn-secondary {
-      background: #edf2f7;
-      color: #26364a;
-    }
-
-    .btn-danger {
-      background: #feecec;
-      color: #b42318;
-    }
-
-    .btn-success {
-      background: #e8f7ee;
-      color: #16834b;
-    }
-
-    .toolbar {
-      padding: 15px 18px;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      border-bottom: 1px solid #edf0f4;
-    }
-
-    .search {
-      flex: 1;
-      min-width: 220px;
-    }
-
-    .table-wrap {
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      min-width: 850px;
-      border-collapse: collapse;
-    }
-
-    th,
-    td {
-      padding: 13px 15px;
-      border-bottom: 1px solid #edf0f4;
-      text-align: left;
-      font-size: 14px;
-      vertical-align: middle;
-    }
-
-    th {
-      background: #f8fafc;
-      color: #596579;
-      font-size: 13px;
-    }
-
-    tr:hover td {
-      background: #fbfcfe;
-    }
-
-    .service-name {
-      font-weight: 700;
-      color: #172033;
-    }
-
-    .service-description {
-      color: #687386;
-      font-size: 13px;
-      margin-top: 4px;
-      max-width: 450px;
-      line-height: 1.45;
-    }
-
-    .contact {
-      color: #405168;
-    }
-
-    .status {
-      display: inline-block;
-      padding: 5px 9px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .status.active {
-      background: #e8f7ee;
-      color: #16834b;
-    }
-
-    .status.inactive {
-      background: #f1f3f5;
-      color: #697386;
-    }
-
-    .row-actions {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .row-actions button {
-      padding: 7px 10px;
-      font-size: 12px;
-    }
-
-    .empty,
-    .loading,
-    .error {
-      padding: 30px;
-      text-align: center;
-      color: #687386;
-    }
-
-    .error {
-      color: #b42318;
-      background: #fff5f5;
-    }
-
-    .notice {
-      display: none;
-      margin: 0 0 18px;
-      padding: 12px 14px;
-      border-radius: 8px;
-      font-size: 14px;
-    }
-
-    .notice.show {
-      display: block;
-    }
-
-    .notice.success {
-      background: #e8f7ee;
-      color: #126b3e;
-    }
-
-    .notice.error {
-      background: #fff0f0;
-      color: #a51d1d;
-      padding: 12px 14px;
-      text-align: left;
-    }
-
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.45);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      z-index: 1000;
-    }
-
-    .modal.show {
-      display: flex;
-    }
-
-    .modal-card {
-      background: white;
-      width: min(650px, 100%);
-      max-height: 90vh;
-      overflow: auto;
-      border-radius: 14px;
-      padding: 22px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.25);
-    }
-
-    .modal-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .modal-head h2 {
-      margin: 0;
-      font-size: 20px;
-    }
-
-    .close {
-      background: #f1f3f5;
-      color: #465365;
-      border-radius: 50%;
-      width: 36px;
-      height: 36px;
-      padding: 0;
-      font-size: 20px;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-    }
-
-    .field {
-      margin-bottom: 15px;
-    }
-
-    .field.full {
-      grid-column: 1 / -1;
-    }
-
-    label {
-      display: block;
-      font-size: 13px;
-      font-weight: 700;
-      margin-bottom: 7px;
-      color: #334155;
-    }
-
-    .modal-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-      margin-top: 20px;
-      padding-top: 15px;
-      border-top: 1px solid #edf0f4;
-    }
-
-    .confirm-text {
-      color: #596579;
-      line-height: 1.5;
-      margin: 0;
-    }
-
-    @media (max-width: 900px) {
-      .sidebar {
-        width: 200px;
-      }
-
-      .cards {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 700px) {
-      .layout {
-        display: block;
-      }
-
-      .sidebar {
-        width: 100%;
-        padding: 15px;
-      }
-
-      .brand {
-        padding-bottom: 12px;
-      }
-
-      .nav {
-        display: flex;
-        overflow-x: auto;
-        gap: 5px;
-      }
-
-      .nav a {
-        white-space: nowrap;
-      }
-
-      .main {
-        padding: 18px;
-      }
-
-      .topbar {
-        align-items: flex-start;
-      }
-
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .field.full {
-        grid-column: auto;
-      }
-
-      .user {
-        text-align: left;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Usimamizi wa Huduma | RUCUSO</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="/css/portal.css">
 </head>
-
 <body>
-
+<header class="top">
+  <div class="brand"><span class="crest">R</span><b>RUCUSO</b><span>Super Admin Portal</span></div>
+  <div>
+    <span id="whoami" class="muted" style="color:#cdd9ee;font-size:12px;margin-right:10px;"></span>
+    <button class="sec" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Logout</button>
+  </div>
+</header>
 <div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <a href="/admin/dashboard/">Dashibodi</a>
+    <a href="/admin/students/" data-perm="manage_students">Wanafunzi</a>
+    <a href="/admin/leaders/" data-perm="__super_admin_only">Viongozi</a>
+    <a href="/admin/ministries/" data-perm="manage_ministries">Wizara</a>
+    <a href="/admin/categories/" data-perm="manage_categories">Categories</a>
+    <a href="/admin/feedback/" data-perm="view_feedback">Maoni &amp; Malalamiko</a>
+    <a href="/admin/services/" class="active" data-perm="manage_services">Huduma</a>
+    <a href="/admin/announcements/" data-perm="manage_announcements">Matangazo</a>
+    <a href="/admin/documents/" data-perm="manage_documents">Nyaraka</a>
+    <a href="/admin/reports/" data-perm="manage_reports">Ripoti</a>
+    <a href="/admin/audit-logs/" data-perm="view_audit_logs">Audit Logs</a>
+  </nav>
+  <main class="content">
+    <div id="gate" class="card"><p class="muted">Inathibitisha akaunti...</p></div>
+    <div id="denied" class="card hidden"><p class="err">Huna ruhusa ya kufikia moduli hii. Wasiliana na Msimamizi Mkuu.</p></div>
 
-  <aside class="sidebar">
-    <div class="brand">RUCU<span>SO</span></div>
-
-    <nav class="nav">
-      <a href="../dashboard/">Dashboard</a>
-      <a href="../students/">Wanafunzi</a>
-      <a href="../ministries/">Ministries</a>
-      <a href="../leaders/">Viongozi</a>
-      <a href="./" class="active">Huduma</a>
-      <a href="../announcements/">Announcements</a>
-      <a href="../documents/">Documents</a>
-      <a href="../feedback/">Feedback</a>
-      <a href="../settings/">Settings</a>
-      <a href="../audit/">Audit Log</a>
-    </nav>
-  </aside>
-
-  <main class="main">
-
-    <div class="topbar">
-      <div>
-        <h1>Huduma za Wanafunzi</h1>
-        <p>Dhibiti huduma zinazopatikana kwenye portal ya wanafunzi.</p>
+    <div id="body" class="hidden">
+      <div class="pagehead">
+        <div class="accent"></div>
+        <h2>Usimamizi wa Huduma za Wanafunzi</h2>
+        <p>Huduma huonekana kwa umma pale tu zinapokuwa "Amilifu" na zina maelezo.</p>
       </div>
 
-      <div class="user">
-        <strong id="userName">Inapakia...</strong>
-        <button class="logout" id="logoutBtn">Toka</button>
+      <div class="card" style="max-width:520px;">
+        <h3 style="margin-top:0">Ongeza Huduma</h3>
+        <label>Jina la Huduma *</label>
+        <input id="sv_name" placeholder="mfano: Huduma za Ushauri Nasaha">
+        <p class="muted" style="margin:6px 0 0;">Huduma mpya huongezwa ikiwa imezimwa — weka maelezo na uiwezeshe kwenye orodha hapo chini.</p>
+        <button class="pri" id="sv_addBtn">ONGEZA HUDUMA</button>
+        <div id="sv_msg"></div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">Orodha ya Huduma</h3>
+        <div id="serviceList" class="rowlist"><p class="muted">Inapakia...</p></div>
       </div>
     </div>
-
-    <div id="notice" class="notice"></div>
-
-    <section class="cards">
-      <div class="card">
-        <small>Jumla ya Huduma</small>
-        <strong id="totalCount">0</strong>
-      </div>
-
-      <div class="card">
-        <small>Huduma Zinazotumika</small>
-        <strong id="activeCount" class="green">0</strong>
-      </div>
-
-      <div class="card">
-        <small>Huduma Zilizozimwa</small>
-        <strong id="inactiveCount" class="gray">0</strong>
-      </div>
-    </section>
-
-    <section class="panel">
-
-      <div class="panel-head">
-        <div>
-          <h2>Orodha ya Huduma</h2>
-          <p>Huduma zilizo hapa ndizo admin anaweza kuonyesha au kuzificha kwa wanafunzi.</p>
-        </div>
-
-        <div class="actions">
-          <button class="btn-primary" id="addBtn">+ Ongeza Huduma</button>
-          <button class="btn-secondary" id="refreshBtn">↻ Refresh</button>
-        </div>
-      </div>
-
-      <div class="toolbar">
-        <input
-          id="searchInput"
-          class="search"
-          type="search"
-          placeholder="Tafuta huduma..."
-          autocomplete="off"
-        >
-
-        <button class="btn-secondary" id="showAllBtn">Zote</button>
-        <button class="btn-success" id="showActiveBtn">Zinazotumika</button>
-        <button class="btn-secondary" id="showInactiveBtn">Zilizozimwa</button>
-      </div>
-
-      <div id="tableState" class="loading">
-        Inapakia huduma...
-      </div>
-
-      <div id="tableWrap" class="table-wrap" style="display:none;">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Huduma</th>
-              <th>Mawasiliano</th>
-              <th>Hali</th>
-              <th>Vitendo</th>
-            </tr>
-          </thead>
-
-          <tbody id="servicesBody"></tbody>
-        </table>
-      </div>
-
-    </section>
-
   </main>
 </div>
-
-
-<!-- ADD / EDIT MODAL -->
-<div class="modal" id="serviceModal">
-  <div class="modal-card">
-
-    <div class="modal-head">
-      <h2 id="modalTitle">Ongeza Huduma</h2>
-      <button class="close" id="closeModal">&times;</button>
-    </div>
-
-    <form id="serviceForm">
-
-      <input type="hidden" id="serviceId">
-
-      <div class="form-grid">
-
-        <div class="field full">
-          <label for="serviceName">Jina la Huduma *</label>
-          <input
-            id="serviceName"
-            type="text"
-            required
-            maxlength="150"
-            placeholder="Mfano: Mikopo"
-          >
-        </div>
-
-        <div class="field full">
-          <label for="serviceDescription">Maelezo</label>
-          <textarea
-            id="serviceDescription"
-            maxlength="1000"
-            placeholder="Eleza huduma hii kwa wanafunzi..."
-          ></textarea>
-        </div>
-
-        <div class="field">
-          <label for="serviceContact">Mawasiliano</label>
-          <input
-            id="serviceContact"
-            type="text"
-            maxlength="200"
-            placeholder="Simu, email au ofisi"
-          >
-        </div>
-
-        <div class="field">
-          <label for="serviceActive">Hali</label>
-          <select id="serviceActive">
-            <option value="true">Inatumika</option>
-            <option value="false">Imezimwa</option>
-          </select>
-        </div>
-
-      </div>
-
-      <div class="modal-actions">
-        <button type="button" class="btn-secondary" id="cancelBtn">
-          Ghairi
-        </button>
-
-        <button type="submit" class="btn-primary" id="saveBtn">
-          Hifadhi
-        </button>
-      </div>
-
-    </form>
-  </div>
-</div>
-
-
-<!-- DELETE CONFIRMATION -->
-<div class="modal" id="deleteModal">
-  <div class="modal-card" style="max-width:480px;">
-
-    <div class="modal-head">
-      <h2>Futa Huduma</h2>
-      <button class="close" id="closeDeleteModal">&times;</button>
-    </div>
-
-    <p class="confirm-text">
-      Una uhakika unataka kufuta huduma hii?
-      Kitendo hiki kitaondoa rekodi kwenye database.
-    </p>
-
-    <p>
-      <strong id="deleteServiceName"></strong>
-    </p>
-
-    <div class="modal-actions">
-      <button class="btn-secondary" id="cancelDeleteBtn">
-        Ghairi
-      </button>
-
-      <button class="btn-danger" id="confirmDeleteBtn">
-        Futa
-      </button>
-    </div>
-
-  </div>
-</div>
-
-
-<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<!-- Project config -->
-<script src="../../supabase/config.js"></script>
-
-<!-- Supabase API -->
-<script src="../../supabase/supabase-client.js"></script>
-
+<script src="/supabase/config.js" onerror="console.warn('supabase/config.js haipo.')"></script>
+<script src="/supabase/supabase-client.js"></script>
+<script src="/js/data.js"></script>
+<script src="/js/auth-guard.js"></script>
 <script>
-(function () {
-  "use strict";
+(async function () {
+  const session = await window.RucusoGuard.requireRole(["super_admin", "admin"], { loginUrl: "/admin/login/" });
+  if (!session) return;
+  const profile = session.profile;
+  const canManage = window.RucusoGuard.hasPermission(profile, "manage_services");
 
-  let allServices = [];
-  let currentFilter = "all";
-  let deleteId = null;
+  document.getElementById("gate").classList.add("hidden");
+  if (!canManage) { document.getElementById("denied").classList.remove("hidden"); return; }
+  document.getElementById("body").classList.remove("hidden");
+  document.getElementById("whoami").textContent = profile.full_name + " (" + profile.role + ")";
+  document.getElementById("logoutBtn").addEventListener("click", () => window.RucusoGuard.logout("/"));
+  document.querySelectorAll("#sidebar a[data-perm]").forEach((a) => {
+    const perm = a.dataset.perm;
+    const allowed = perm === "__super_admin_only" ? profile.role === "super_admin" : window.RucusoGuard.hasPermission(profile, perm);
+    if (!allowed) a.remove();
+  });
 
-  const $ = (id) => document.getElementById(id);
+  const D = window.RucusoData;
+  await D.setSession(session);
 
-  function showNotice(message, type = "success") {
-    const notice = $("notice");
-
-    notice.textContent = message;
-    notice.className = "notice show " + type;
-
-    clearTimeout(showNotice.timer);
-
-    showNotice.timer = setTimeout(() => {
-      notice.className = "notice";
-      notice.textContent = "";
-    }, 4500);
+  function esc(v) {
+    return String(v == null ? "" : v)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+  function render() {
+    const el = document.getElementById("serviceList");
+    const svcs = D.DB.services;
+    el.innerHTML = svcs.length ? svcs.map((s) => `
+      <div class="rowitem">
+        <div class="rowmain">
+          <b>${esc(s.name)} <span class="pill ${s.active ? "ok" : "warn"}">${s.active ? "Amilifu" : "Imezimwa"}</span></b>
+          <span class="desc">${s.description ? esc(s.description) : "Hakuna maelezo bado"}${s.contact ? " · " + esc(s.contact) : ""}</span>
+        </div>
+        <div class="rowacts">
+          <a class="link" href="#" data-act="edit" data-id="${s.id}">Hariri</a>
+          <a class="link" href="#" data-act="toggle" data-id="${s.id}">${s.active ? "Zima" : "Washa"}</a>
+          <a class="link" href="#" data-act="remove" data-id="${s.id}">Ondoa</a>
+        </div>
+      </div>`).join("")
+      : '<div class="emptystate"><div class="glyph">🧰</div><p>Hakuna huduma bado. Ongeza ya kwanza hapo juu.</p></div>';
   }
 
-  function setLoading(message = "Inapakia huduma...") {
-    $("tableWrap").style.display = "none";
-    $("tableState").style.display = "block";
-    $("tableState").className = "loading";
-    $("tableState").textContent = message;
-  }
+  document.getElementById("serviceList").addEventListener("click", async (ev) => {
+    const a = ev.target.closest("a[data-act]");
+    if (!a) return;
+    ev.preventDefault();
+    const id = a.dataset.id;
+    const s = D.DB.services.find((x) => x.id === id);
+    if (!s) return;
 
-  function setEmpty(message = "Hakuna huduma iliyopatikana.") {
-    $("tableWrap").style.display = "none";
-    $("tableState").style.display = "block";
-    $("tableState").className = "empty";
-    $("tableState").textContent = message;
-  }
-
-  function setError(message) {
-    $("tableWrap").style.display = "none";
-    $("tableState").style.display = "block";
-    $("tableState").className = "error";
-    $("tableState").textContent = message;
-  }
-
-  function updateStats() {
-    const total = allServices.length;
-    const active = allServices.filter(s => s.active === true).length;
-    const inactive = total - active;
-
-    $("totalCount").textContent = total;
-    $("activeCount").textContent = active;
-    $("inactiveCount").textContent = inactive;
-  }
-
-  function filteredServices() {
-    const search = $("searchInput").value.trim().toLowerCase();
-
-    return allServices.filter(service => {
-      if (currentFilter === "active" && !service.active) {
-        return false;
-      }
-
-      if (currentFilter === "inactive" && service.active) {
-        return false;
-      }
-
-      if (!search) {
-        return true;
-      }
-
-      const text = [
-        service.name,
-        service.description,
-        service.contact
-      ].join(" ").toLowerCase();
-
-      return text.includes(search);
-    });
-  }
-
-  function renderServices() {
-    const rows = filteredServices();
-
-    if (!rows.length) {
-      setEmpty("Hakuna huduma inayolingana na utafutaji wako.");
-      return;
+    if (a.dataset.act === "edit") {
+      const desc = prompt("Maelezo ya huduma '" + s.name + "':", s.description || "");
+      if (desc === null) return;
+      const contact = prompt("Mawasiliano (simu/email, hiari):", s.contact || "");
+      if (contact === null) return;
+      try {
+        await D.saveService({ id, name: s.name, description: desc.trim(), contact: contact.trim(), active: s.active });
+        render();
+        D.toast("Huduma imesasishwa.");
+      } catch (e) { D.toast(D.errText(e), "err"); }
     }
+    if (a.dataset.act === "toggle") {
+      try { await D.toggleService(id, !s.active); render(); }
+      catch (e) { D.toast(D.errText(e), "err"); }
+    }
+    if (a.dataset.act === "remove") {
+      if (!confirm(`Ondoa huduma "${s.name}"?`)) return;
+      try { await D.removeService(id); render(); D.toast("Huduma imeondolewa."); }
+      catch (e) { D.toast(D.errText(e), "err"); }
+    }
+  });
 
-    $("tableState").style.display = "none";
-    $("tableWrap").style.display = "block";
-
-    $("servicesBody").innerHTML = rows.map((service, index) => {
-
-      const description = service.description
-        ? escapeHtml(service.description)
-        : "Hakuna maelezo.";
-
-      const contact = service.contact
-        ? escapeHtml(service.contact)
-        : "—";
-
-      const statusClass = service.active ? "active" : "inactive";
-      const statusText = service.active ? "Inatumika" : "Imezimwa";
-
-      const toggleText = service.active
-        ? "Zima"
-        : "Washa";
-
-      const toggleClass = service.active
-        ? "btn-secondary"
-        : "btn-success";
-
-      return `
-        <tr>
-          <td>${index + 1}</td>
-
-          <td>
-            <div class="service-name">
-              ${escapeHtml(service.name)}
-            </div>
-
-            <div class="service-description">
-              ${description}
-            </div>
-          </td>
-
-          <td class="contact">
-            ${contact}
-          </td>
-
-          <td>
-            <span class="status ${statusClass}">
-              ${statusText}
-            </span>
-          </td>
-
-          <td>
-            <div class="row-actions">
-
-              <button
-                class="btn-secondary"
-                data-action="edit"
-                data-id="${escapeHtml(service.id)}"
-              >
-                Hariri
-              </button>
-
-              <button
-                class="${toggleClass}"
-                data-action="toggle"
-                data-id="${escapeHtml(service.id)}"
-              >
-                ${toggleText}
-              </button>
-
-              <button
-                class="btn-danger"
-                data-action="delete"
-                data-id="${escapeHtml(service.id)}"
-              >
-                Futa
-              </button>
-
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join("");
-  }
-
-  async function loadServices() {
-    setLoading();
-
+  document.getElementById("sv_addBtn").addEventListener("click", async () => {
+    const btn = document.getElementById("sv_addBtn");
+    const msg = document.getElementById("sv_msg");
+    const name = document.getElementById("sv_name").value.trim();
+    msg.innerHTML = "";
+    if (!name) { msg.innerHTML = '<p class="err">Weka jina la huduma.</p>'; return; }
+    btn.disabled = true; btn.textContent = "Inahifadhi...";
     try {
-      if (!window.RucusoAPI) {
-        throw new Error("RucusoAPI haijapakiwa.");
-      }
-
-      allServices = await window.RucusoAPI.listAllServices();
-
-      if (!Array.isArray(allServices)) {
-        allServices = [];
-      }
-
-      updateStats();
-      renderServices();
-
-    } catch (error) {
-      console.error("loadServices:", error);
-      setError(error.message || "Imeshindikana kupakia huduma.");
-    }
-  }
-
-  function openAddModal() {
-    $("modalTitle").textContent = "Ongeza Huduma";
-
-    $("serviceId").value = "";
-    $("serviceName").value = "";
-    $("serviceDescription").value = "";
-    $("serviceContact").value = "";
-    $("serviceActive").value = "true";
-
-    $("serviceModal").classList.add("show");
-
-    setTimeout(() => {
-      $("serviceName").focus();
-    }, 50);
-  }
-
-  function openEditModal(service) {
-    $("modalTitle").textContent = "Hariri Huduma";
-
-    $("serviceId").value = service.id;
-    $("serviceName").value = service.name || "";
-    $("serviceDescription").value = service.description || "";
-    $("serviceContact").value = service.contact || "";
-    $("serviceActive").value = service.active ? "true" : "false";
-
-    $("serviceModal").classList.add("show");
-
-    setTimeout(() => {
-      $("serviceName").focus();
-    }, 50);
-  }
-
-  function closeModal() {
-    $("serviceModal").classList.remove("show");
-  }
-
-  function openDeleteModal(service) {
-    deleteId = service.id;
-
-    $("deleteServiceName").textContent = service.name || "";
-    $("deleteModal").classList.add("show");
-  }
-
-  function closeDeleteModal() {
-    deleteId = null;
-    $("deleteModal").classList.remove("show");
-  }
-
-  async function saveService(event) {
-    event.preventDefault();
-
-    const id = $("serviceId").value.trim();
-
-    const name = $("serviceName").value.trim();
-    const description = $("serviceDescription").value.trim();
-    const contact = $("serviceContact").value.trim();
-    const active = $("serviceActive").value === "true";
-
-    if (!name) {
-      showNotice("Jina la huduma linahitajika.", "error");
-      $("serviceName").focus();
-      return;
-    }
-
-    const saveBtn = $("saveBtn");
-    saveBtn.disabled = true;
-    saveBtn.textContent = "Inahifadhi...";
-
-    try {
-      if (id) {
-        await window.RucusoAPI.updateService(id, {
-          name,
-          description: description || null,
-          contact: contact || null,
-          active
-        });
-
-        showNotice("Huduma imehaririwa kikamilifu.");
-      } else {
-        await window.RucusoAPI.createService({
-          name,
-          description: description || null,
-          contact: contact || null,
-          active
-        });
-
-        showNotice("Huduma imeongezwa kikamilifu.");
-      }
-
-      closeModal();
-      await loadServices();
-
-    } catch (error) {
-      console.error("saveService:", error);
-      showNotice(
-        error.message || "Imeshindikana kuhifadhi huduma.",
-        "error"
-      );
+      await D.saveService({ name, description: "", contact: "", active: false });
+      document.getElementById("sv_name").value = "";
+      msg.innerHTML = '<p class="ok-msg">Huduma imeongezwa (imezimwa mpaka uweke maelezo na kuiwezesha).</p>';
+      render();
+    } catch (e) {
+      msg.innerHTML = `<p class="err">${esc(D.errText(e))}</p>`;
     } finally {
-      saveBtn.disabled = false;
-      saveBtn.textContent = "Hifadhi";
+      btn.disabled = false; btn.textContent = "ONGEZA HUDUMA";
     }
-  }
+  });
 
-  async function toggleService(service) {
-    const action = service.active ? "kuzima" : "kuwasha";
-
-    if (!confirm(`Una uhakika unataka ${action} huduma "${service.name}"?`)) {
-      return;
-    }
-
-    try {
-      await window.RucusoAPI.updateService(service.id, {
-        active: !service.active
-      });
-
-      showNotice(
-        service.active
-          ? "Huduma imezimwa."
-          : "Huduma imewashwa."
-      );
-
-      await loadServices();
-
-    } catch (error) {
-      console.error("toggleService:", error);
-      showNotice(
-        error.message || "Imeshindikana kubadilisha hali ya huduma.",
-        "error"
-      );
-    }
-  }
-
-  async function deleteService() {
-    if (!deleteId) {
-      return;
-    }
-
-    const btn = $("confirmDeleteBtn");
-
-    btn.disabled = true;
-    btn.textContent = "Inafuta...";
-
-    try {
-      await window.RucusoAPI.deleteService(deleteId);
-
-      closeDeleteModal();
-
-      showNotice("Huduma imefutwa kikamilifu.");
-
-      await loadServices();
-
-    } catch (error) {
-      console.error("deleteService:", error);
-
-      showNotice(
-        error.message || "Imeshindikana kufuta huduma.",
-        "error"
-      );
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Futa";
-    }
-  }
-
-  function handleTableAction(event) {
-    const button = event.target.closest("button[data-action]");
-
-    if (!button) {
-      return;
-    }
-
-    const action = button.dataset.action;
-    const id = button.dataset.id;
-
-    const service = allServices.find(item => item.id === id);
-
-    if (!service) {
-      showNotice("Huduma haikupatikana.", "error");
-      return;
-    }
-
-    if (action === "edit") {
-      openEditModal(service);
-      return;
-    }
-
-    if (action === "toggle") {
-      toggleService(service);
-      return;
-    }
-
-    if (action === "delete") {
-      openDeleteModal(service);
-    }
-  }
-
-  function setFilter(filter) {
-    currentFilter = filter;
-
-    $("showAllBtn").className =
-      filter === "all"
-        ? "btn-primary"
-        : "btn-secondary";
-
-    $("showActiveBtn").className =
-      filter === "active"
-        ? "btn-primary"
-        : "btn-success";
-
-    $("showInactiveBtn").className =
-      filter === "inactive"
-        ? "btn-primary"
-        : "btn-secondary";
-
-    renderServices();
-  }
-
-  async function loadUser() {
-    try {
-      const session = await window.RucusoAPI.currentSession();
-
-      if (!session || !session.user) {
-        window.location.href = "../login/";
-        return;
-      }
-
-      if (!session.profile || !session.profile.active) {
-        await window.RucusoAPI.adminLogout();
-        window.location.href = "../login/";
-        return;
-      }
-
-      $("userName").textContent =
-        session.profile.full_name ||
-        session.user.email ||
-        "Admin";
-
-    } catch (error) {
-      console.error("loadUser:", error);
-      window.location.href = "../login/";
-    }
-  }
-
-  async function logout() {
-    try {
-      await window.RucusoAPI.adminLogout();
-    } catch (error) {
-      console.error("logout:", error);
-    } finally {
-      window.location.href = "../login/";
-    }
-  }
-
-  function initEvents() {
-    $("addBtn").addEventListener("click", openAddModal);
-
-    $("refreshBtn").addEventListener("click", loadServices);
-
-    $("logoutBtn").addEventListener("click", logout);
-
-    $("serviceForm").addEventListener("submit", saveService);
-
-    $("cancelBtn").addEventListener("click", closeModal);
-
-    $("closeModal").addEventListener("click", closeModal);
-
-    $("cancelDeleteBtn").addEventListener(
-      "click",
-      closeDeleteModal
-    );
-
-    $("closeDeleteModal").addEventListener(
-      "click",
-      closeDeleteModal
-    );
-
-    $("confirmDeleteBtn").addEventListener(
-      "click",
-      deleteService
-    );
-
-    $("servicesBody").addEventListener(
-      "click",
-      handleTableAction
-    );
-
-    $("searchInput").addEventListener(
-      "input",
-      renderServices
-    );
-
-    $("showAllBtn").addEventListener(
-      "click",
-      () => setFilter("all")
-    );
-
-    $("showActiveBtn").addEventListener(
-      "click",
-      () => setFilter("active")
-    );
-
-    $("showInactiveBtn").addEventListener(
-      "click",
-      () => setFilter("inactive")
-    );
-
-    $("serviceModal").addEventListener("click", (event) => {
-      if (event.target === $("serviceModal")) {
-        closeModal();
-      }
-    });
-
-    $("deleteModal").addEventListener("click", (event) => {
-      if (event.target === $("deleteModal")) {
-        closeDeleteModal();
-      }
-    });
-
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") {
-        closeModal();
-        closeDeleteModal();
-      }
-    });
-  }
-
-  async function init() {
-    if (!window.RucusoAPI) {
-      setError(
-        "RucusoAPI haijapakiwa. Hakikisha supabase-client.js na config.js zipo."
-      );
-      return;
-    }
-
-    initEvents();
-
-    await loadUser();
-    await loadServices();
-  }
-
-  init();
-
+  const el = document.getElementById("serviceList");
+  el.innerHTML = '<p class="muted">Inapakia...</p>';
+  try { await D.refreshServices(); } catch (e) { el.innerHTML = `<p class="err">${esc(D.errText(e))}</p>`; return; }
+  render();
 })();
 </script>
-
 </body>
 </html>

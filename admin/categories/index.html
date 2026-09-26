@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Usimamizi wa Categories | RUCUSO</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="/css/portal.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="crest">R</span><b>RUCUSO</b><span>Super Admin Portal</span></div>
+  <div>
+    <span id="whoami" class="muted" style="color:#cdd9ee;font-size:12px;margin-right:10px;"></span>
+    <button class="sec" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Logout</button>
+  </div>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <a href="/admin/dashboard/">Dashibodi</a>
+    <a href="/admin/students/" data-perm="manage_students">Wanafunzi</a>
+    <a href="/admin/leaders/" data-perm="__super_admin_only">Viongozi</a>
+    <a href="/admin/ministries/" data-perm="manage_ministries">Wizara</a>
+    <a href="/admin/categories/" class="active" data-perm="manage_categories">Categories</a>
+    <a href="/admin/feedback/" data-perm="view_feedback">Maoni &amp; Malalamiko</a>
+    <a href="/admin/services/" data-perm="manage_services">Huduma</a>
+    <a href="/admin/announcements/" data-perm="manage_announcements">Matangazo</a>
+    <a href="/admin/documents/" data-perm="manage_documents">Nyaraka</a>
+    <a href="/admin/reports/" data-perm="manage_reports">Ripoti</a>
+    <a href="/admin/audit-logs/" data-perm="view_audit_logs">Audit Logs</a>
+  </nav>
+  <main class="content">
+    <div id="gate" class="card"><p class="muted">Inathibitisha akaunti...</p></div>
+    <div id="denied" class="card hidden"><p class="err">Huna ruhusa ya kufikia moduli hii. Wasiliana na Msimamizi Mkuu.</p></div>
+
+    <div id="body" class="hidden">
+      <div class="pagehead">
+        <div class="accent"></div>
+        <h2>Usimamizi wa Categories</h2>
+        <p>Aina za maoni/malalamiko zinazoonekana kwenye fomu ya kutuma taarifa.</p>
+      </div>
+
+      <div class="card" style="max-width:480px;">
+        <h3 style="margin-top:0">Ongeza Category</h3>
+        <label>Jina la Category *</label>
+        <input id="cat_name" placeholder="mfano: Miundombinu, Chakula, Usafiri">
+        <button class="pri" id="cat_addBtn">ONGEZA CATEGORY</button>
+        <div id="cat_msg"></div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">Orodha ya Categories</h3>
+        <div id="catList" class="rowlist"><p class="muted">Inapakia...</p></div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase/config.js" onerror="console.warn('supabase/config.js haipo.')"></script>
+<script src="/supabase/supabase-client.js"></script>
+<script src="/js/data.js"></script>
+<script src="/js/auth-guard.js"></script>
+<script>
+(async function () {
+  const session = await window.RucusoGuard.requireRole(["super_admin", "admin"], { loginUrl: "/admin/login/" });
+  if (!session) return;
+  const profile = session.profile;
+  const canManage = window.RucusoGuard.hasPermission(profile, "manage_categories");
+
+  document.getElementById("gate").classList.add("hidden");
+  if (!canManage) { document.getElementById("denied").classList.remove("hidden"); return; }
+  document.getElementById("body").classList.remove("hidden");
+  document.getElementById("whoami").textContent = profile.full_name + " (" + profile.role + ")";
+  document.getElementById("logoutBtn").addEventListener("click", () => window.RucusoGuard.logout("/"));
+  document.querySelectorAll("#sidebar a[data-perm]").forEach((a) => {
+    const perm = a.dataset.perm;
+    const allowed = perm === "__super_admin_only" ? profile.role === "super_admin" : window.RucusoGuard.hasPermission(profile, perm);
+    if (!allowed) a.remove();
+  });
+
+  const D = window.RucusoData;
+  await D.setSession(session);
+
+  function esc(v) {
+    return String(v == null ? "" : v)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function render() {
+    const el = document.getElementById("catList");
+    const cats = D.DB.categories;
+    el.innerHTML = cats.length ? cats.map((c) => `
+      <div class="rowitem">
+        <div class="rowmain"><b>${esc(c.name)}</b></div>
+        <div class="rowacts"><a class="link" href="#" data-id="${c.id}">Ondoa</a></div>
+      </div>`).join("")
+      : '<div class="emptystate"><div class="glyph">🏷️</div><p>Hakuna category bado. Ongeza ya kwanza hapo juu.</p></div>';
+  }
+
+  document.getElementById("catList").addEventListener("click", async (ev) => {
+    const a = ev.target.closest("a[data-id]");
+    if (!a) return;
+    ev.preventDefault();
+    const c = D.DB.categories.find((x) => x.id === a.dataset.id);
+    if (!c || !confirm(`Ondoa category "${c.name}"?`)) return;
+    try { await D.removeCategory(c.id); render(); D.toast("Category imeondolewa."); }
+    catch (e) { D.toast(D.errText(e), "err"); }
+  });
+
+  document.getElementById("cat_addBtn").addEventListener("click", async () => {
+    const btn = document.getElementById("cat_addBtn");
+    const msg = document.getElementById("cat_msg");
+    const name = document.getElementById("cat_name").value.trim();
+    msg.innerHTML = "";
+    if (!name) { msg.innerHTML = '<p class="err">Weka jina la category.</p>'; return; }
+    btn.disabled = true; btn.textContent = "Inahifadhi...";
+    try {
+      await D.saveCategory(name);
+      document.getElementById("cat_name").value = "";
+      msg.innerHTML = '<p class="ok-msg">Category imeongezwa.</p>';
+      render();
+    } catch (e) {
+      msg.innerHTML = `<p class="err">${esc(D.errText(e))}</p>`;
+    } finally {
+      btn.disabled = false; btn.textContent = "ONGEZA CATEGORY";
+    }
+  });
+
+  const el = document.getElementById("catList");
+  el.innerHTML = '<p class="muted">Inapakia...</p>';
+  try { await D.refreshCategories(); } catch (e) { el.innerHTML = `<p class="err">${esc(D.errText(e))}</p>`; return; }
+  render();
+})();
+</script>
+</body>
+</html>

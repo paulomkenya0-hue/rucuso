@@ -9,7 +9,7 @@
 </head>
 <body>
 <header class="top">
-  <div class="brand"><b>RUCUSO</b><span>Super Admin Portal</span></div>
+  <div class="brand"><span class="crest">R</span><b>RUCUSO</b><span>Super Admin Portal</span></div>
   <div>
     <span id="whoami" class="muted" style="color:#cdd9ee;font-size:12px;margin-right:10px;"></span>
     <button class="sec" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Logout</button>
@@ -21,6 +21,7 @@
     <a href="/admin/students/" data-perm="manage_students">Wanafunzi</a>
     <a href="/admin/leaders/" data-perm="__super_admin_only">Viongozi</a>
     <a href="/admin/ministries/" data-perm="manage_ministries">Wizara</a>
+    <a href="/admin/categories/" data-perm="manage_categories">Categories</a>
     <a href="/admin/feedback/" data-perm="view_feedback">Maoni &amp; Malalamiko</a>
     <a href="/admin/services/" data-perm="manage_services">Huduma</a>
     <a href="/admin/announcements/" data-perm="manage_announcements">Matangazo</a>
@@ -34,7 +35,11 @@
   <main class="content">
     <div id="gate" class="card"><p class="muted">Inathibitisha akaunti...</p></div>
     <div id="body" class="hidden">
-      <h2 style="margin-top:0">Dashibodi ya Msimamizi Mkuu</h2>
+      <div class="pagehead">
+        <div class="accent"></div>
+        <h2>Dashibodi ya Msimamizi Mkuu</h2>
+        <p>Muhtasari wa jumla wa mfumo — takwimu halisi kutoka Supabase.</p>
+      </div>
       <div class="statgrid">
         <div class="card"><b id="s_students">–</b><span>Jumla ya Wanafunzi</span></div>
         <div class="card"><b id="s_leaders">–</b><span>Jumla ya Viongozi</span></div>
