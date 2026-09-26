@@ -145,6 +145,63 @@
       });
     },
 
+    // ---------------- HESLB beneficiaries (RLS-authorized staff only) ----------
+    async heslbBeneficiaryStats() {
+      return ok(await client.rpc("heslb_beneficiary_stats"));
+    },
+    async listHeslbBeneficiaries(filters = {}) {
+      let query = client.from("heslb_beneficiaries").select(
+        "full_name, index_number, phone, faculty, year_of_study, status, created_at, updated_at",
+        { count: "exact" }
+      ).order("full_name");
+      if (filters.faculty) query = query.eq("faculty", filters.faculty);
+      if (filters.year) query = query.eq("year_of_study", Number(filters.year));
+      if (filters.status) query = query.eq("status", filters.status);
+      const term = String(filters.search || "").replace(/[^\p{L}\p{N}\s/+\-]/gu, " ").trim();
+      if (term) query = query.or(`full_name.ilike.%${term}%,index_number.ilike.%${term}%,phone.ilike.%${term}%`);
+      const from = Math.max(0, Number(filters.from) || 0);
+      const to = Math.max(from, Number(filters.to) || from + 49);
+      const result = await query.range(from, to);
+      if (result.error) throw friendlyError(result.error);
+      return { data: result.data || [], count: result.count || 0 };
+    },
+    async listHeslbBeneficiaryKeys() {
+      const rows = [];
+      const pageSize = 1000;
+      for (let from = 0; ; from += pageSize) {
+        const page = ok(await client.from("heslb_beneficiaries")
+          .select("index_number, phone").order("index_number").range(from, from + pageSize - 1));
+        rows.push(...page);
+        if (page.length < pageSize) return rows;
+      }
+    },
+    async getHeslbBeneficiary(id) {
+      return ok(await client.from("heslb_beneficiaries")
+        .select("full_name, index_number, phone, faculty, year_of_study, status")
+        .eq("index_number", id).single());
+    },
+    async saveHeslbBeneficiary(row) {
+      const { recordKey, ...values } = row;
+      const query = recordKey
+        ? client.from("heslb_beneficiaries").update(values).eq("index_number", recordKey)
+        : client.from("heslb_beneficiaries").insert(values);
+      return ok(await query.select("index_number").single());
+    },
+    async importHeslbBeneficiaries(rows, updateExisting) {
+      if (!rows.length) return [];
+      const query = updateExisting
+        ? client.from("heslb_beneficiaries").upsert(rows, { onConflict: "index_number" })
+        : client.from("heslb_beneficiaries").insert(rows);
+      return ok(await query.select("index_number"));
+    },
+    async verifyHeslbBeneficiary(indexNumber, phone) {
+      const { data, error } = await client.functions.invoke("verify-heslb", {
+        body: { index_number: indexNumber, phone },
+      });
+      if (error) throw friendlyError(error);
+      return !!(data && data.verified === true);
+    },
+
     // ---------------- Students ----------------
     // Public lookups go through the lookup_student() RPC; the students table
     // itself has no public read policy, so the registry stays private.

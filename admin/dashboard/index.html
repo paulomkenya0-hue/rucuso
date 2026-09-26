@@ -19,6 +19,7 @@
   <nav class="sidebar" id="sidebar">
     <a href="/admin/dashboard/" class="active">Dashibodi</a>
     <a href="/admin/students/" data-perm="manage_students">Wanafunzi</a>
+    <a href="/admin/heslb/" data-perm="__heslb_manager">Wanufaika wa HESLB</a>
     <a href="/admin/leaders/" data-perm="__super_admin_only">Viongozi</a>
     <a href="/admin/ministries/" data-perm="manage_ministries">Wizara</a>
     <a href="/admin/categories/" data-perm="manage_categories">Categories</a>
@@ -75,12 +76,16 @@
   document.getElementById("whoami").textContent = profile.full_name + " (" + profile.role + ")";
   document.getElementById("logoutBtn").addEventListener("click", () => window.RucusoGuard.logout("/"));
 
+  const { data: canManageHeslb } = await window.RucusoAPI.client.rpc("is_heslb_manager").catch(() => ({ data: false }));
+
   // Sidebar items are per-permission, not just per-login: an ADMIN only sees
   // the modules the Super Admin actually granted them (spec item 4) — this
   // is a convenience filter, RLS still enforces it server-side regardless.
   document.querySelectorAll("#sidebar a[data-perm]").forEach((a) => {
     const perm = a.dataset.perm;
-    const allowed = perm === "__super_admin_only" ? profile.role === "super_admin" : window.RucusoGuard.hasPermission(profile, perm);
+    const allowed = perm === "__super_admin_only" ? profile.role === "super_admin"
+      : perm === "__heslb_manager" ? canManageHeslb === true
+      : window.RucusoGuard.hasPermission(profile, perm);
     if (!allowed) a.remove();
   });
 

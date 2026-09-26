@@ -217,6 +217,17 @@
           </span>
         </button>
 
+        <button class="quickcard" onclick="go('heslb')">
+          <span class="quickcard__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8h14M7 8l-4 8h8L7 8zm10 0l-4 8h8l-4-8zM8 21h8"/></svg>
+          </span>
+          <span class="quickcard__title">HESLB / Wanufaika wa Mikopo</span>
+          <span class="quickcard__desc">Thibitisha ustahiki wako kwa kutumia namba ya usajili na simu.</span>
+          <span class="quickcard__more">Thibitisha
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </span>
+        </button>
+
         <button class="quickcard quickcard--warn" onclick="goSection('sec-announcements')">
           <span class="quickcard__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v3a1 1 0 001 1h3l5 4V6L7 10H4a1 1 0 00-1 1z"/><path d="M16 8a5 5 0 010 8"/></svg>
@@ -391,6 +402,38 @@
     </div>
   </section>
 </div>
+
+<!-- ==================================================================
+     TOOL: HESLB beneficiary verification
+     ================================================================== -->
+<section class="view toolview" id="view-heslb" aria-labelledby="heslbTitle">
+  <div class="container">
+    <div class="toolpanel">
+      <div class="toolview__head">
+        <div>
+          <h2 class="toolview__title" id="heslbTitle">HESLB / Wanufaika wa Mikopo</h2>
+          <p class="toolview__sub">Thibitisha taarifa zako kwa kutumia namba ya usajili na namba ya simu iliyosajiliwa.</p>
+        </div>
+        <button class="backlink" type="button" onclick="go('home')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+          Nyumbani
+        </button>
+      </div>
+      <form id="heslbVerifyForm" class="card">
+        <label for="heslbIndex">Namba ya usajili</label>
+        <input id="heslbIndex" required maxlength="80" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <label for="heslbPhone">Namba ya simu</label>
+        <input id="heslbPhone" required type="tel" inputmode="tel" autocomplete="tel" placeholder="07XXXXXXXX au +2557XXXXXXXX">
+        <button class="pri" id="heslbVerifyButton" type="submit">Thibitisha</button>
+        <p id="heslbVerifyMessage" role="status" aria-live="polite"></p>
+      </form>
+      <div id="heslbVerified" class="card hidden" role="status" tabindex="-1">
+        <h3>Uthibitisho umekamilika</h3>
+        <p class="muted">Taarifa zako zimethibitishwa. Unaweza kuendelea na huduma zinazohusiana na ufadhili wako.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- ==================================================================
      TOOL: student verification

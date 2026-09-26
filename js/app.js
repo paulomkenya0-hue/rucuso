@@ -352,6 +352,31 @@ document.addEventListener("change", (e) => {
   }
 });
 
+const heslbVerifyForm = document.getElementById("heslbVerifyForm");
+if (heslbVerifyForm) heslbVerifyForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const button = document.getElementById("heslbVerifyButton");
+  const message = document.getElementById("heslbVerifyMessage");
+  const success = document.getElementById("heslbVerified");
+  const indexNumber = document.getElementById("heslbIndex").value.trim();
+  const phone = document.getElementById("heslbPhone").value.trim();
+  message.textContent = "";
+  success.classList.add("hidden");
+  button.disabled = true;
+  button.textContent = "Inathibitisha...";
+  try {
+    const verified = await API.verifyHeslbBeneficiary(indexNumber, phone);
+    if (!verified) throw new Error("verification_failed");
+    success.classList.remove("hidden");
+    success.focus({ preventScroll: true });
+  } catch (_) {
+    message.textContent = "Taarifa hazijaweza kuthibitishwa. Hakiki namba zako au wasiliana na Wizara ya Mikopo na Uwezeshaji.";
+  } finally {
+    button.disabled = false;
+    button.textContent = "Thibitisha";
+  }
+});
+
 // ---------- Mobile drawer ----------
 // The panel is display:none until .active lands, and focus() on a
 // display:none element is a silent no-op — so the class has to be applied

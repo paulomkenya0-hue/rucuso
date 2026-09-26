@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wanufaika wa HESLB | RUCUSO</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="/css/portal.css">
+<style>
+  .heslb-filters { display:grid; grid-template-columns:minmax(220px,2fr) repeat(3,minmax(130px,1fr)); gap:8px; }
+  .heslb-form { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0 12px; }
+  .heslb-table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .heslb-actions { display:flex; gap:8px; white-space:nowrap; }
+  .heslb-actions button { margin:0; width:auto; padding:7px 10px; }
+  .faculty-grid { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; }
+  .faculty-item { border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px; text-align:center; }
+  .faculty-item b { display:block; font-size:var(--fs-lg); color:var(--text-strong); }
+  .faculty-item span { color:var(--muted); font-size:var(--fs-xs); }
+  .import-errors { max-height:260px; overflow:auto; }
+  .status-active { color:var(--ok); }
+  .status-inactive { color:var(--crit); }
+  .status-graduated { color:var(--muted); }
+  .page-controls { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; }
+  .page-controls button { width:auto; margin:0; }
+  @media (max-width:860px) {
+    .heslb-filters { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .faculty-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .heslb-form { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  }
+  @media (max-width:520px) {
+    .heslb-filters,.heslb-form { grid-template-columns:1fr; }
+    .page-controls { align-items:stretch; flex-direction:column; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="crest">R</span><b>RUCUSO</b><span>Usimamizi wa Wanufaika wa HESLB</span></div>
+  <div><span id="whoami" class="muted" style="color:#cdd9ee;font-size:12px;margin-right:10px;"></span><button class="sec" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Toka</button></div>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar" aria-label="Menyu ya usimamizi">
+    <a href="/admin/dashboard/">Dashibodi</a>
+    <a href="/admin/students/" data-perm="manage_students">Wanafunzi</a>
+    <a href="/admin/heslb/" class="active" id="heslbNav">Wanufaika wa HESLB</a>
+    <a href="/admin/leaders/" data-perm="__super_admin_only">Viongozi</a>
+    <a href="/admin/ministries/" data-perm="manage_ministries">Wizara</a>
+    <a href="/admin/feedback/" data-perm="view_feedback">Maoni na Malalamiko</a>
+    <a href="/admin/services/" data-perm="manage_services">Huduma</a>
+    <a href="/admin/announcements/" data-perm="manage_announcements">Matangazo</a>
+    <a href="/admin/documents/" data-perm="manage_documents">Nyaraka</a>
+    <a href="/admin/reports/" data-perm="manage_reports">Ripoti</a>
+    <a href="/admin/audit-logs/" data-perm="view_audit_logs">Kumbukumbu za ukaguzi</a>
+  </nav>
+  <main class="content">
+    <div id="gate" class="card"><p class="muted">Inathibitisha akaunti...</p></div>
+    <div id="denied" class="card hidden"><p class="err">Huna ruhusa ya kufikia taarifa za wanufaika wa HESLB.</p></div>
+    <div id="loadError" class="card hidden" role="alert"><p class="err">Imeshindikana kupakia moduli ya HESLB.</p></div>
+    <div id="body" class="hidden">
+      <div class="pagehead"><div class="accent"></div><h2>Wanufaika wa HESLB</h2><p>Taarifa zinapatikana kwa watumiaji walioidhinishwa pekee.</p></div>
+      <div class="statgrid" aria-live="polite">
+        <div class="card"><b id="totalStat">0</b><span>Jumla ya wanufaika</span></div>
+        <div class="card"><b id="activeStat">0</b><span>Amilifu</span></div>
+        <div class="card"><b id="inactiveStat">0</b><span>Wasio amilifu</span></div>
+        <div class="card"><b id="graduatedStat">0</b><span>Wahitimu</span></div>
+      </div>
+      <section class="card" aria-labelledby="facultyHeading">
+        <h3 id="facultyHeading" style="margin-top:0">Muhtasari kwa Kitivo</h3>
+        <div id="facultyStats" class="faculty-grid"></div>
+      </section>
+      <section class="card" aria-labelledby="recordHeading">
+        <h3 id="recordHeading" style="margin-top:0">Rekodi za Wanufaika</h3>
+        <div class="heslb-filters">
+          <label class="sr-only" for="searchInput">Tafuta jina, namba ya usajili au simu</label>
+          <input id="searchInput" type="search" placeholder="Tafuta jina, namba au simu">
+          <label class="sr-only" for="filterFaculty">Chuja kwa kitivo</label>
+          <select id="filterFaculty"><option value="">Vitivo vyote</option></select>
+          <label class="sr-only" for="filterYear">Chuja kwa mwaka</label>
+          <select id="filterYear"><option value="">Miaka yote</option></select>
+          <label class="sr-only" for="filterStatus">Chuja kwa hali</label>
+          <select id="filterStatus"><option value="">Hali zote</option><option value="active">Amilifu</option><option value="inactive">Si amilifu</option><option value="graduated">Amemaliza</option></select>
+        </div>
+        <div class="btnrow" style="margin-top:12px;justify-content:space-between;">
+          <button class="pri" id="addButton" style="width:auto;margin:0">Ongeza mnufaika</button>
+          <button class="sec" id="exportButton" style="width:auto;margin:0">Pakua CSV ya matokeo yaliyochujwa</button>
+        </div>
+        <p id="listMessage" class="muted" role="status" aria-live="polite"></p>
+        <div class="heslb-table-wrap">
+          <table>
+            <thead><tr><th>Jina kamili</th><th>Namba ya usajili</th><th>Simu</th><th>Kitivo</th><th>Mwaka</th><th>Hali</th><th>Vitendo</th></tr></thead>
+            <tbody id="beneficiaryRows"><tr><td colspan="7" class="muted">Inapakia...</td></tr></tbody>
+          </table>
+        </div>
+        <div class="page-controls"><span id="pageLabel" class="muted" aria-live="polite"></span><div class="btnrow"><button type="button" class="sec" id="prevPage">Iliyotangulia</button><button type="button" class="sec" id="nextPage">Inayofuata</button></div></div>
+      </section>
+      <section class="card" aria-labelledby="formHeading">
+        <h3 id="formHeading" style="margin-top:0">Ongeza au Hariri Rekodi</h3>
+        <form id="beneficiaryForm" class="heslb-form">
+          <input id="recordId" type="hidden">
+          <div><label for="fullName">Jina kamili *</label><input id="fullName" required maxlength="160" autocomplete="name"></div>
+          <div><label for="indexNumber">Namba ya usajili *</label><input id="indexNumber" required maxlength="80" autocomplete="off"></div>
+          <div><label for="phone">Namba ya simu *</label><input id="phone" required type="tel" inputmode="tel" autocomplete="tel" placeholder="07XXXXXXXX au +2557XXXXXXXX"></div>
+           <div><label for="faculty">Kitivo *</label><select id="faculty" required></select></div>
+          <div><label for="year">Mwaka wa masomo *</label><select id="year" required></select></div>
+          <div><label for="status">Hali *</label><select id="status" required><option value="active">Amilifu</option><option value="inactive">Si amilifu</option><option value="graduated">Amemaliza</option></select></div>
+          <div class="btnrow" style="grid-column:1/-1"><button class="pri" id="saveButton" type="submit" style="width:auto">Hifadhi rekodi</button><button class="sec" id="cancelEdit" type="button" hidden>Ghairi</button></div>
+        </form>
+      </section>
+      <section class="card" aria-labelledby="importHeading">
+        <h3 id="importHeading" style="margin-top:0">Uingizaji wa CSV kwa Mpigo</h3>
+        <p class="muted">Pakua faili la CSV lenye vichwa: full_name,index_number,phone,faculty,year_of_study,status. Faili litathibitishwa na kuonyeshwa kwa ukaguzi kabla ya kuhifadhiwa.</p>
+        <label for="csvFile">Chagua faili la CSV (hadi 5 MB)</label><input id="csvFile" type="file" accept=".csv,text/csv">
+        <label class="check" for="updateExisting"><input id="updateExisting" type="checkbox"><span>Ruhusu kusasisha rekodi zilizopo zinazolingana kwa namba ya usajili</span></label>
+        <div id="importPreview" class="hidden" aria-live="polite"></div>
+        <div class="btnrow"><button class="sec" id="downloadErrors" type="button" hidden>Pakua orodha ya masuala</button><button class="pri" id="confirmImport" type="button" disabled>Thibitisha uingizaji</button></div>
+        <p id="importMessage" role="status" aria-live="polite"></p>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase/config.js"></script>
+<script src="/supabase/supabase-client.js"></script>
+<script src="/js/data.js"></script>
+<script src="/js/auth-guard.js"></script>
+<script src="/js/heslb-import.js"></script>
+<script>
+(async function () {
+  const session = await window.RucusoGuard.requireRole(["super_admin", "admin", "leader"], { loginUrl: "/admin/login/" });
+  if (!session) return;
+  const API = window.RucusoAPI;
+  const profile = session.profile;
+  const { data: allowed, error: permissionError } = await API.client.rpc("is_heslb_manager");
+  document.getElementById("gate").classList.add("hidden");
+  if (permissionError || allowed !== true) { document.getElementById("denied").classList.remove("hidden"); return; }
+
+  const body = document.getElementById("body");
+  const D = window.RucusoData;
+  const pageSize = 50;
+  let page = 0;
+  let resultCount = 0;
+  let requestVersion = 0;
+  let pendingImport = null;
+  let existingKeys = [];
+  let importSourceText = "";
+  let importVersion = 0;
+  body.classList.remove("hidden");
+  document.getElementById("whoami").textContent = `${profile.full_name} (${profile.role})`;
+  document.getElementById("logoutBtn").addEventListener("click", () => window.RucusoGuard.logout("/"));
+  document.querySelectorAll("#sidebar a[data-perm]").forEach((link) => {
+    const permission = link.dataset.perm;
+    const allowedLink = permission === "__super_admin_only"
+      ? profile.role === "super_admin"
+      : window.RucusoGuard.hasPermission(profile, permission);
+    if (!allowedLink) link.remove();
+  });
+  if (profile.role === "leader") document.getElementById("heslbNav").setAttribute("aria-current", "page");
+  await D.setSession(session);
+
+  const byId = (id) => document.getElementById(id);
+  const esc = (value) => String(value == null ? "" : value).replace(/[&<>"']/g, (char) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;", "'":"&#39;" })[char]);
+  const csvCell = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+  const notify = (message, error) => { byId("importMessage").textContent = message; byId("importMessage").className = error ? "err" : "ok-msg"; };
+  const filters = () => ({ search: byId("searchInput").value.trim(), faculty: byId("filterFaculty").value, year: byId("filterYear").value, status: byId("filterStatus").value });
+  const maskPhone = (value) => String(value || "").replace(/.(?=.{4})/g, "•");
+  const statusText = (value) => ({ active:"Amilifu", inactive:"Si amilifu", graduated:"Amemaliza" })[value] || value;
+
+  HESLBImport.FACULTIES.forEach((faculty) => {
+    byId("filterFaculty").add(new Option(faculty, faculty));
+    byId("faculty").add(new Option(faculty, faculty));
+    const item = document.createElement("div");
+    item.className = "faculty-item";
+    item.innerHTML = `<b data-faculty-count="${faculty}">0</b><span>${faculty}</span>`;
+    byId("facultyStats").appendChild(item);
+  });
+  for (let year = 1; year <= 7; year++) {
+    byId("filterYear").add(new Option(`Mwaka ${year}`, String(year)));
+    byId("year").add(new Option(`Mwaka ${year}`, String(year)));
+  }
+
+  async function audit(action, details) {
+    try { await API.logAction(action, details, profile.full_name); }
+    catch (error) { console.warn("HESLB audit log failed", error); }
+  }
+
+  async function loadStats() {
+    const rows = await API.heslbBeneficiaryStats();
+    const first = rows[0] || {};
+    byId("totalStat").textContent = first.total ?? 0;
+    byId("activeStat").textContent = first.active ?? 0;
+    byId("inactiveStat").textContent = first.inactive ?? 0;
+    byId("graduatedStat").textContent = first.graduated ?? 0;
+    rows.forEach((row) => {
+      const target = document.querySelector(`[data-faculty-count="${row.faculty}"]`);
+      if (target) target.textContent = row.faculty_total;
+    });
+  }
+
+  async function loadRows() {
+    const version = ++requestVersion;
+    const target = byId("beneficiaryRows");
+    target.innerHTML = '<tr><td colspan="7" class="muted">Inapakia...</td></tr>';
+    try {
+      const result = await API.listHeslbBeneficiaries({ ...filters(), from: page * pageSize, to: (page + 1) * pageSize - 1 });
+      if (version !== requestVersion) return;
+      resultCount = result.count || 0;
+      target.innerHTML = result.data.length ? result.data.map((row) => `
+        <tr>
+          <td>${esc(row.full_name)}</td><td>${esc(row.index_number)}</td><td><span aria-label="Namba ya simu iliyofichwa">${esc(maskPhone(row.phone))}</span></td>
+          <td>${esc(row.faculty)}</td><td>${esc(row.year_of_study)}</td><td><span class="status-${esc(row.status)}">${esc(statusText(row.status))}</span></td>
+          <td><div class="heslb-actions"><button class="sec" type="button" data-edit="${esc(row.index_number)}">Hariri</button>${row.status === "active" ? `<button class="sec" type="button" data-deactivate="${esc(row.index_number)}">Zima</button>` : ""}</div></td>
+        </tr>`).join("") : '<tr><td colspan="7" class="muted">Hakuna rekodi zinazolingana na vichujio.</td></tr>';
+      byId("listMessage").textContent = `${resultCount.toLocaleString()} rekodi`;
+      byId("pageLabel").textContent = resultCount ? `Ukurasa ${page + 1} kati ya ${Math.ceil(resultCount / pageSize)}` : "Hakuna kurasa";
+      byId("prevPage").disabled = page === 0;
+      byId("nextPage").disabled = (page + 1) * pageSize >= resultCount;
+    } catch (error) {
+      if (version !== requestVersion) return;
+      target.innerHTML = `<tr><td colspan="7" class="err">${esc(error.message)}</td></tr>`;
+      byId("listMessage").textContent = "";
+    }
+  }
+
+  async function refresh() {
+    await Promise.all([loadStats(), loadRows()]);
+  }
+
+  function clearForm() {
+    byId("beneficiaryForm").reset();
+    byId("recordId").value = "";
+    byId("formHeading").textContent = "Ongeza au Hariri Rekodi";
+    byId("cancelEdit").hidden = true;
+  }
+
+  byId("beneficiaryForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = byId("saveButton");
+    const phone = HESLBImport.normalizePhone(byId("phone").value);
+    if (!phone) { byId("phone").setCustomValidity("Weka namba sahihi ya Tanzania."); byId("phone").reportValidity(); return; }
+    byId("phone").setCustomValidity("");
+    button.disabled = true;
+    const record = {
+        recordKey: byId("recordId").value || undefined,
+      full_name: byId("fullName").value.trim(),
+      index_number: byId("indexNumber").value.trim().toUpperCase(),
+      phone,
+      faculty: byId("faculty").value,
+      year_of_study: Number(byId("year").value),
+      status: byId("status").value,
+    };
+    try {
+      await API.saveHeslbBeneficiary(record);
+      clearForm();
+      await refresh();
+    } catch (error) { notify(error.message, true); }
+    finally { button.disabled = false; }
+  });
+
+  byId("cancelEdit").addEventListener("click", clearForm);
+  byId("beneficiaryRows").addEventListener("click", async (event) => {
+    const edit = event.target.closest("[data-edit]");
+    const deactivate = event.target.closest("[data-deactivate]");
+    if (edit) {
+      try {
+        const row = await API.getHeslbBeneficiary(edit.dataset.edit);
+         byId("recordId").value = row.index_number;
+        byId("fullName").value = row.full_name;
+        byId("indexNumber").value = row.index_number;
+        byId("phone").value = row.phone;
+        byId("faculty").value = row.faculty;
+        byId("year").value = String(row.year_of_study);
+        byId("status").value = row.status;
+        byId("formHeading").textContent = "Hariri Rekodi ya Mnufaika";
+        byId("cancelEdit").hidden = false;
+        byId("formHeading").scrollIntoView({ behavior: "smooth", block: "start" });
+        byId("fullName").focus({ preventScroll: true });
+      } catch (error) { notify(error.message, true); }
+    }
+    if (deactivate && confirm("Unathibitisha kuzima rekodi hii? Rekodi itahifadhiwa.")) {
+      try {
+        const row = await API.getHeslbBeneficiary(deactivate.dataset.deactivate);
+        await API.saveHeslbBeneficiary({ ...row, recordKey: row.index_number, status: "inactive" });
+        await refresh();
+      } catch (error) { notify(error.message, true); }
+    }
+  });
+
+  let searchTimer;
+  ["searchInput", "filterFaculty", "filterYear", "filterStatus"].forEach((id) => byId(id).addEventListener(id === "searchInput" ? "input" : "change", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => { page = 0; loadRows(); }, id === "searchInput" ? 200 : 0);
+  }));
+  byId("prevPage").addEventListener("click", () => { if (page > 0) { page--; loadRows(); } });
+  byId("nextPage").addEventListener("click", () => { if ((page + 1) * pageSize < resultCount) { page++; loadRows(); } });
+
+  async function filteredRows() {
+    const rows = [];
+    for (let from = 0; ; from += 1000) {
+      const result = await API.listHeslbBeneficiaries({ ...filters(), from, to: from + 999 });
+      rows.push(...result.data);
+      if (result.data.length < 1000) return rows;
+    }
+  }
+  byId("exportButton").addEventListener("click", async () => {
+    const button = byId("exportButton");
+    button.disabled = true;
+    try {
+      const rows = await filteredRows();
+      await audit("HESLB Beneficiary Export", `Exported ${rows.length} filtered records.`);
+      const csv = [HESLBImport.HEADERS.join(","), ...rows.map((row) => HESLBImport.HEADERS.map((key) => csvCell(row[key])).join(","))].join("\r\n");
+      const url = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }));
+      const link = document.createElement("a"); link.href = url; link.download = "heslb-beneficiaries.csv"; link.click(); URL.revokeObjectURL(url);
+    } catch (error) { notify(error.message, true); }
+    finally { button.disabled = false; }
+  });
+
+  function issueRows() {
+    return [
+      ...(pendingImport?.invalid || []).map((issue) => ({ ...issue, kind: "Invalid" })),
+      ...(pendingImport?.duplicates || []).map((issue) => ({ ...issue, kind: "Duplicate" })),
+      ...(pendingImport?.phoneWarnings || []).map((issue) => ({ ...issue, kind: "Onyo la simu" })),
+    ];
+  }
+  function renderPreview() {
+    const preview = byId("importPreview");
+    if (!pendingImport) { preview.classList.add("hidden"); byId("confirmImport").disabled = true; return; }
+    const issues = issueRows();
+    preview.classList.remove("hidden");
+    preview.innerHTML = `<h4>Muhtasari wa ukaguzi</h4>
+      <p>${pendingImport.detected.toLocaleString()} safu zimegunduliwa · ${pendingImport.valid.length.toLocaleString()} zinafaa · ${pendingImport.duplicates.length.toLocaleString()} rudufu · ${pendingImport.invalid.length.toLocaleString()} batili · ${pendingImport.phoneWarnings.length.toLocaleString()} maonyo ya simu</p>
+      ${pendingImport.updateExisting ? `<p class="muted">Rekodi ${pendingImport.valid.filter((row) => row.operation === "update").length} zilizopo zitasasishwa waziwazi; hakuna rekodi zitakazofutwa.</p>` : ""}
+      ${issues.length ? `<div class="import-errors"><table><thead><tr><th>Aina</th><th>Mstari</th><th>Sababu</th></tr></thead><tbody>${issues.slice(0, 30).map((issue) => `<tr><td>${esc(issue.kind)}</td><td>${esc(issue.line)}</td><td>${esc(issue.message)}</td></tr>`).join("")}</tbody></table>${issues.length > 30 ? `<p class="muted">Masuala ${issues.length - 30} zaidi yapo kwenye faili la kupakua.</p>` : ""}</div>` : '<p class="ok-msg">Hakuna makosa au rudufu zilizopatikana.</p>'}`;
+    byId("confirmImport").disabled = pendingImport.valid.length === 0 || pendingImport.headerErrors;
+    byId("downloadErrors").hidden = issues.length === 0;
+  }
+  async function prepareImport() {
+    const version = ++importVersion;
+    const file = byId("csvFile").files?.[0];
+    pendingImport = null;
+    importSourceText = "";
+    byId("importMessage").textContent = "";
+    if (!file) { byId("updateExisting").disabled = false; renderPreview(); return; }
+    if (file.size > 5 * 1024 * 1024) { byId("updateExisting").disabled = false; notify("Faili linazidi ukubwa wa 5 MB.", true); renderPreview(); return; }
+    byId("updateExisting").disabled = true;
+    try {
+      const [text, keys] = await Promise.all([file.text(), API.listHeslbBeneficiaryKeys()]);
+      if (version !== importVersion) return;
+      importSourceText = text;
+      existingKeys = keys;
+      pendingImport = { ...HESLBImport.validateCsv(text, existingKeys, byId("updateExisting").checked), updateExisting: byId("updateExisting").checked };
+      renderPreview();
+    } catch (error) { if (version === importVersion) { notify(error.message, true); renderPreview(); } }
+    finally { if (version === importVersion) byId("updateExisting").disabled = false; }
+  }
+  byId("csvFile").addEventListener("change", prepareImport);
+  byId("updateExisting").addEventListener("change", () => {
+    if (!byId("csvFile").files?.[0]) return;
+    pendingImport = { ...HESLBImport.validateCsv(importSourceText, existingKeys, byId("updateExisting").checked), updateExisting: byId("updateExisting").checked };
+    renderPreview();
+  });
+  byId("downloadErrors").addEventListener("click", () => {
+    const rows = issueRows().map((issue) => [issue.kind, issue.line, issue.message, ...HESLBImport.HEADERS.map((header) => issue.values?.[header] || "")]);
+    const csv = [["aina", "mstari", "sababu", ...HESLBImport.HEADERS], ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n");
+    const url = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a"); link.href = url; link.download = "heslb-import-errors.csv"; link.click(); URL.revokeObjectURL(url);
+  });
+  byId("confirmImport").addEventListener("click", async () => {
+    if (!pendingImport || !pendingImport.valid.length || !confirm(`Hifadhi ${pendingImport.valid.length} rekodi?${pendingImport.updateExisting ? " Rekodi zinazolingana zitasasishwa." : " Rudufu zilizopo zitarukwa."}`)) return;
+    const button = byId("confirmImport"); button.disabled = true;
+    const records = pendingImport.valid.map((row) => row.record);
+    await audit("HESLB Bulk Import Started", `Import started for ${records.length} validated records.`);
+    try {
+      await API.importHeslbBeneficiaries(records, pendingImport.updateExisting);
+      await audit("HESLB Bulk Import Completed", `Imported ${records.length} records; update-existing=${pendingImport.updateExisting}.`);
+      notify(`Rekodi ${records.length} zimeingizwa au kusasishwa.`, false);
+      byId("csvFile").value = ""; pendingImport = null; renderPreview(); await refresh();
+    } catch (error) {
+      await audit("HESLB Bulk Import Failed", `Import failed for ${records.length} validated records.`);
+      notify(error.message, true);
+    } finally { button.disabled = !pendingImport || pendingImport.valid.length === 0; }
+  });
+
+  try { await refresh(); }
+  catch (error) {
+    body.classList.add("hidden");
+    byId("loadError").classList.remove("hidden");
+    byId("loadError").querySelector("p").textContent = error.message;
+  }
+})();
+</script>
+</body>
+</html>
