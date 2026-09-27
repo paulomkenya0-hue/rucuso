@@ -326,6 +326,47 @@ button.pri:disabled {
 .fcounter--ok { color: var(--ok); }
 .fcounter--bad { color: var(--err); }
 
+/* The shape of a valid number, stated before the student types rather than
+   after they fail. Pushed slightly into the field's own colour so it reads as
+   guidance attached to the input and not as body copy. */
+.fhelper {
+  margin: 6px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.fhelper code {
+  font-family: var(--font-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 5px;
+  font-size: 0.95em;
+  letter-spacing: 0.01em;
+}
+
+/* Live state of the Endelea button. This is the piece that answers the one
+   question a greyed-out button cannot: is it grey because the number is wrong,
+   because the CAPTCHA is unsolved, or because too many attempts? Each state
+   says so in words. Reserved space is not needed because it is always
+   rendered, empty or not, so the button does not jump as messages appear. */
+.fhint {
+  margin: var(--sp-2) 0 0;
+  min-height: 1.2em;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  line-height: 1.2em;
+}
+
+.fhint--ok { color: var(--ok); }
+.fhint--warn { color: var(--warn, #a8630a); }
+
+/* The Turnstile mount. Centred and given a little air, because Cloudflare
+   renders an iframe in here and the form should not reflow around it. */
+.vercaptcha:empty { display: none; }
+.vercaptcha { min-height: 0; }
+
 /* Support links inside an error banner. Tucked under the message so the reason
    for the failure stays the first thing read. */
 .support {

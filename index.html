@@ -608,15 +608,19 @@
           <h3 style="margin-top:0;">Namba ya Usajili</h3>
           <p class="muted muted--lg">Andika namba yako ya usajili ya RUCU. Tutatafuta taarifa zako kwenye kumbukumbu zetu.</p>
           <label for="ver_reg">Namba ya usajili</label>
-          <input id="ver_reg" placeholder="RUCU/2024/0456" autocomplete="off" autocapitalize="characters" spellcheck="false"
-                 aria-describedby="ver1_counter ver1_limit">
+          <input id="ver_reg" placeholder="RU/BAFIT/2024/007" autocomplete="off" autocapitalize="characters" spellcheck="false"
+                 aria-describedby="ver1_example ver1_hint ver1_counter ver1_limit">
+          <!-- format hint: the shape, stated before they type, not after they fail -->
+          <p class="fhelper" id="ver1_example">Mfumo wa namba: <code>RU/&lt;KODI&gt;/&lt;MWAKA&gt;/&lt;NUMIA&gt;</code> &mdash; kwa mfano <code>RU/BAFIT/2024/007</code></p>
           <div class="fcounter" id="ver1_counter"></div>
+          <p class="fhint" id="ver1_hint" role="status" aria-live="polite"></p>
           <div id="ver1_limit" class="ratelimit" role="status" aria-live="polite" hidden></div>
           <div id="ver1_msg" role="status" aria-live="polite" style="margin-top:var(--sp-3);"></div>
-          <!-- Turnstile mounts here only if a site key is configured; see
-               js/verify-ux.js. Empty and hidden otherwise, so nothing shows by
-               default. -->
-          <div id="verCaptcha" style="margin-top:var(--sp-3);"></div>
+          <!-- Turnstile mounts here, inside the form, only when a site key is
+               configured. Empty and hidden otherwise so nothing shows by
+               default. While a key IS configured the "Endelea" button stays
+               disabled until the widget reports success. -->
+          <div id="verCaptcha" class="vercaptcha" style="margin-top:var(--sp-3);"></div>
           <button class="pri" id="ver1_btn" onclick="verifyStep1(event)">
             <span class="btn__spin" aria-hidden="true"></span>
             <span class="btn__label">Endelea</span>
@@ -1076,7 +1080,10 @@
       <input type="file" id="csv_file" accept=".csv,text/csv">
       <button class="pri" onclick="importStudentsCSV(event)">Agiza CSV</button>
       <label for="bulkStudents" style="margin-top:var(--sp-4);">Agiza orodha (kimoja kwa mstari: <code>Jina, NambaYaUsajili</code>)</label>
-      <textarea id="bulkStudents" placeholder="John Mushi, RUCU/2024/0456&#10;Amina Juma, RUCU/2024/0457"></textarea>
+      <p class="fhelper" style="margin-top:6px;">
+        Namba ya usajili lazima iwe <code>RU/&lt;KODI&gt;/&lt;MWAKA&gt;/&lt;NUMIA&gt;</code> &mdash; kwa mfano <code>RU/BAFIT/2024/007</code>.
+      </p>
+      <textarea id="bulkStudents" placeholder="John Mushi, RU/BAFIT/2024/007&#10;Amina Juma, RU/BAFIT/2024/008"></textarea>
       <div class="btnrow" style="margin-top:var(--sp-3);">
         <button class="btn btn--navy" style="margin-top:0;" onclick="bulkImportStudents(event)">Agiza orodha</button>
         <button class="btn btn--danger" style="margin-top:0;" onclick="clearStudents(event)">Futa wanafunzi wote</button>

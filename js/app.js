@@ -70,11 +70,11 @@ function busy(btn, on, label) {
     btn.removeAttribute("aria-busy");
     btn.disabled = false;
     // A button that was disabled only because the form was invalid should go
-    // back to its own state, not force itself on.
+    // back to its own state, not force itself on. RucusoVerify owns that
+    // decision now — it knows about the format rule, the attempt budget and the
+    // CAPTCHA gate all at once, and duplicating any of it here would drift.
     if (btn.id === "ver1_btn" && window.RucusoVerify) {
-      btn.disabled = window.RucusoVerify.validate(
-        document.getElementById("ver_reg") ? document.getElementById("ver_reg").value : ""
-      ).ok === false || window.RucusoVerify.attemptsLeft() === 0;
+      window.RucusoVerify.setButtonState();
     }
   }
 }
@@ -1132,12 +1132,25 @@ async function verifyStep1(ev) {
     // the next screen showed that identity on screen before any OTP was sent.
     // The registry is no longer reachable from the browser; this only answers
     // "does this number exist?", rate-limited per number and per client IP.
-    const found = await API.lookupStudent(reg, captchaToken);
+    //
+    // Detailed, because "not found" and "found but not yet migrated" need
+    // different messages and both arrive with found:false.
+    const result = await API.lookupStudentDetailed(reg, captchaToken);
     if (window.RucusoVerify) window.RucusoVerify.resetCaptcha();
+    const found = result.found;
+
     if (!found) {
       setVerMark("err");
+      if (result.reason === "legacy") {
+        // The record is real. Do not say it does not exist, and do not offer a
+        // retry — the same number cannot succeed until it is migrated.
+        msg.innerHTML = '<p class="err">' + (window.RucusoVerify
+          ? window.RucusoVerify.legacyMessage()
+          : "Rekodi yako bado haijasajiliwa katika mpaka mpya wa RUCU.") + "</p>";
+        return;
+      }
       msg.innerHTML = '<p class="err">Samahani, namba hii ya usajili haijapatikana kwenye mfumo.</p>'
-        + window.RucusoVerify.supportHtml();
+        + (window.RucusoVerify ? window.RucusoVerify.supportHtml() : "");
       return;
     }
     // No name, no programme, no year is held here. Nothing about the student is

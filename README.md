@@ -95,6 +95,76 @@ Two things about them are load-bearing rather than cosmetic:
   is the one that quietly starts rejecting registered students.
   `tests/verify-rules.test.js` fails if that ever happens.
 
+### Registration number format
+
+The current official RUCU format is:
+
+```
+RU/<COURSE_CODE>/<YEAR>/<STUDENT_NUMBER>      RU/BAFIT/2024/007
+```
+
+enforced in three places, on purpose:
+
+- `js/verify-ux.js` — `NEW_RE`, so the student gets immediate feedback and the
+  "Endelea" button stays disabled until the number matches
+- `lookup-student` — the same pattern again, server-side, and anything matching
+  neither the current nor the legacy shape is rejected *before* it can consume a
+  rate-limit budget
+- `students_current_format_chk` in migration 014 — a `CHECK` constraint, so the
+  format is a database rule. A CSV import, a spreadsheet paste or a direct
+  `psql` session cannot introduce a malformed "current" number. The front-end
+  regex is a convenience, not the only defence.
+
+**This is a breaking change and it is not done by deploying the code.** The
+course code is the segment that does not exist in the old number, and it is not
+stored anywhere: `programme` and `faculty` are free text and neither contains a
+course code, so it cannot be derived. Migration 014 adds `course_code`,
+`legacy_registration_number` and `registration_format`, and leaves the rewrite
+to a function you run on purpose:
+
+```bash
+# 1. see how much work there is
+select * from registration_migration_report();
+
+# 2. the worklist: which students still need a course code, grouped by programme
+select * from registration_course_code_worklist();
+
+-- 3. supply the course codes, e.g.
+update students set course_code = 'BAFIT' where programme = 'Bachelor of Accounting and Finance';
+
+-- 4. rewrite the numbers. Skips anything still missing a course code.
+select backfill_student_registration_numbers();
+
+-- 5. confirm
+select * from registration_migration_report();   -- still_pending should be 0
+```
+
+The backfill never invents a course code. Defaulting a missing one would mint
+numbers that pass the `CHECK` constraint and look completely valid while sending
+a student to the wrong course's page, so it skips those rows and leaves them
+visibly pending instead.
+
+### Migrating the existing registry
+
+Until the backfill runs, `lookup-student` also searches
+`legacy_registration_number` and answers a legacy-shaped number with
+`found:false, reason:"legacy"`. The web form turns that into a specific
+message telling the student their record is pending migration and to contact
+the office — rather than the "number not found" message they would get for a
+genuine typo, which is false and sends them off to re-check a number that was
+correct all along.
+
+That response does disclose that a number belongs to a real, unmigrated
+student. It is bounded — it is strictly less than identity, and it is rate
+limited identically — but if a deployment would rather not disclose even that:
+
+```bash
+supabase secrets set MIGRATION_LEGACY_LOOKUP=false
+```
+
+which collapses every legacy number to an ordinary not-found. Remove the legacy
+branch from `lookup-student` in the same release that finishes the backfill.
+
 ### CAPTCHA
 
 Off by default, and the default is not a stub. `supabase/config.js` ships with
@@ -301,6 +371,13 @@ toast. Nothing is ever written to `localStorage`.
       fights with scrolling.
 - [ ] Submit the verification form five times with a bad number and confirm the sixth attempt is
       refused with a countdown, and that the limit clears after a minute.
+- [ ] Enter a valid number in lower case (`ru/bafit/2024/007`) and confirm it is upper-cased as
+      you type, the caret stays put when editing mid-number, and "Endelea" enables.
+- [ ] Enter a number one character short of valid and confirm the button stays disabled *and* the
+      hint says why, rather than just going grey with no explanation.
+- [ ] With `TURNSTILE_SITE_KEY` set, confirm "Endelea" stays disabled until the widget reports
+      success, and re-locks when the token expires. With it unset, confirm the button is governed
+      by the number alone.
 
 ## Not built yet
 

@@ -22,24 +22,39 @@
 //
 // REGISTRATION NUMBER FORMAT — READ BEFORE CHANGING validate()
 //
-// The spec asked for a strict RUCU/YYYY/XXXX check. The database does not
-// enforce any format at all, and the site's own examples disagree with each
-// other: the input placeholder says RUCU/2024/01 and the bulk-import example
-// says RUCU/2024/0456. A strict regex would therefore have rejected numbers that
-// are genuinely in the registry, and the student's only symptom would be
-// "Endelea" staying greyed out with no explanation.
+// Current official format, as specified:
 //
-// So validate() is permissive by design: LETTERS / DIGITS / DIGITS, which is
-// the shape every RUCU number shares, whatever the year and index widths are. It
-// normalises case and whitespace and nothing more. If a stricter format is ever
-// decided on, it has to be added to the database first — see README.
+//     RU/<COURSE_CODE>/<YEAR>/<STUDENT_NUMBER>
+//     RU/BAFIT/2024/007, RU/BIT/2023/123, RU/BBA/2025/001
+//
+// so the accepted shape is exactly NEW_RE below and nothing else.
+//
+// LEGACY_RE is NOT a second way in. It exists for one purpose: to recognise a
+// number in the pre-2026 format (RUCU/2024/01) so the student can be told what
+// happened to them, instead of being handed the same "not found" message they
+// would get for a number that was simply typed wrong. See legacyMessage().
+//
+// The course-code segment is the reason this is a schema change and not a
+// validation tweak: the students table has no course_code column, so there is
+// nothing to migrate old numbers *from*. Migration 014 adds the column and the
+// backfill; the course code for each existing student has to be supplied by
+// someone who knows it, because it cannot be derived from programme or faculty
+// (both are free text and neither contains a course code).
 (function () {
   "use strict";
 
-  // LETTERS / DIGITS / DIGITS. Optional whitespace around the slashes so a
-  // pasted "RUCU / 2024 / 01" still works.
-  var RE = /^[A-Z]{2,6}\s*\/\s*\d{2,4}\s*\/\s*\d{1,6}$/;
+  // The official format. Applied case-insensitively, but the value is
+  // upper-cased on the way in, so what is stored and sent is always canonical.
+  var NEW_RE = /^RU\/[A-Z]{2,6}\/\d{4}\/\d{3,4}$/i;
+
+  // The pre-2026 shape, recognised only so it can be reported specifically.
+  // Deliberately never used to authorise a lookup.
+  var LEGACY_RE = /^[A-Z]{2,6}\s*\/\s*\d{2,4}\s*\/\s*\d{1,6}$/i;
+
+  // "RU/ABCDEF/2024/007" — the longest number the official format can produce.
   var MAX_LEN = 24;
+
+  var EXAMPLE = "RU/BAFIT/2024/007";
 
   // 5 attempts a minute. Generous enough that a student fixing a typo twice
   // never notices, small enough that a script gets nowhere.
@@ -108,24 +123,56 @@
 
   // ---- the check -----------------------------------------------------------
 
-  // Returns { ok, value, message }. `value` is the normalised registration
-  // number; message is Kiswahili and shown under the field.
+  // Strips whitespace and forces upper case. Every other path in the app sends
+  // the canonical form, so the rate-limit bucket and the LIKE pattern are the
+  // same regardless of how it was typed or pasted.
+  function canonical(raw) {
+    return String(raw == null ? "" : raw).trim().toUpperCase().replace(/\s+/g, "");
+  }
+
+  // Whitespace-tolerant version, for matching only. Lets a pasted
+  // "RU / BAFIT / 2024 / 007" through without rejecting it over spaces.
+  function loose(raw) {
+    return String(raw == null ? "" : raw).trim().toUpperCase().replace(/\s*([\/\-])\s*/g, "$1");
+  }
+
+  // Returns { ok, value, code, message }. `code` is one of:
+  //   ok | empty | too-long | legacy | shape
+  // `message` is Kiswahili and shown under the field. `value` is the canonical
+  // number, safe to send, but only meaningful when ok is true.
   function validate(raw) {
-    var value = String(raw == null ? "" : raw).trim().toUpperCase().replace(/\s+/g, " ");
+    var value = canonical(raw);
+    var spaced = loose(raw);
+
     if (!value) {
-      return { ok: false, value: "", message: "Andika namba yako ya usajili." };
+      return { ok: false, value: "", code: "empty", message: "Andika namba yako ya usajili." };
     }
     if (value.length > MAX_LEN) {
-      return { ok: false, value: value, message: "Namba hii ni ndefu mno. Tarakimu " + MAX_LEN + " au kidogo." };
-    }
-    if (!RE.test(value)) {
       return {
-        ok: false,
-        value: value,
-        message: "Namba ya usajili inaonekana kama misimbo, kisha namba, kisha namba — mfano RUCU/2024/0456.",
+        ok: false, value: value, code: "too-long",
+        message: "Namba hii ni ndefu mno. Tarakimu " + MAX_LEN + " au kidogo.",
       };
     }
-    return { ok: true, value: value, message: "" };
+    if (NEW_RE.test(spaced)) {
+      return { ok: true, value: spaced, code: "ok", message: "" };
+    }
+    if (LEGACY_RE.test(spaced)) {
+      return { ok: false, value: value, code: "legacy", message: legacyMessage() };
+    }
+    return {
+      ok: false, value: value, code: "shape",
+      message: "Namba ya usajili lazima iwe RU/KODI/2024/NUMIA — mfano " + EXAMPLE + ".",
+    };
+  }
+
+  // Said only when the number is structurally a registration number but not in
+  // the current format. This is a different problem from a typo and deserves a
+  // different answer: the student's record exists, it just has not been
+  // migrated, and only the registry office can supply the course code.
+  function legacyMessage() {
+    return "Namba hii iko katika mpaka wa awali. Mpaka mpya wa RUCU ni "
+      + EXAMPLE + ", ambapo CODII ni nengo la kozi yako. Rekodi yako bado haijasajiliwa "
+      + "katika mpaka mpya — wasiliana na ofisi ya RUCUSO ili kuirekebisha, kisha rudi.";
   }
 
   // ---- CAPTCHA -------------------------------------------------------------
@@ -179,9 +226,15 @@
       captchaWidget = turnstile.render(mount, {
         sitekey: siteKey(),
         theme: document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light",
-        callback: function (token) { captchaToken = token; },
-        "expired-callback": function () { captchaToken = null; },
-        "error-callback": function () { captchaToken = null; },
+        callback: function (token) {
+          captchaToken = token;
+          // The button is gated on the CAPTCHA as well as the number, so solving
+          // the widget has to re-run the gate. Without this the button would
+          // stay greyed out forever on a correctly-formatted number.
+          setButtonState();
+        },
+        "expired-callback": function () { captchaToken = null; setButtonState(); },
+        "error-callback": function () { captchaToken = null; setButtonState(); },
       });
       return captchaWidget;
     }).catch(function (error) {
@@ -254,6 +307,18 @@
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + path + '"/></svg>';
   }
 
+  // ---- the CAPTCHA gate ----------------------------------------------------
+
+  // The button is only enabled when the number is valid AND the CAPTCHA is
+  // satisfied. When no site key is configured there is no CAPTCHA to satisfy,
+  // so that condition is vacuously true and the regex alone governs — otherwise
+  // the button could never enable at all on a deployment that has not set a key
+  // up yet. isCaptchaEnabled() is the switch, not a guess.
+  function captchaSatisfied() {
+    if (!isCaptchaEnabled()) return true;
+    return !!captchaToken;
+  }
+
   // ---- the form -------------------------------------------------------------
 
   var els = {};
@@ -266,6 +331,7 @@
     els.button = el("ver1_btn");
     els.counter = el("ver1_counter");
     els.limit = el("ver1_limit");
+    els.hint = el("ver1_hint");
   }
 
   function setButtonState() {
@@ -273,12 +339,32 @@
     var result = validate(els.input.value);
     var left = attemptsLeft();
 
-    // Two independent reasons the button can be off, and both are explained
-    // under the field rather than leaving the student to guess.
-    els.button.disabled = !result.ok || left === 0;
+    // Three independent reasons the button can be off. Each is explained where
+    // it is visible rather than leaving the student to guess at a grey button.
+    var captchaOk = captchaSatisfied();
+    var ready = result.ok && left > 0 && captchaOk;
+    els.button.disabled = !ready;
+
+    // Tells the student *why* it is still grey, which is the thing they cannot
+    // work out on their own.
+    if (els.hint) {
+      if (result.ok && !captchaOk) {
+        els.hint.textContent = "Thibitisha kwamba wewe si roboti ili kuendelea.";
+        els.hint.className = "fhint fhint--warn";
+      } else if (result.ok && left === 0) {
+        els.hint.textContent = "Subiri sekunda " + secondsUntilReset() + " kisha jaribu tena.";
+        els.hint.className = "fhint fhint--warn";
+      } else if (result.ok) {
+        els.hint.textContent = "Namba inaonekana sahihi. Endelea.";
+        els.hint.className = "fhint fhint--ok";
+      } else {
+        els.hint.textContent = "";
+        els.hint.className = "fhint";
+      }
+    }
 
     if (els.counter) {
-      var text = els.input.value.trim();
+      var text = els.input.value;
       els.counter.textContent = text ? text.length + " / " + MAX_LEN : "";
       els.counter.className = "fcounter";
       if (text && text.length > MAX_LEN) {
@@ -321,9 +407,24 @@
     if (!result.ok) {
       var msg = el("ver1_msg");
       if (msg) {
-        msg.innerHTML = '<p class="err">' + esc(result.message) + "</p>" + supportHtml();
+        // The legacy case gets its own wording, and does not suggest retrying:
+        // retrying the same number cannot help, the record has to be migrated.
+        var canRetry = result.code !== "legacy";
+        msg.innerHTML = '<p class="err">' + esc(result.message) + "</p>"
+          + (canRetry ? supportHtml() : "");
       }
       els.input.focus();
+      return false;
+    }
+
+    // Regex alone is not enough to submit once a CAPTCHA is configured — the
+    // token has to have been solved. Checked here as well as in
+    // setButtonState, so a keyboard Enter or a programmatic call cannot skip it.
+    if (!captchaSatisfied()) {
+      var capMsg = el("ver1_msg");
+      if (capMsg) {
+        capMsg.innerHTML = '<p class="err">Thibitisha kwamba wewe si roboti ili kuendelea.</p>';
+      }
       return false;
     }
 
@@ -339,17 +440,39 @@
       return false;
     }
 
-    // Normalise what the rest of the flow will send: upper case, trimmed. The
+    // Normalise what the rest of the flow will send: upper case, no spaces. The
     // server matches case-insensitively anyway, but sending one canonical form
-    // means the rate-limit bucket is the same whichever case was typed.
+    // means the rate-limit bucket is the same whichever way it was typed.
     els.input.value = result.value;
     recordAttempt();
     renderLimit();
     return true;
   }
 
+  // Forces upper case as the student types.
+  //
+  // Assigning input.value moves the caret to the end of the field, which makes
+  // typing in the middle of a number impossible — so the selection is captured
+  // first and put back. Upper-casing never changes the string length, so the
+  // offsets stay valid and the caret lands exactly where it was.
+  function forceUpper(input) {
+    var before = input.value;
+    if (before === before.toUpperCase()) return;
+
+    var start = input.selectionStart;
+    var end = input.selectionEnd;
+    var after = before.toUpperCase();
+
+    input.value = after;
+    if (start != null && end != null) {
+      try { input.setSelectionRange(start, end); } catch (_) { /* type has no selection */ }
+    }
+  }
+
   function onInput() {
+    forceUpper(els.input);
     setButtonState();
+
     // Clear a stale error as soon as the student starts fixing it, but do not
     // clear it mid-keystroke into another invalid value.
     var msg = el("ver1_msg");
@@ -363,6 +486,14 @@
     ensureCaptcha();
 
     els.input.addEventListener("input", onInput);
+
+    // A paste of a lowercase or spaced number should be normalised immediately,
+    // not only once the student edits it by hand.
+    els.input.addEventListener("paste", function () {
+      // Deferred to the end of the current task so the pasted text is in the
+      // field before it is normalised.
+      setTimeout(function () { forceUpper(els.input); setButtonState(); }, 0);
+    });
 
     // The button is the real submitter, so the guard runs on click and also on
     // Enter from within the field.
@@ -412,12 +543,18 @@
     validate: validate,
     guard: guard,
     supportHtml: supportHtml,
+    legacyMessage: legacyMessage,
     attemptsLeft: attemptsLeft,
     secondsUntilReset: secondsUntilReset,
     isCaptchaEnabled: isCaptchaEnabled,
+    captchaSatisfied: captchaSatisfied,
     ensureCaptcha: ensureCaptcha,
     captchaToken: captchaTokenValue,
     resetCaptcha: resetCaptcha,
+    setButtonState: setButtonState,
+    NEW_RE: NEW_RE,
+    EXAMPLE: EXAMPLE,
+    MAX_LEN: MAX_LEN,
     MAX_ATTEMPTS: MAX_ATTEMPTS,
     WINDOW_MS: WINDOW_MS,
   };

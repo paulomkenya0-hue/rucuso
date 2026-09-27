@@ -27,6 +27,23 @@
 // working on the rate limits alone, which is the honest default: the limits are
 // the actual control, and the CAPTCHA only raises the cost of an automated run.
 //
+// REGISTRATION NUMBER FORMAT
+//
+//   current:  RU/<COURSE_CODE>/<YEAR>/<STUDENT_NUMBER>   e.g. RU/BAFIT/2024/007
+//   legacy:   <PREFIX>/<YEAR>/<INDEX>                    e.g. RUCU/2024/01
+//
+// The two coexist during the migration window. A number in the legacy shape is
+// matched too, but it comes back as found:false with reason:"legacy" rather than
+// found:true — because accepting it would let an unmigrated student through a
+// flow whose next step assumes the new format, and rejecting it silently would
+// tell a real student their number does not exist. The distinction is the whole
+// point: same status code, same shape of response, but the client can say
+// something true instead of something false.
+//
+// A legacy match is a deliberate, temporary widening. Remove it in the same
+// release that finishes the backfill, once students.course_code is populated —
+// see supabase/migrations/014_course_codes.sql.
+//
 // Secrets required:
 //   STUDENT_LOOKUP_RATE_LIMIT_SECRET   >= 32 random characters  (required)
 //   TURNSTILE_SECRET_KEY               (optional, enables CAPTCHA)
@@ -36,6 +53,22 @@
 
 import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
 import { json, preflight, readJson, getSupabase, registrationPattern } from "../_shared/otp.ts";
+
+// The current format. The course-code segment is the reason the students table
+// needed a course_code column in migration 014 — without one there is nothing to
+// migrate old numbers from.
+const CURRENT_RE = /^RU\/[A-Z]{2,6}\/\d{4}\/\d{3,4}$/i;
+
+// The pre-2026 shape. Detected only so the student can be told their record
+// needs migrating; never used to authorise the flow.
+const LEGACY_RE = /^[A-Z]{2,6}\s*\/\s*\d{2,4}\s*\/\s*\d{1,6}$/i;
+
+// Spaces around the slashes are tolerated on input and removed before matching,
+// so a number pasted as "RU / BAFIT / 2024 / 007" behaves identically to a typed
+// one. Upper-cased too, so it matches the canonical form that is stored.
+function normalise(reg: string): string {
+  return reg.toUpperCase().replace(/\s*([\/\-])\s*/g, "$1");
+}
 
 // Same client-address resolution as verify-heslb: Supabase sets at least one
 // of these on every request. "unknown-client" is a real bucket, not a bypass —
@@ -135,8 +168,18 @@ serve(async (req: Request) => {
     }
   }
 
+  const normalised = normalise(reg);
+
+  // Anything that is neither format is not a registration number at all. It is
+  // rejected before it can become a rate-limit key, so a fuzzer sending random
+  // strings cannot consume another student's budget. The response is the same
+  // { found: false } either way, so this leaks nothing about the registry.
+  if (!CURRENT_RE.test(normalised) && !LEGACY_RE.test(normalised)) {
+    return json(req, { found: false, reason: "malformed" });
+  }
+
   const [regHash, ipHash] = await Promise.all([
-    hmac("reg:" + reg.toLowerCase(), secret),
+    hmac("reg:" + normalised, secret),
     hmac("ip:" + remoteIp, secret),
   ]);
 
@@ -152,24 +195,52 @@ serve(async (req: Request) => {
     }
   }
 
-  // service_role, so this reads the registry directly. Only the count crosses
-  // back out — never a column.
-  //
   // Matched case-insensitively via registrationPattern(), which is also what
   // send-otp uses, so a lower-case registration number is found consistently at
-  // both steps.
+  // both steps. The normalised form is sent, not reg, so a spaced or lower-case
+  // entry hits the same row.
+  //
+  // Two columns are searched, OR'd, so which one matched is never revealed:
+  //   registration_number        — the current format after the 014 backfill
+  //   legacy_registration_number — the pre-2026 number, preserved on backfill
+  //
+  // Searching the legacy column is what keeps an unmigrated student from being
+  // told their number does not exist. It only ever produces found:false with
+  // reason:"legacy" (see below), so it discloses that a real student record is
+  // pending migration and nothing more.
   //
   // student_status is matched with coalesce semantics, the same way
   // verify_student_identity does it: rows imported before the column existed
   // carry NULL, and a plain .eq() would silently drop every one of them.
+  const legacyClause = `legacy_registration_number.ilike.${registrationPattern(normalised)}`;
   const { count, error: lookupError } = await supabase
     .from("students")
     .select("id", { count: "exact", head: true })
-    .ilike("registration_number", registrationPattern(reg))
+    .or(
+      `registration_number.ilike.${registrationPattern(normalised)},${legacyClause}`,
+    )
     .or("student_status.is.null,student_status.eq.active")
     .limit(1);
 
   if (lookupError) return json(req, { error: "LOOKUP_FAILED" }, 503);
 
-  return json(req, { found: (count ?? 0) > 0 });
+  const found = (count ?? 0) > 0;
+
+  // A legacy-shaped number that resolves to a row is reported as found:false
+  // with reason:"legacy". Not found:false plain — the student's record does
+  // exist, and telling them otherwise is simply untrue. Not found:true either,
+  // because the rest of the flow assumes the current format and there is no
+  // course code to build the next screen with.
+  //
+  // A response with found:false, reason:"legacy" still discloses that the
+  // number belongs to a real, unmigrated student. That is an acceptable, bounded
+  // disclosure — strictly less than identity, and rate limited identically. If
+  // even that is too much for a deployment, set MIGRATION_LEGACY_LOOKUP=false and
+  // every legacy number collapses to an ordinary not-found.
+  if (found && LEGACY_RE.test(normalised)) {
+    const allowLegacy = (Deno.env.get("MIGRATION_LEGACY_LOOKUP") || "true") !== "false";
+    if (allowLegacy) return json(req, { found: false, reason: "legacy" });
+  }
+
+  return json(req, { found, ...(found ? {} : { reason: "not-found" }) });
 });
