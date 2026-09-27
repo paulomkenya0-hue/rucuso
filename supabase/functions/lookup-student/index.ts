@@ -42,7 +42,6 @@
 //
 // Secrets required:
 //   STUDENT_LOOKUP_RATE_LIMIT_SECRET   >= 32 random characters  (required)
-//   TURNSTILE_SECRET_KEY               (required in production)
 //
 //   supabase secrets set STUDENT_LOOKUP_RATE_LIMIT_SECRET=<openssl rand -base64 32>
 //   supabase functions deploy lookup-student
@@ -56,50 +55,6 @@ import {
 // Every registration number gets this. Kept as one named constant so the
 // uniformity is a single thing you can read and a single thing to break.
 const ACCEPTED = { ok: true } as const;
-
-// Verifies a Turnstile token against Cloudflare. Returns a reason on failure so
-// the server log says why, while the response to the caller stays identical —
-// the same 403 either way, so this is not an oracle for whether a token merely
-// expired versus was forged.
-async function verifyTurnstile(token: string, remoteIp: string): Promise<{ ok: boolean; reason?: string }> {
-  const secret = Deno.env.get("TURNSTILE_SECRET_KEY");
-  if (!secret) return { ok: true, reason: "not-configured" };
-
-  // remoteip is how Cloudflare cross-checks the token against the address that
-  // solved it. The hostname binding is not posted here: it is implied by the
-  // secret, which is tied to one sitekey, and therefore to the hostnames that
-  // widget is registered for. A token solved on an attacker's domain cannot
-  // verify against this secret.
-  const form = new FormData();
-  form.append("secret", secret);
-  form.append("response", token);
-  if (remoteIp && remoteIp !== "unknown-client") form.append("remoteip", remoteIp);
-
-  try {
-    const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST",
-      body: form,
-    });
-    if (!res.ok) return { ok: false, reason: "siteverify-http-" + res.status };
-
-    // Typed explicitly because res.json() is `unknown` in current Deno, and
-    // reading .success off that would be a type error rather than a runtime one.
-    const result = await res.json() as { success?: boolean; [k: string]: unknown };
-    if (result?.success !== true) {
-      // result["error-codes"] is deliberately not echoed to the client, and not
-      // logged here either: it would say more about our configuration to anyone
-      // reading the logs than it is worth.
-      return { ok: false, reason: "siteverify-rejected" };
-    }
-    return { ok: true };
-  } catch (_e) {
-    // A network fault must not silently pass a forged token, and locking out
-    // every real student is the lesser evil for an endpoint that gates identity.
-    // Fail-closed: a Cloudflare outage blocks verification until it clears,
-    // rather than opening the gate.
-    return { ok: false, reason: "siteverify-unreachable" };
-  }
-}
 
 serve(async (req: Request) => {
   const early = preflight(req);
@@ -117,48 +72,6 @@ serve(async (req: Request) => {
   if (!reg || reg.length > 80) return json(req, ACCEPTED);
 
   const remoteIp = clientAddress(req);
-
-  // CAPTCHA gate, ahead of the rate limits on purpose. A solved widget costs
-  // money and a network round-trip, so the cheaper counters should not be spent
-  // on requests that are about to be rejected anyway.
-  //
-  // The ordering also means an unauthenticated flood never reaches Postgres at
-  // all once a CAPTCHA is configured.
-  //
-  // Fail-closed, and the reasoning is worth stating because the earlier version
-  // got it wrong. That version treated an absent TURNSTILE_SECRET_KEY as "no
-  // CAPTCHA configured, carry on", which fails open in the one deployment that
-  // matters: a site key set in config.js with the server secret forgotten. The
-  // widget renders, the student solves it honestly, the token arrives — and the
-  // server discards it without checking, so the CAPTCHA is decorative and any
-  // script can skip it entirely. A blank site key is safe because the client
-  // locks the form; a blank *secret* is not safe, because the client cannot see
-  // it and will happily let a token through.
-  //
-  // So the secret is required. Running without one is now an explicit, loudly
-  // named opt-in for local work, and it logs on every request so it cannot
-  // quietly reach production.
-  const captchaSecret = Deno.env.get("TURNSTILE_SECRET_KEY");
-  const devSkip = Deno.env.get("LOCAL_DEV_SKIP_CAPTCHA") === "1";
-  if (!captchaSecret) {
-    if (devSkip) {
-      console.warn(
-        "lookup: LOCAL_DEV_SKIP_CAPTCHA=1 — CAPTCHA is NOT being verified. " +
-        "Never set this on a deployed function.");
-    } else {
-      return json(req, { error: "NOT_CONFIGURED" }, 503);
-    }
-  } else {
-    const token = typeof body.captchaToken === "string" ? body.captchaToken : "";
-    if (!token) return json(req, { error: "CAPTCHA_REQUIRED" }, 403);
-    const verdict = await verifyTurnstile(token, remoteIp);
-    if (!verdict.ok) {
-      // Logged server-side, never returned: the reason would tell an attacker
-      // whether their forged token was rejected as forged or merely stale.
-      console.warn("turnstile rejected:", verdict.reason);
-      return json(req, { error: "CAPTCHA_FAILED" }, 403);
-    }
-  }
 
   // Anything that is neither format is not a registration number at all. It is
   // rejected before it can become a rate-limit key, so a fuzzer sending random

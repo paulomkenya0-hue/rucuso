@@ -231,9 +231,8 @@
     // This throws only on a transport, CAPTCHA or rate-limit failure. It never
     // resolves differently for a real number than for a fake one, so a caller
     // cannot branch on existence — which is the property the whole flow rests on.
-    async lookupRegistrationNumber(regNumber, captchaToken) {
+    async lookupRegistrationNumber(regNumber) {
       const body = { reg: String(regNumber == null ? "" : regNumber).trim() };
-      if (captchaToken) body.captchaToken = String(captchaToken);
       const { error } = await client.functions.invoke("lookup-student", { body });
       if (error) throw friendlyError(error);
     },

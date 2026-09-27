@@ -1131,15 +1131,6 @@ async function verifyStep1(ev) {
   // twice in two files. It has already run the guard on click; this is the
   // backstop for a programmatic call or a paste that landed between renders.
   if (window.RucusoVerify) {
-    // A broken or unconfigured CAPTCHA stops here, before the number is even
-    // looked at. The reason is already in the console; the student gets one
-    // generic sentence.
-    if (window.RucusoVerify.captchaFault && window.RucusoVerify.captchaFault()) {
-      setVerMark("err");
-      document.getElementById("ver1_msg").innerHTML =
-        '<p class="err">' + esc(window.RucusoVerify.captchaFaultText()) + "</p>";
-      return;
-    }
     const check = window.RucusoVerify.validate(reg);
     if (!check.ok) {
       setVerMark("err");
@@ -1154,21 +1145,6 @@ async function verifyStep1(ev) {
       return;
     }
     reg = check.value;
-
-    // Solved-CAPTCHA backstop. The click guard in verify-ux.js holds the button
-    // shut, but this function is also reachable by a queued click, an Enter
-    // keypress, or a console call — and without this, a script could skip the
-    // widget entirely and spend the server's rate-limit budget. The server would
-    // reject the missing token anyway; this stops the request being made.
-    //
-    // Note the order: the fault check above handles "unconfigured or broken",
-    // this handles "configured but not solved". Both fail closed.
-    if (window.RucusoVerify.captchaSatisfied && !window.RucusoVerify.captchaSatisfied()) {
-      setVerMark("err");
-      document.getElementById("ver1_msg").innerHTML =
-        '<p class="err">' + esc(window.RucusoVerify.hintText ? window.RucusoVerify.hintText() : window.RucusoVerify.FAIL_TEXT) + "</p>";
-      return;
-    }
 
     if (window.RucusoVerify.attemptsLeft() === 0) {
       setVerMark("err");
@@ -1191,11 +1167,8 @@ async function verifyStep1(ev) {
 
   const startedAt = Date.now();
   const MIN_SPIN_MS = 1500;
-  const captchaToken = (btn && btn.dataset.captchaToken) || null;
-  if (btn) delete btn.dataset.captchaToken;
   try {
-    await API.lookupRegistrationNumber(reg, captchaToken);
-    if (window.RucusoVerify) window.RucusoVerify.resetCaptcha();
+    await API.lookupRegistrationNumber(reg);
     verifyMatch = { reg };
     setVerMark("ok");
     document.getElementById("ver-step1").classList.add("hidden");

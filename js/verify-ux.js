@@ -182,122 +182,6 @@
   // migration-specific message, it belongs in an operator-only surface such as
   // the Edge Function log — not in a value the browser can read.
 
-  // ---- CAPTCHA -------------------------------------------------------------
-
-
-  // ---- CAPTCHA -------------------------------------------------------------
-
-  // Cloudflare Turnstile, loaded on demand and only if a site key is configured.
-  //
-  // If it IS enabled, the token is not trusted here: it is handed to
-  // lookup-student, which verifies it against the server-side secret. A token
-  // checked only in the browser is a checkbox, not a CAPTCHA.
-  var TURNSTILE_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-  var captchaWidget = null;
-  var captchaToken = null;
-  // Set when Turnstile was expected but could not be used: no site key, or the
-  // CDN could not be reached. Distinct from "not solved yet", because the two
-  // need different words and only one of them is actionable by the student.
-  var captchaFault = "";
-
-  function siteKey() {
-    var cfg = window.RUCUSO_CONFIG || {};
-    return cfg.TURNSTILE_SITE_KEY || "";
-  }
-
-  function isCaptchaEnabled() {
-    return !!siteKey();
-  }
-
-  // Shown to the student when the CAPTCHA cannot run at all. Deliberately says
-  // nothing about why: whether the key is unset, the CDN is blocked or the
-  // widget threw is an operator fact, and a student cannot act on any of it.
-  // The real reason goes to the console.
-  var CAPTCHA_FAULT_TEXT = "Uthibitisho wa usalama haupatikani kwa sasa. Tafadhali jaribu tena baadaye.";
-
-  function captchaFaultText() {
-    return CAPTCHA_FAULT_TEXT;
-  }
-
-  function loadTurnstile() {
-    if (window.turnstile) return Promise.resolve(window.turnstile);
-    return new Promise(function (resolve, reject) {
-      var el = document.createElement("script");
-      el.src = TURNSTILE_SRC;
-      el.async = true;
-      el.defer = true;
-      el.onload = function () { resolve(window.turnstile); };
-      el.onerror = function () { reject(new Error("turnstile failed to load")); };
-      document.head.appendChild(el);
-    });
-  }
-
-  function ensureCaptcha() {
-    if (!isCaptchaEnabled()) {
-      // No site key. This used to be a silent pass-through, which meant a
-      // deployment that forgot the key ran with no CAPTCHA at all while the
-      // button behaved exactly as though one had been solved. Fail closed
-      // instead: the button stays disabled and the student is told the security
-      // check is unavailable.
-      captchaFault = "no-site-key";
-      console.error(
-        "verify: TURNSTILE_SITE_KEY is not set, so the CAPTCHA gate is disabled. "
-        + "Set it in supabase/config.js and redeploy. Until then verification is "
-        + "intentionally blocked rather than left unguarded."
-      );
-      setButtonState();
-      return Promise.resolve(null);
-    }
-    if (captchaWidget) return Promise.resolve(captchaWidget);
-
-    var mount = document.getElementById("verCaptcha");
-    if (!mount) return Promise.resolve(null);
-
-    return loadTurnstile().then(function (turnstile) {
-      if (!turnstile) return null;
-      // Locked to one key per render, not to the host page, so a student cannot
-      // drag the widget off the form.
-      captchaWidget = turnstile.render(mount, {
-        sitekey: siteKey(),
-        theme: document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light",
-        callback: function (token) {
-          captchaToken = token;
-          captchaFault = "";
-          // The button is gated on the CAPTCHA as well as the number, so solving
-          // the widget has to re-run the gate. Without this the button would
-          // stay greyed out forever on a correctly-formatted number.
-          setButtonState();
-        },
-        "expired-callback": function () { captchaToken = null; setButtonState(); },
-        "error-callback": function () { captchaToken = null; setButtonState(); },
-      });
-      return captchaWidget;
-    }).catch(function (error) {
-      // Cloudflare is unreachable. The old behaviour was to fall through to
-      // server-side rate limiting, which kept the form usable — but it also let
-      // a deployment that had been configured for a CAPTCHA run without one.
-      // Rate limiting still applies; it is just not a substitute for the check
-      // the deployment asked for, so the button stays locked and the reason goes
-      // to the console.
-      captchaFault = "load-failed";
-      console.error("verify: Turnstile failed to load:", error && error.message);
-      setButtonState();
-      return null;
-    });
-  }
-
-  function captchaTokenValue() {
-    if (!isCaptchaEnabled()) return null;
-    return captchaToken;
-  }
-
-  function resetCaptcha() {
-    if (captchaWidget && window.turnstile) {
-      try { window.turnstile.reset(captchaWidget); } catch (_) { /* gone already */ }
-    }
-    captchaToken = null;
-  }
-
   // ---- escaping ------------------------------------------------------------
   // Kept even though supportHtml is gone: every message the form renders goes
   // through esc(), and the value under test is attacker-influenced input.
@@ -321,11 +205,6 @@
   // "Usable but unguarded" is the worse failure for a system whose only job is
   // to decide who may claim a student identity, so a missing or broken CAPTCHA
   // now locks the button and says so generically.
-  function captchaSatisfied() {
-    if (!isCaptchaEnabled()) return false;
-    if (captchaFault) return false;
-    return !!captchaToken;
-  }
 
   // ---- the form -------------------------------------------------------------
 
@@ -360,8 +239,7 @@
 
     // Three independent reasons the button can be off. Each is explained where
     // it is visible rather than leaving the student to guess at a grey button.
-    var captchaOk = captchaSatisfied();
-    els.button.disabled = !(result.ok && left > 0 && captchaOk);
+    els.button.disabled = !(result.ok && left > 0);
 
     // Deliberately no success message and no character counter.
     //
@@ -380,13 +258,7 @@
       // with no request sent. Each state below is therefore keyed on the thing
       // it actually describes and nothing else, so the hint says the same thing
       // for a number that is right and a number that is not.
-      if (captchaFault) {
-        els.hint.textContent = captchaFaultText();
-        els.hint.className = "fhint fhint--warn";
-      } else if (!captchaOk) {
-        els.hint.textContent = "Thibitisha kwamba wewe ni mtu ili kuendelea.";
-        els.hint.className = "fhint fhint--warn";
-      } else if (left === 0) {
+      if (left === 0) {
         els.hint.textContent = "Subiri sekunda " + secondsUntilReset() + " kisha jaribu tena.";
         els.hint.className = "fhint fhint--warn";
       } else {
@@ -432,14 +304,6 @@
     var result = validate(els.input.value);
     var msg = el("ver1_msg");
 
-    // The CAPTCHA is checked first. If it is broken there is no honest way to
-    // continue, and reporting on the number first would tell a student their
-    // number is good immediately before refusing to look it up.
-    if (captchaFault) {
-      if (msg) msg.innerHTML = '<p class="err">' + esc(captchaFaultText()) + "</p>";
-      return false;
-    }
-
     if (!result.ok) {
       // Only the empty case is worth a word. Every other failure gets the same
       // generic sentence, because a specific message is an oracle: it tells a
@@ -456,12 +320,6 @@
     // Regex alone is not enough to submit once a CAPTCHA is configured — the
     // token has to have been solved. Checked here as well as in
     // setButtonState, so a keyboard Enter or a programmatic call cannot skip it.
-    if (!captchaSatisfied()) {
-      if (msg) {
-        msg.innerHTML = '<p class="err">Thibitisha kwamba wewe ni mtu ili kuendelea.</p>';
-      }
-      return false;
-    }
 
     if (attemptsLeft() === 0) {
       var secs = secondsUntilReset();
@@ -519,8 +377,6 @@
     cache();
     if (!els.input || !els.button) return;
 
-    ensureCaptcha();
-
     els.input.addEventListener("input", onInput);
 
     // A paste of a lowercase or spaced number should be normalised immediately,
@@ -538,13 +394,6 @@
         event.preventDefault();
         event.stopPropagation();
         return;
-      }
-      // Only now is the CAPTCHA token meaningful: it was just solved.
-      var token = captchaTokenValue();
-      if (token) {
-        // Handed to the Edge Function, which verifies it server-side.
-        els.button.dataset.captchaToken = token;
-        resetCaptcha();
       }
     });
 
@@ -570,13 +419,6 @@
     guard: guard,
     attemptsLeft: attemptsLeft,
     secondsUntilReset: secondsUntilReset,
-    isCaptchaEnabled: isCaptchaEnabled,
-    captchaSatisfied: captchaSatisfied,
-    captchaFault: function () { return captchaFault; },
-    captchaFaultText: captchaFaultText,
-    ensureCaptcha: ensureCaptcha,
-    captchaToken: captchaTokenValue,
-    resetCaptcha: resetCaptcha,
     setButtonState: setButtonState,
     NEW_RE: NEW_RE,
     MAX_LEN: MAX_LEN,
