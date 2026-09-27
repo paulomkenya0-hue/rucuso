@@ -66,6 +66,63 @@ test('the edit button opens the modal in edit mode and sets the editing id', () 
   assert.match(page, /dataset\.mode = "edit"/);
 });
 
+// ---- Issue 2: the full action contract -------------------------------------
+
+test('deactivate (Zima) sends the profile id and the exact action name', () => {
+  // The row button carries data-action="deactivate" and the handler must send
+  // { action: "deactivate", profile_id } — the backend setActive() reads
+  // body.profile_id, so a missing or misnamed field is a silent no-op.
+  assert.match(page, /data-action="deactivate"/);
+  assert.match(page, /action:\s*"deactivate",\s*\n\s*profile_id:\s*profileId/);
+  assert.match(edge, /case "deactivate":\s*return await setActive/);
+  assert.match(edge, /String\(body\.profile_id/);
+});
+
+test('activate sends the profile id and the exact action name', () => {
+  assert.match(page, /data-action="activate"/);
+  assert.match(page, /action:\s*"activate",\s*\n\s*profile_id:\s*profileId/);
+  assert.match(edge, /case "activate":\s*return await setActive/);
+});
+
+test('delete (Futa) sends the profile id and the exact action name', () => {
+  assert.match(page, /data-action="delete"/);
+  assert.match(page, /action:\s*"delete",\s*\n\s*profile_id:\s*profileId/);
+  assert.match(edge, /case "delete":\s*return await deleteLeader/);
+  assert.match(edge, /String\(body\.profile_id/);
+});
+
+test('reset_password sends the profile id and the exact action name', () => {
+  assert.match(page, /data-action="reset_password"/);
+  assert.match(page, /action:\s*"reset_password",\s*\n\s*profile_id:\s*profileId/);
+  assert.match(edge, /case "reset_password":\s*return await resetPassword/);
+});
+
+test('the backend rejects an unknown action with a controlled error', () => {
+  // The switch must have a default that returns UNKNOWN_ACTION, so a typo or
+  // a forged action cannot fall through into a handler.
+  assert.match(edge, /default:\s*return json\(req, \{ error: "UNKNOWN_ACTION" \}, 400\)/);
+});
+
+test('authorization is checked server-side before any action runs', () => {
+  // requireSuperAdmin runs before the switch, so no action is reachable
+  // without an active super_admin profile. The browser's role claim is never
+  // trusted.
+  assert.match(edge, /const caller = await requireSuperAdmin\(req, supabase\);/);
+  assert.match(edge, /if \(isResponse\(caller\)\) return caller;/);
+  const switchIdx = edge.indexOf('switch (action)');
+  const authIdx = edge.indexOf('requireSuperAdmin');
+  assert.ok(authIdx !== -1 && switchIdx !== -1 && authIdx < switchIdx,
+    'requireSuperAdmin must run before the action switch');
+});
+
+test('requireSuperAdmin refuses callers who are not active super admins', () => {
+  const admin = read('supabase/functions/_shared/admin.ts');
+  // The guard checks the profile's role AND active flag server-side.
+  assert.match(admin, /profile\.role !== "super_admin"/);
+  assert.match(admin, /!profile\.active/);
+  assert.match(admin, /FORBIDDEN_NOT_SUPER_ADMIN/);
+});
+
 test('verify-student builds its registration filter through the shared helper', () => {
   // The inline filter did not normalise whitespace, so a pasted
   // "RU / BAFIT / 2024 / 007" was found by lookup-student and then rejected
@@ -80,9 +137,12 @@ test('verify-student builds its registration filter through the shared helper', 
 
 test('verify-student normalises last names for case, whitespace and Unicode', () => {
   const verify = read('supabase/functions/verify-student/index.ts');
-  assert.match(verify, /raw\.normalize\("NFKC"\)\.trim\(\)\.toLowerCase\(\)/);
-  assert.match(verify, /const stored = normalizeLastName\(data\.last_name\)/);
-  assert.match(verify, /stored !== lastName/);
+  // The normalisation lives in normalizeName (NFKC + trim + whitespace-collapse
+  // + lowercase); lastNameMatches() runs it over the full name's components.
+  assert.match(verify, /normalize\("NFKC"\)\.trim\(\)\.toLowerCase\(\)/);
+  assert.match(verify, /replace\(\/\\s\+\/g, " "\)/);
+  assert.match(verify, /function lastNameMatches\(input: string, storedFullName: string, storedLastName: string\)/);
+  assert.match(verify, /lastNameMatches\(lastName, row\.full_name, row\.last_name\)/);
 });
 
 // ---------- migration 015: executive RBAC + announcement validation ----------
