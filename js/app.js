@@ -19,22 +19,32 @@ const STATUS_LABELS = {
   Resolved: "Imekamilika", Closed: "Imefungwa", "Rejected/Invalid": "Haijakubaliwa",
 };
 
+// One sentence per error code the three verification functions can still
+// return.
+//
+// Every code that used to depend on whether a registration number exists has
+// been removed from the server, and is therefore removed from this map too:
+//   INVALID_REGISTRATION, STUDENT_NOT_FOUND, PHONE_MISMATCH  (send-otp)
+//   NO_PENDING_CODE, CODE_EXPIRED, TOO_MANY_ATTEMPTS         (verify-otp)
+//   SMS_SEND_FAILED, COULD_NOT_ISSUE, INVALID_PHONE          (send-otp)
+//
+// A code cannot be rendered safely if the server can emit it, so the fix was to
+// stop emitting it. Leaving the old entries here would be the same leak wearing
+// a dead key: a future change that reintroduced one of these server-side would
+// light up a student-facing message that says exactly which case was hit.
+//
+// What remains describes the deployment or the caller's own rate limit. None of
+// it tells you anything about the registry, because none of it varies with it.
 const OTP_MESSAGES = {
-  INVALID_PHONE: "Namba ya simu si sahihi. Tumia mfumo 07XXXXXXXX au +255XXXXXXXXX.",
-  INVALID_REGISTRATION: "Namba ya usajili haijasajiliwa. Angalia kwa makini.",
-  STUDENT_NOT_FOUND: "Samahani, namba hii ya usajili haijapatikana kwenye mfumo.",
-  PHONE_MISMATCH: "Namba ya simu hailingiani na ile iliyorekodiwa kwa jina lako la usajili.",
-  TOO_MANY_REQUESTS: "Umetuma maombi mengi ya msimu. Subiri muda mrefu kabla ya jaribu tena.",
-  SMS_PROVIDER_NOT_CONFIGURED: "Huduma ya kutuma SMS haijawekwa bado. Tafadhali wasiliana na msimamizi wa mfumo.",
-  SMS_SEND_FAILED: "Imeshindikana kutuma SMS. Tafadhali jaribu tena baadaye.",
-  COULD_NOT_ISSUE: "Imeshindikana kutengeneza namba ya uthibitisho. Tafadhali jaribu tena.",
-  NO_PENDING_CODE: "Hakuna namba ya uthibitisho iliyotumwa. Tafadhali tuma tena.",
-  CODE_EXPIRED: "Namba ya uthibitisho imeisha muda wake. Tuma namba mpya.",
-  TOO_MANY_ATTEMPTS: "Umejaribu mara nyingi mno. Tuma namba ya uthibitisho mpya.",
+  INVALID_CODE: "Namba ya uthibitisho si sahihi au imeisha muda wake. Tuma namba mpya.",
   INVALID_CODE_FORMAT: "Namba ya uthibitisho lazima iwe tarakimu 6.",
-  // lookup-student (registration-number check)
-  NOT_CONFIGURED: "Huduma ya kuangalia namba ya usajili haijawekwa bado. Tafadhali wasiliana na msimamizi wa mfumo.",
+  TOO_MANY_REQUESTS: "Umetuma maombi mengi. Subiri muda mrefu kabla ya jaribu tena.",
+  SMS_PROVIDER_NOT_CONFIGURED: "Huduma ya kutuma SMS haijawekwa bado. Tafadhali wasiliana na msimamizi wa mfumo.",
   LOOKUP_FAILED: "Imeshindikana kuangalia namba ya usajili. Tafadhali jaribu tena baadaye.",
+  // NOT_CONFIGURED is deliberately absent, and so is any CAPTCHA code. The
+  // lookup step renders one generic sentence and logs the real reason to the
+  // console, and a CAPTCHA fault is reported by verify-ux.js before a request
+  // is ever made. See the note in lookupFailureText() below.
 };
 
 // ---------- small helpers ----------
@@ -1080,26 +1090,82 @@ function lookupReg() {
   }, 350);
 }
 
-// ---------- Student verification: reg number -> phone -> OTP ----------
+// ---------- Student verification: reg number -> OTP -> identity ----------
 //
-// REQUIRE_SMS_OTP: true means a real SMS code is mandatory. The provider
-// (Beem or Africa's Talking) lives only in the send-otp Edge Function, so the
-// code, its hash and the API key never reach the browser — and if the provider
-// is not configured, or the student is out of SMS credit, the request fails
-// loudly with an error instead of quietly falling through to a weaker check.
-// The phone-on-file path below is kept for reference and for a deliberate
-// rollback, but it is not reachable while this is true.
+// REQUIRE_SMS_OTP is now only read by the submit-screen guard below, where it
+// requires otp_verified before anything can be filed. It is not a switch any
+// more and must not become one again: the phone-on-file path it used to select
+// between disclosed a student's identity with no SMS involved, which is the
+// same pre-OTP disclosure the rest of this flow exists to prevent, and the
+// registration-number screen it depended on is the oracle that has just been
+// closed. There is no code to flip.
+//
+// The provider (Beem or Africa's Talking) lives only in the send-otp Edge
+// Function, so the code, its hash and the API key never reach the browser.
 const REQUIRE_SMS_OTP = true;
 
+// The affirmative message. Shown only once the OTP has been proved, which is
+// the only point in the flow at which anything has actually been verified.
+const VERIFIED_TEXT = "Utambulisho umethibitishwa kikamilifu!";
+const VERIFIED_HOLD_MS = 900;
+
 let verifyMatch = null;
+
+// What is shown when the lookup step fails for a reason that has nothing to do
+// with whether the number exists: a dropped connection, a rate limit, a CAPTCHA
+// the server would not accept, a missing rate-limit secret.
+//
+// It used to say "Namba ya usajili sio sahihi au haijapatikana" — "that
+// registration number is wrong or not found" — which was there to be identical
+// to the not-found message. It cannot be that any more, because a number that
+// is not in the registry no longer produces a failure at all: it moves on to
+// the OTP screen exactly like a real one. So this sentence is now only ever
+// shown when the *service* failed, and it says that instead of blaming a number
+// the server never had an opinion about.
+//
+// That is not a disclosure. Every status that reaches this catch block is
+// existence-independent by construction — 429 for the caller's own rate limit,
+// 503 for a missing secret or a dead database, 403 for the CAPTCHA, and a
+// network error for none of the above — so distinguishing "the service failed"
+// from "the service answered" cannot reveal which numbers exist.
+const LOOKUP_FAIL_TEXT = "Imeshindikana kuangalia namba yako. Tafadhali jaribu tena baadaye.";
+
+function lookupFailureText() {
+  return LOOKUP_FAIL_TEXT;
+}
+
+// Duplicate-submit guard. A second click landing while the first is still in
+// flight would send two lookups for one number, burning two of the five
+// attempts the student has this minute and arriving at the same OTP step twice.
+// The button is disabled synchronously below, but a queued click event or an
+// Enter keypress can still reach this function, so the in-flight flag is the
+// real control and the disabled attribute is only the visible half.
+let verifyInFlight = false;
+
 async function verifyStep1(ev) {
+  if (verifyInFlight) return;
+
   const btn = ev && ev.currentTarget;
+  // The canonical, upper-cased, whitespace-stripped value. Sent to the server
+  // rather than the raw field, so a programmatic call with a lower-case or
+  // spaced number produces exactly the same request as a typed one.
+  let reg = document.getElementById("ver_reg").value.trim();
+
   // js/verify-ux.js owns the rules for what a valid registration number looks
   // like and how many attempts are left, so the same validation is not kept
   // twice in two files. It has already run the guard on click; this is the
   // backstop for a programmatic call or a paste that landed between renders.
   if (window.RucusoVerify) {
-    const check = window.RucusoVerify.validate(document.getElementById("ver_reg").value);
+    // A broken or unconfigured CAPTCHA stops here, before the number is even
+    // looked at. The reason is already in the console; the student gets one
+    // generic sentence.
+    if (window.RucusoVerify.captchaFault && window.RucusoVerify.captchaFault()) {
+      setVerMark("err");
+      document.getElementById("ver1_msg").innerHTML =
+        '<p class="err">' + esc(window.RucusoVerify.captchaFaultText()) + "</p>";
+      return;
+    }
+    const check = window.RucusoVerify.validate(reg);
     if (!check.ok) {
       setVerMark("err");
       const m = document.getElementById("ver1_msg");
@@ -1112,6 +1178,23 @@ async function verifyStep1(ev) {
       document.getElementById("ver_reg").focus();
       return;
     }
+    reg = check.value;
+
+    // Solved-CAPTCHA backstop. The click guard in verify-ux.js holds the button
+    // shut, but this function is also reachable by a queued click, an Enter
+    // keypress, or a console call — and without this, a script could skip the
+    // widget entirely and spend the server's rate-limit budget. The server would
+    // reject the missing token anyway; this stops the request being made.
+    //
+    // Note the order: the fault check above handles "unconfigured or broken",
+    // this handles "configured but not solved". Both fail closed.
+    if (window.RucusoVerify.captchaSatisfied && !window.RucusoVerify.captchaSatisfied()) {
+      setVerMark("err");
+      document.getElementById("ver1_msg").innerHTML =
+        '<p class="err">' + esc(window.RucusoVerify.hintText ? window.RucusoVerify.hintText() : window.RucusoVerify.FAIL_TEXT) + "</p>";
+      return;
+    }
+
     if (window.RucusoVerify.attemptsLeft() === 0) {
       setVerMark("err");
       const m = document.getElementById("ver1_msg");
@@ -1120,26 +1203,26 @@ async function verifyStep1(ev) {
       return;
     }
   }
-  const reg = document.getElementById("ver_reg").value.trim();
   const msg = document.getElementById("ver1_msg");
   if (!reg) {
     setVerMark("err");
     msg.innerHTML = '<p class="err">Tafadhali ingiza namba yako ya usajili.</p>';
     return;
   }
+  verifyInFlight = true;
   setVerMark("wait");
   msg.innerHTML = '<p class="muted">Inathibitisha.</p>';
   busy(btn, true, "Inathibitisha...");
 
-  // Held for a short floor so a fast local response does not render as a
-  // one-frame spinner flash and a straight jump to the next screen. 420ms is
-  // roughly one perceptual "that happened" beat: long enough to read as a
-  // transition, short enough that a student never thinks the button is stuck.
-  // Not the 1.5s that was asked for — a fixed 1.5s on top of a real network
-  // call makes a working form feel broken, and it is latency the student pays
-  // for without getting anything back sooner.
+  // Held for a floor so a fast local response does not render as a one-frame
+  // spinner flash and a straight jump to the next screen. This adds no latency
+  // to the request itself: the call below is made immediately and the wait only
+  // happens after its result has already arrived. All it does is hold the button
+  // in its loading state until the floor passes, so the indicator is readable
+  // rather than a blink. 1500ms is the figure specified for this form; on a slow
+  // connection the real request takes longer and the floor never applies.
   const startedAt = Date.now();
-  const MIN_SPIN_MS = 420;
+  const MIN_SPIN_MS = 1500;
   // When a CAPTCHA is configured, verify-ux.js stashed the token on the button
   // after the student solved it. It goes to the server for verification there —
   // never trusted on this side. Cleared either way, because a token is
@@ -1147,70 +1230,54 @@ async function verifyStep1(ev) {
   const captchaToken = (btn && btn.dataset.captchaToken) || null;
   if (btn) delete btn.dataset.captchaToken;
   try {
-    // Deliberately boolean. This used to be lookup_student(), an RPC open to
-    // anon that returned full_name, programme and year - so anyone could read
-    // a student's identity out of it by guessing a registration number, and
-    // the next screen showed that identity on screen before any OTP was sent.
-    // The registry is no longer reachable from the browser; this only answers
-    // "does this number exist?", rate-limited per number and per client IP.
+    // The existence oracle, and where it lived.
     //
-    // Detailed, because "not found" and "found but not yet migrated" need
-    // different messages and both arrive with found:false.
-    const result = await API.lookupStudentDetailed(reg, captchaToken);
+    // This used to call lookupStudentDetailed(), branch on result.found, and
+    // advance to the OTP screen only when it was true. That branch was the leak.
+    // It did not matter that the response carried no name, no programme and no
+    // year, and it did not matter that a determined reader could see the field
+    // was gone: reaching step 2 was itself the answer, so a script only had to
+    // check which screen it landed on.
+    //
+    // lookup-student no longer returns an existence field at all — it returns
+    // { ok: true } for every registration number — and this function no longer
+    // branches. A real number and a made-up one both land on the OTP screen,
+    // and neither the response nor the transition distinguishes them. The
+    // registration number is carried forward to send-otp, which decides whether
+    // a code can be delivered, and that decision is never reported back either.
+    await API.lookupRegistrationNumber(reg, captchaToken);
     if (window.RucusoVerify) window.RucusoVerify.resetCaptcha();
-    const found = result.found;
 
-    if (!found) {
-      setVerMark("err");
-      // One sentence for every negative: malformed, pending-migration and
-      // genuinely unknown are indistinguishable, because the response body does
-      // not say which one it was either.
-      //
-      // This replaced three different messages. The old set told a script which
-      // of the three it had hit, so "real student, not migrated" was
-      // distinguishable from "no such student" and a search could keep going.
-      // The distinction is now logged in the Edge Function, where the migration
-      // queue can be watched without publishing the answer to the browser.
-      msg.innerHTML = '<p class="err">'
-        + (window.RucusoVerify ? window.RucusoVerify.FAIL_TEXT : "Namba ya usajili sio sahihi au haijapatikana.")
-        + "</p>";
-      return;
-    }
-    // No name, no programme, no year is held here. Nothing about the student is
-    // known to this page yet — only that the number is in the registry. The
-    // identity arrives from verifyOtp(), after the code is proved.
+    // Held, not branched on. Nothing about this student is known to the page
+    // yet — not even that the number is in the registry. The identity arrives
+    // from verifyOtp(), after the code has been proved.
     verifyMatch = { reg };
     setVerMark("ok");
     document.getElementById("ver-step1").classList.add("hidden");
     document.getElementById("ver-step2").classList.remove("hidden");
     document.getElementById("ver2_msg").textContent = "";
-    // Swap step-2's copy/button between "send OTP" and "confirm phone on
-    // file" depending on REQUIRE_SMS_OTP, without touching the HTML.
-    document.getElementById("ver2_hint").textContent = REQUIRE_SMS_OTP
-      ? "Ingiza namba yako ya simu ya Tanzania (mfano 07XXXXXXXX au +255XXXXXXXXX)."
-      : "Ingiza namba yako ya simu iliyosajiliwa RUCUSO (mfano 07XXXXXXXX au +255XXXXXXXXX).";
-    const btn2 = document.getElementById("ver2_btn");
-    btn2.textContent = REQUIRE_SMS_OTP ? "TUMA OTP" : "THIBITISHA";
-    btn2.onclick = REQUIRE_SMS_OTP ? sendOtp : confirmPhoneOnFile;
+    document.getElementById("ver2_btn").onclick = sendOtp;
   } catch (e) {
-    // functionErrorText, not errText: the lookup answers 429 with
-    // { error: "TOO_MANY_REQUESTS" }, and a raw HTTP error would leave the
-    // student guessing whether they mistyped the number or hit a limit.
+    // Every expected failure renders one sentence. This used to call
+    // functionErrorText(e), which mapped NOT_CONFIGURED to a permanent "Huduma
+    // ya kuangalia namba ya usajili haijawekwa bado" — a static message that
+    // announced the deployment's configuration to every visitor who mistyped a
+    // number, and that read as though the form were permanently broken even
+    // once the secret was in place.
+    //
+    // The distinction the student cannot act on is not drawn. Not found, rate
+    // limited, wrong format, unconfigured backend and a dropped connection all
+    // look identical from outside, which is the point: the difference between
+    // them is information about the registry, and a 429 that is distinguishable
+    // from a 404 is a free way to find out which numbers exist.
     setVerMark("err");
+    msg.innerHTML = `<p class="err">${esc(lookupFailureText())}</p>`;
 
-    // The contradictory-pair bug lived here. A 503 NOT_CONFIGURED used to be
-    // rendered by a shared path that appended its own sentence, while the hint
-    // line above still said the number looked right — so the form simultaneously
-    // said "that is correct" and "this service is not set up". Both messages now
-    // come from this one place, and the hint only ever speaks about states the
-    // student can act on, so the two can no longer disagree.
-    const text = await functionErrorText(e);
-    msg.innerHTML = `<p class="err">${esc(text)}</p>`;
-
-    // A misconfigured backend is an operator problem, not a student one. Say so
-    // once, in the console, where whoever deployed can see it — instead of
-    // leaking the deployment state to every visitor who hits the form.
-    const code = e && (e.context?.error?.code || e.code || "");
+    // The operator still gets told exactly what broke, in the console, where it
+    // cannot be read by the student the message is aimed at. This is the only
+    // place the real reason is allowed to appear.
+    const code = e && (e.context?.error?.code || e.code || e.statusCode || "");
+    console.error("verify: lookup-student failed.", { code, message: e?.message }, e);
     if (code === "NOT_CONFIGURED") {
       console.error(
         "verify: lookup-student returned NOT_CONFIGURED. "
@@ -1220,85 +1287,58 @@ async function verifyStep1(ev) {
     }
   } finally {
     // Wait out the remainder of the floor before releasing the button, so the
-    // spinner is visible long enough to register. A no-op once the request has
-    // already taken longer than the floor, which is the normal case.
+    // spinner is visible for long enough to register. A no-op once the request
+    // has already taken longer than the floor, which is the normal case.
     const remaining = MIN_SPIN_MS - (Date.now() - startedAt);
     if (remaining > 0) await new Promise((r) => setTimeout(r, remaining));
+    verifyInFlight = false;
     busy(btn, false);
   }
 }
 
-// Bypass path: reg number (step 1) + phone-on-file (step 2), no SMS involved.
-// Not reachable while REQUIRE_SMS_OTP is true (see the note above) — step 2's
-// button is wired to sendOtp() instead. Kept intact so the narrower path can be
-// switched back on without rewriting anything, but note it still discloses the
-// student's identity from verify_student_identity() *before* any OTP, which is
-// exactly what step 1 no longer does. If this is ever re-enabled, the
-// disclosure on the submit screen has to stay, because that is where it is
-// confirmed to be the person who holds the phone.
-async function confirmPhoneOnFile(ev) {
-  const btn = ev && ev.currentTarget;
-  const norm = normalizeTzPhone(document.getElementById("ver_phone").value);
-  const emsg = document.getElementById("ver2_msg");
-  if (!norm) {
-    setVerMark("err");
-    emsg.textContent = "Namba ya simu si sahihi. Tumia mfumo 07XXXXXXXX au +255XXXXXXXXX.";
-    return;
-  }
-  emsg.textContent = "";
-  setVerMark("wait");
-  busy(btn, true, "Inathibitisha...");
-  try {
-    const match = await API.verifyStudentIdentity(verifyMatch.reg, norm);
-    if (!match) {
-      setVerMark("err");
-      emsg.textContent = "Namba ya usajili na namba ya simu hazilingani na kumbukumbu zetu.";
-      return;
-    }
-    setVerMark("ok");
-    DB.studentSession = {
-      reg: verifyMatch.reg, name: match.full_name || "",
-      programme: match.programme || "", year: match.year_of_study || "",
-      phone: norm, verifiedAt: new Date().toISOString(), otp_verified: false,
-    };
-    D.saveStudentSession(DB.studentSession);
-    await API.logPublicAction("Student Verification (Reg+Phone, OTP pending)", verifyMatch.reg + " — " + norm);
-    go("submit", verifyTarget.preset);
-  } catch (e) {
-    emsg.textContent = await functionErrorText(e);
-  } finally {
-    busy(btn, false);
-  }
-}
-
-function normalizeTzPhone(v) {
-  v = String(v || "").replace(/[\s-]/g, "");
-  if (/^\+255\d{9}$/.test(v)) return v;
-  if (/^0\d{9}$/.test(v)) return "+255" + v.slice(1);
-  if (/^255\d{9}$/.test(v)) return "+" + v;
-  return null;
-}
+// There is deliberately no alternative path here any more.
+//
+// This used to carry confirmPhoneOnFile(): registration number on step 1, phone
+// number on file on step 2, identity on the submit screen with no SMS involved.
+// It was unreachable while REQUIRE_SMS_OTP was true, and its anon grant was
+// revoked in migration 012, so it was already dead — but dead code that
+// discloses a student's identity before any OTP is exactly the thing that must
+// not be left sitting in a file someone might edit. One flag flip, or one
+// well-meaning "let me make the phone step optional", would have reopened the
+// oracle the rest of this flow exists to close.
+//
+// verify_student_identity() is service_role only since migration 012, and
+// API.verifyStudentIdentity() no longer exists, so nothing in the browser can
+// reach it even by accident.
 
 let otpTimer = null;
 async function sendOtp(ev) {
   const btn = ev && ev.currentTarget;
-  const norm = normalizeTzPhone(document.getElementById("ver_phone").value);
   const emsg = document.getElementById("ver2_msg");
-  if (!norm) {
-    emsg.textContent = "Namba ya simu si sahihi. Tumia mfumo 07XXXXXXXX au +255XXXXXXXXX.";
-    return;
-  }
   emsg.textContent = "";
   busy(btn, true, "Inatuma...");
   setVerMark("wait");
   try {
-    await API.sendOtp(norm, verifyMatch.reg);
-    document.getElementById("ver_phone_out").textContent = norm;
+    // One argument, and it is not a phone number.
+    //
+    // send-otp used to take the number to deliver the SMS to, from the browser.
+    // It now takes only the registration number, and sends to whatever is on
+    // file. That is the change that closes the oracle no response field could
+    // close: a browser-supplied destination lets an attacker submit a guessed
+    // registration number together with a phone they own, and read the answer
+    // off their own inbox — an identical response body proves nothing when the
+    // signal is whether the message arrives.
+    //
+    // It also means the response carries no information. A real registration
+    // number and one belonging to nobody both resolve { ok: true }, so this must
+    // not be read as confirmation that a code was sent, and nothing here may
+    // branch on the result.
+    await API.sendOtp(verifyMatch.reg);
     document.getElementById("ver-step2").classList.add("hidden");
     document.getElementById("ver-step3").classList.remove("hidden");
     document.getElementById("ver3_msg").textContent = "";
     document.getElementById("ver_otp").value = "";
-    // still "wait": the code has been sent and we are waiting for it
+    // still "wait": we are waiting for a code that may or may not be coming.
     setVerMark("wait");
     startResendTimer();
   } catch (e) {
@@ -1334,23 +1374,55 @@ async function verifyOtp(ev) {
   const code = document.getElementById("ver_otp").value.trim();
   const msg = document.getElementById("ver3_msg");
   if (!/^\d{6}$/.test(code)) { msg.textContent = "Namba ya uthibitisho lazima iwe tarakimu 6."; setVerMark("err"); return; }
-  const phone = normalizeTzPhone(document.getElementById("ver_phone").value);
   busy(btn, true, "Inathibitisha...");
   setVerMark("wait");
   try {
-    const res = await API.verifyOtp(phone, code);
-    if (!res || !res.verified) { msg.textContent = "Namba ya uthibitisho si sahihi."; setVerMark("err"); return; }
+    // Keyed on the registration number, not on a phone. The browser no longer
+    // holds a phone number at any point in this flow, so there is nothing here
+    // that a script could point at a different student with — the code cannot be
+    // checked against somebody else's pending row by changing a request field.
+    const res = await API.verifyOtp(verifyMatch.reg, code);
+
+    // One rejection for every way it can fail. The server has already collapsed
+    // no-pending / expired / exhausted / wrong into a single response, so there
+    // is nothing to branch on here either — and nothing to branch on in the old
+    // message that used to say "si sahihi", which was chosen to cover the same
+    // set. Every one of those was reachable only when a code had actually been
+    // issued, which is to say only for a registration number that exists.
+    if (!res || res.verified !== true) {
+      msg.textContent = OTP_MESSAGES.INVALID_CODE;
+      setVerMark("err");
+      return;
+    }
     setVerMark("ok");
     // First disclosure of the student's identity in the whole flow, and it is
-    // earned: the code was just proved. programme/year come from the same
-    // response rather than from the step-1 lookup, which no longer has them.
+    // earned: the code was just proved. programme/year come from this response
+    // rather than from the step-1 lookup, which no longer carries them, and the
+    // phone number is returned here for the first time — after the proof, and
+    // only to the holder of that phone.
     DB.studentSession = {
       reg: verifyMatch.reg, name: res.full_name || "",
       programme: res.programme || "", year: res.year_of_study || "",
-      phone, verifiedAt: new Date().toISOString(), otp_verified: true,
+      phone: res.phone_number || "", verifiedAt: new Date().toISOString(), otp_verified: true,
     };
     D.saveStudentSession(DB.studentSession);
-    await API.logPublicAction("Student Verification (OTP)", verifyMatch.reg + " — " + phone);
+    await API.logPublicAction("Student Verification (OTP)", verifyMatch.reg + " — " + (res.phone_number || ""));
+
+    // The one affirmative message in the flow, and the only one that is allowed
+    // to mean something. It sits here, after the OTP is proved, rather than on
+    // the lookup step: a student who has not yet proved they hold the phone
+    // cannot be told their identity is confirmed, and saying so earlier would
+    // hand back exactly the existence oracle the rest of the form withholds.
+    msg.textContent = VERIFIED_TEXT;
+    // ver3_msg ships with class="err" in the markup, so the class is replaced
+    // rather than appended — leaving "err" on it would paint a success message
+    // in the failure colour.
+    msg.className = "ok-msg";
+
+    // Held long enough to be read. The button stays in its busy state for this
+    // beat, so the transition reads as spinner → confirmed → next screen rather
+    // than a jump cut that skips the one message worth reading.
+    await new Promise((r) => setTimeout(r, VERIFIED_HOLD_MS));
     go("submit", verifyTarget.preset);
   } catch (e) {
     msg.textContent = await functionErrorText(e);

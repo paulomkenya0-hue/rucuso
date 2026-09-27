@@ -207,46 +207,35 @@
 
     // ---------------- Students ----------------
     // The public does NOT read the students table and does NOT get identity
-    // back from a registration number. It asks one yes/no question through the
+    // back from a registration number. It asks a yes/no question through the
     // lookup-student Edge Function, which is rate-limited per registration
-    // number and per client IP and returns only { found: boolean }.
+    // number and per client IP — and which, since the existence-oracle fix, no
+    // longer answers the question at all.
     //
-    // The name, programme and year arrive later, from verify-otp, and only
-    // after the student has proved they hold the phone number on file. The
-    // lookup_student() RPC is service_role only as of migration 012, so this
-    // path cannot be reopened from the browser.
-    // Resolves to { found: boolean }.
+    // WHY THERE IS NO "found" FIELD ANY MORE
     //
-    // There is deliberately no second field. A number that is real but still in
-    // the legacy format, a number nobody holds, and a number that is not a
-    // registration number at all all come back as the same { found: false }.
-    // Distinguishing them in the response would let a script learn which
-    // numbers exist by reading devtools instead of by brute force, which is the
-    // one thing the rate limit is there to prevent. The UI shows one message
-    // for every failure, so nothing is lost by not knowing which it was.
-    async lookupStudentDetailed(regNumber, captchaToken) {
+    // This used to resolve to { found: boolean }. Removing the name, programme
+    // and year from that response closed the content of the leak but left the
+    // leak itself: `found` is one bit per guess, and the browser cannot be made
+    // to ignore a field it can read. The flow moved on to the OTP screen only
+    // when found was true, so the transition was the oracle even for a client
+    // that discarded the value.
+    //
+    // lookup-student now returns { ok: true } for every registration number, and
+    // this method returns void. There is no longer any question to ask here. The
+    // name, programme and year arrive from verifyOtp, and only after the student
+    // has proved they hold the phone number on file. The lookup_student() RPC is
+    // service_role only as of migration 012, so this path cannot be reopened
+    // from the browser.
+    //
+    // This throws only on a transport, CAPTCHA or rate-limit failure. It never
+    // resolves differently for a real number than for a fake one, so a caller
+    // cannot branch on existence — which is the property the whole flow rests on.
+    async lookupRegistrationNumber(regNumber, captchaToken) {
       const body = { reg: String(regNumber == null ? "" : regNumber).trim() };
       if (captchaToken) body.captchaToken = String(captchaToken);
-      const { data, error } = await client.functions.invoke("lookup-student", { body });
+      const { error } = await client.functions.invoke("lookup-student", { body });
       if (error) throw friendlyError(error);
-      return { found: !!(data && data.found === true) };
-    },
-
-    async lookupStudent(regNumber, captchaToken) {
-      const r = await this.lookupStudentDetailed(regNumber, captchaToken);
-      return r.found;
-    },
-    // Temporary OTP-bypass path (see migration 006): confirms the phone
-    // number on file matches, without ever exposing that phone number.
-    // Returns null on any mismatch — caller cannot tell whether the
-    // registration number or the phone number was the problem.
-    // Unreachable while REQUIRE_SMS_OTP is true, and its anon grant was
-    // revoked in migration 012, so this now only resolves for a service-role
-    // caller. Kept so a deliberate rollback does not need a rewrite, but note
-    // that re-exposing it means re-granting it and adding a rate limit to it.
-    async verifyStudentIdentity(regNumber, phone) {
-      const rows = await ok(await client.rpc("verify_student_identity", { p_reg: regNumber, p_phone: phone }));
-      return rows && rows.length ? rows[0] : null;
     },
     // student_count() returns a scalar, so PostgREST replies with a bare number.
     async studentCount() {
@@ -334,17 +323,27 @@
 
     // ---------------- OTP (server-side Edge Functions) ----------------
     // The code, its hash and the SMS provider's key never leave the server.
-    // sendOtp() returns only a status. verifyOtp() returns the student's
-    // identity, but only once the code has been proved correct — that is the
-    // first and only point in the flow where a name or programme is disclosed.
-    async sendOtp(phoneNumber, studentRegNumber) {
+    //
+    // Neither of these takes a phone number. send-otp resolves the number on
+    // file from the registration number, and verify-otp resolves it again to
+    // find the pending code. That is deliberate: a browser-supplied destination
+    // is an out-of-band existence oracle, because an attacker can submit a
+    // guessed registration number with a phone they control and learn the
+    // answer by watching whether an SMS arrives — an identical response body
+    // proves nothing when the signal is the delivery itself.
+    //
+    // sendOtp() resolves for a real student and a made-up one alike, so its
+    // caller must not treat success as meaning a code was sent. verifyOtp()
+    // returns the student's identity, but only once the code has been proved
+    // correct — the first and only point where a name or programme is disclosed.
+    async sendOtp(studentRegNumber) {
       return ok(await client.functions.invoke("send-otp", {
-        body: { phone: phoneNumber, reg: studentRegNumber },
+        body: { reg: studentRegNumber },
       }));
     },
-    async verifyOtp(phoneNumber, code) {
+    async verifyOtp(studentRegNumber, code) {
       return ok(await client.functions.invoke("verify-otp", {
-        body: { phone: phoneNumber, code },
+        body: { reg: studentRegNumber, code },
       }));
     },
 

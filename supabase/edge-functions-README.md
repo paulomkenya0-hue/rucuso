@@ -34,37 +34,50 @@ currently pending, which is harmless.
 
 ## 2. `supabase/functions/send-otp/index.ts`
 
+**The request carries the registration number only. There is no `phone` field,
+and adding one reopens the oracle this was designed to close** — an attacker who
+controls the destination number can watch which registration numbers produce a
+text arriving at their own handset, and no amount of uniform HTTP responses
+touches that. The function resolves the student itself and texts the number on
+file.
+
 ```ts
 import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 serve(async (req) => {
-  const { phone, reg } = await req.json();
-  if (!phone || !/^\+255\d{9}$/.test(phone)) {
-    return new Response(JSON.stringify({ error: "Invalid phone" }), { status: 400 });
-  }
+  const { reg } = await req.json();
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")! // service role: bypasses RLS, server-only
   );
 
-  // Look up the student (server-side, full access)
+  // Look up the student (server-side, full access) and take the phone from here.
   const { data: student } = await supabase
-    .from("students").select("id").eq("registration_number", reg).single();
+    .from("students").select("id, phone_number").eq("registration_number", reg).maybeSingle();
+
+  // Uniform success from here on. An unknown number, a student with no phone on
+  // file, a failed provider call and a per-number send limit all look the same
+  // to the caller, because each of them is reachable *only* for a number that
+  // exists. Log the reason; do not return it.
+  if (!student || !student.phone_number) {
+    console.warn("send-otp: no deliverable destination", { reg });
+    return json({ ok: true, expires_in: 300 });
+  }
 
   const otp = String(Math.floor(100000 + Math.random() * 900000));
   const otpHash = await hash(otp); // see helper below — never store the plain OTP
 
   await supabase.from("otp_verifications").insert({
-    phone_number: phone,
-    student_id: student?.id ?? null,
+    phone_number: student.phone_number,
+    student_id: student.id,
     otp_hash: otpHash,
     expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
   });
 
   // ---- send via your SMS provider (example shape — adjust to your provider's API) ----
-  await fetch(`https://api.${Deno.env.get("SMS_PROVIDER")}.example/send`, {
+  const sent = await fetch(`https://api.${Deno.env.get("SMS_PROVIDER")}.example/send`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -72,32 +85,57 @@ serve(async (req) => {
     },
     body: JSON.stringify({
       sender_id: Deno.env.get("SMS_SENDER_ID"),
-      to: phone,
+      to: student.phone_number,
       message: `RUCUSO: Namba yako ya uthibitisho ni ${otp}. Usimpe mtu mwingine.`,
     }),
-  });
+  }).then((r) => r.ok).catch(() => false);
 
-  return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+  if (!sent) {
+    // Discard the row: a code nobody received should not hold a slot, and must
+    // not be verifiable later if it is guessed. The caller still sees success.
+    console.error("send-otp: message was not delivered", { reg });
+    await supabase.from("otp_verifications").delete().eq("student_id", student.id);
+  }
+
+  return json({ ok: true, expires_in: 300 });
 });
-
-async function hash(text: string) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
-}
 ```
 
 ## 3. `supabase/functions/verify-otp/index.ts`
+
+**The request carries the registration number and the code — not a phone
+number.** The function resolves the phone server-side, exactly as `send-otp`
+did, so the two cannot be pointed at different students by editing a request
+field.
+
+Every rejection below the proof is the *same* rejection. Not "no pending OTP",
+not "expired", not "too many attempts", not "incorrect code": those four are
+distinguishable from one another, and all four are reachable only for a
+registration number that exists, which is the whole oracle in a different coat.
+Pick one response and use it for all of them.
 
 ```ts
 import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const REJECTED = { verified: false, error: "INVALID_CODE" };
+// Used when there is no row, so a rejection costs the same work either way and
+// the response time does not say whether a code was ever issued.
+const NO_PHONE = "+255000000000";
+const NO_HASH = "0".repeat(64);
+
 serve(async (req) => {
-  const { phone, code } = await req.json();
+  const { reg, code } = await req.json();
+  if (!/^\d{6}$/.test(String(code))) return json(REJECTED, 400);
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
+
+  const { data: student } = await supabase
+    .from("students").select("id, phone_number").eq("registration_number", reg).maybeSingle();
+  const phone = student?.phone_number ?? NO_PHONE;
 
   const { data: row } = await supabase
     .from("otp_verifications")
@@ -106,27 +144,35 @@ serve(async (req) => {
     .eq("verified", false)
     .order("created_at", { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
-  if (!row) return json({ verified: false, reason: "No pending OTP." });
-  if (new Date(row.expires_at) < new Date()) return json({ verified: false, reason: "Expired." });
-  if (row.attempts >= 5) return json({ verified: false, reason: "Too many attempts." });
+  // No row, expired, attempts exhausted: treat the row as dead but still finish
+  // the comparison below, then reject. All of these end in the same response.
+  let dead = false;
+  if (!row) dead = true;
+  else if (new Date(row.expires_at) < new Date()) dead = true;
+  else if (row.attempts >= 5) dead = true;
 
   const codeHash = await hash(code);
-  await supabase.from("otp_verifications").update({ attempts: row.attempts + 1 }).eq("id", row.id);
+  if (row && !dead) {
+    await supabase.from("otp_verifications").update({ attempts: row.attempts + 1 }).eq("id", row.id);
+  }
 
-  if (codeHash !== row.otp_hash) return json({ verified: false, reason: "Incorrect code." });
+  // Always compare, always against a real-length hash.
+  const matches = timingSafeEqual(codeHash, row?.otp_hash ?? NO_HASH);
+  if (dead || !matches) return json(REJECTED, 400);
 
   await supabase.from("otp_verifications").update({ verified: true }).eq("id", row.id);
-  return json({ verified: true, student_id: row.student_id });
+
+  // First and only disclosure of identity, and it is earned.
+  return json({ verified: true, student_id: student.id, full_name: student.full_name });
 });
 
-function json(body: unknown) {
-  return new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
-}
-async function hash(text: string) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+function timingSafeEqual(a: string, b: string) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 ```
 

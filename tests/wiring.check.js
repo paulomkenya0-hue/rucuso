@@ -18,10 +18,10 @@ const MODULES = ["js/verify-ux.js", "js/map.js", "js/tilt.js"];
 
 // Classes the new modules attach to, which have to be styled somewhere.
 // Classes that must be styled because markup or JS depends on them. Kept in
-// step with what the verify view actually renders: the character counter and
-// the support-link row were both removed, so requiring them here would only
-// keep dead CSS alive.
-const NEEDS_STYLE = [".tilt", ".btn__spin", ".mapcard", ".ratelimit", ".freveal", ".vercaptcha", ".fhint"];
+// step with what the verify view actually renders: the character counter, the
+// support-link row and the on-demand format reveal have all been removed, so
+// requiring them here would only keep dead CSS alive.
+const NEEDS_STYLE = [".tilt", ".btn__spin", ".mapcard", ".ratelimit", ".vercaptcha", ".fhint"];
 
 let problems = 0;
 const seen = new Set();

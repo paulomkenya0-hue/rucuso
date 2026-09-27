@@ -570,47 +570,58 @@
           <h3 style="margin-top:0;">Namba ya Usajili</h3>
           <p class="muted muted--lg">Andika Namba yako rasmi ya Usajili iliyotolewa na chuo.</p>
           <label for="ver_reg">Namba ya usajili</label>
-          <!-- No format in the placeholder and no character counter. Both were
-               oracles: together they told a script the right length and the
-               right general shape before it sent a single request. -->
+          <!-- Nothing here states the format: no placeholder example, no helper
+               line, no character counter, and no control that reveals one. The
+               shape lives only in verify-ux.js and in the database CHECK
+               constraint. A student who cannot recall it has to ask the office,
+               which is the intended cost of not handing the number space to
+               every visitor and every scraper that reads the page source. -->
           <input id="ver_reg" placeholder="Namba yako ya usajili" autocomplete="off" autocapitalize="characters" spellcheck="false"
                  aria-describedby="ver1_hint ver1_limit">
           <p class="fhint" id="ver1_hint" role="status" aria-live="polite"></p>
           <div id="ver1_limit" class="ratelimit" role="status" aria-live="polite" hidden></div>
           <div id="ver1_msg" role="status" aria-live="polite" style="margin-top:var(--sp-3);"></div>
-          <!-- Turnstile mounts here, inside the form, only when a site key is
-               configured. Empty and hidden otherwise so nothing shows by
-               default. While a key IS configured the "Endelea" button stays
-               disabled until the widget reports success. -->
+          <!-- Turnstile mounts here, inside the form, immediately above the
+               button. With no site key configured the form fails closed and says
+               so generically rather than letting a regex match stand in for a
+               solved CAPTCHA. -->
           <div id="verCaptcha" class="vercaptcha" style="margin-top:var(--sp-3);"></div>
           <button class="pri" id="ver1_btn" onclick="verifyStep1(event)">
             <span class="btn__spin" aria-hidden="true"></span>
             <span class="btn__label">Endelea</span>
           </button>
-          <!-- Hidden in the served HTML. A student who cannot recall the shape
-               asks for it, so the format costs one deliberate click instead of
-               being public to every visitor and every scraper. -->
-          <p class="freveal" id="ver1_example" hidden>Mfumo wa namba: <code>RU/&lt;KODI&gt;/&lt;MWAKA&gt;/&lt;NUMIA&gt;</code> &mdash; kwa mfano <code>RU/BAFIT/2024/007</code></p>
-          <button type="button" class="link freveal__btn" id="ver1_reveal" data-action="reveal-format" aria-expanded="false" aria-controls="ver1_example">Namba haijasikika? Onyesha mfano</button>
         </div>
 
         <div id="ver-step2" class="hidden">
-          <span class="badge badge--live">Namba imepatikana</span>
+          <span class="badge badge--live">Uthibitisho wa simu</span>
           <p class="muted muted--lg" style="margin-top:var(--sp-3);">
-            Namba yako ya usajili ipo kwenye kumbukumbu zetu. Ili kuendelea, ithibitishe
-            kwamba namba ya simu unayo ni yako kwa kupokea namba ya uthibitisho (OTP).
-            Jina, programu na mwaka wako wataonekana baada ya uthibitisho kufaulu.
+            Tutakutumia namba ya uthibitisho (OTP) kwa simu iliyosajiliwa na
+            chuo. Jina, programu na mwaka wako wataonekana baada ya uthibitisho
+            kufaulu.
           </p>
-          <label for="ver_phone">Namba ya simu</label>
-          <p class="muted" id="ver2_hint">Ingiza namba yako ya simu ya Tanzania (mfano 07XXXXXXXX au +255XXXXXXXXX).</p>
-          <input id="ver_phone" placeholder="07XXXXXXXX" inputmode="tel" autocomplete="tel">
+          <!-- No phone field here, and its absence is load-bearing.
+               This step used to ask the student to type their phone number, and
+               send-otp delivered the code to whatever was typed. That made the
+               delivery destination attacker-controlled: a script could submit a
+               guessed registration number with a phone it owns and learn the
+               answer by seeing whether an SMS arrived, no matter what the
+               response said. The code now goes to the number on file, so there
+               is nothing here for the browser to choose and nothing to render
+               back. This screen is also reached by a registration number that
+               belongs to nobody, identically to one that does not — that is the
+               point of the step, and it is why it cannot claim the number was
+               recognised. -->
+          <p class="muted" id="ver2_hint" style="margin-top:var(--sp-2);">
+            Kama namba ya simu uliyosajiliwa si yako, wasiliana na msimamizi wa
+            mfumo.
+          </p>
           <div id="ver2_msg" class="err" role="alert" aria-live="assertive" style="margin-top:var(--sp-2);"></div>
           <button class="pri" id="ver2_btn" onclick="sendOtp(event)">TUMA OTP</button>
         </div>
 
         <div id="ver-step3" class="hidden">
           <label for="ver_otp">Namba ya uthibitisho</label>
-          <p class="muted">Ingiza tarakimu 6 zilizotumwa kwa <b id="ver_phone_out"></b>.</p>
+          <p class="muted">Ingiza tarakimu 6 zilizotumwa kwa simu yako iliyosajiliwa.</p>
           <input id="ver_otp" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" style="letter-spacing:.35em;font-size:var(--fs-lg);text-align:center;">
           <div id="ver3_msg" class="err" role="alert" aria-live="assertive" style="margin-top:var(--sp-2);"></div>
           <button class="pri" onclick="verifyOtp(event)">THIBITISHA OTP</button>

@@ -330,40 +330,6 @@ button.pri:disabled {
 .fhint--ok { color: var(--ok); }
 .fhint--warn { color: var(--warn, #a8630a); }
 
-/* The format example, and the control that reveals it. Not in view on load, so
-   the shape is not public to every visitor and every scraper. Still available
-   to a student who asks for it, which is the difference between hiding it and
-   making people guess. */
-.freveal {
-  margin: var(--sp-3) 0 0;
-  font-size: var(--fs-xs);
-  color: var(--muted);
-  line-height: 1.6;
-}
-
-/* hidden beats the display rule below, so the reveal genuinely disappears
-   rather than being pushed around by it */
-.freveal[hidden] { display: none; }
-
-.freveal code {
-  font-family: var(--font-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
-  background: var(--bg-alt);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 1px 5px;
-  font-size: 0.95em;
-}
-
-.freveal__btn {
-  font-size: var(--fs-xs);
-  color: var(--muted);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  margin-top: 2px;
-}
-
-.freveal__btn:hover { color: var(--navy); }
-
 /* The Turnstile mount. Centred and given a little air, because Cloudflare
    renders an iframe in here and the form should not reflow around it. */
 .vercaptcha:empty { display: none; }

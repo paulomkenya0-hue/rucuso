@@ -23,5 +23,5 @@ window.RUCUSO_CONFIG = {
   // dashboard, put the site key above, then set the secret on the server:
   //   supabase secrets set TURNSTILE_SECRET_KEY=<secret>
   //   supabase functions deploy lookup-student
-  TURNSTILE_SITE_KEY: ""
+  TURNSTILE_SITE_KEY: "0x4AAAAAAFFBt2VN06MOh0FZ"
 };

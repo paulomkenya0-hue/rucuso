@@ -136,49 +136,67 @@ ok("pasted text is normalised too", /"paste"/.test(src));
 // regression against a stated requirement, so both are asserted.
 ok("button state consults the CAPTCHA gate", /captchaSatisfied\(\)/.test(src));
 ok(
-  // Inverted form: the button is enabled only when all three hold. Matching
-  // either "ready = a && b && c" or "disabled = !(a && b && c)" accepts both
-  // the current code and a refactor that keeps the same gate.
   "the gate is regex AND captcha, not either",
   /var ready = result\.ok && left > 0 && captchaOk/.test(src)
   || /disabled = !\(result\.ok && left > 0 && captchaOk\)/.test(src),
   "setButtonState does not combine all three conditions",
 );
+// Inverted on purpose. The previous assertion here was the opposite of this —
+// it required a missing site key to count as a satisfied CAPTCHA, so that a
+// deployment which forgot to configure Turnstile would light the button up and
+// look exactly like one where a CAPTCHA had been solved. That is a control that
+// fails to the permissive side, so it is asserted in the strict direction now.
 ok(
-  "an unconfigured CAPTCHA does not disable the button forever",
-  /if \(!isCaptchaEnabled\(\)\) return true/.test(src),
-  "with no site key the button could never enable",
+  "an unconfigured CAPTCHA does NOT count as satisfied",
+  /function captchaSatisfied\(\) \{\s*if \(!isCaptchaEnabled\(\)\) return false;/.test(src)
+  && !/if \(!isCaptchaEnabled\(\)\) return true/.test(src),
+  "a missing site key is being treated as a solved CAPTCHA",
 );
 ok("solving the CAPTCHA re-runs the gate", /callback: function \(token\) \{[\s\S]{0,400}setButtonState/.test(src));
 ok("an expired CAPTCHA re-closes the gate", /expired-callback[\s\S]{0,120}setButtonState/.test(src));
 ok("the guard re-checks the captcha, not just the button", /if \(!captchaSatisfied\(\)\)/.test(src));
 
-// ---- helper text: must NOT leak the format --------------------------------
-// The format and a live character counter together are an oracle: they tell a
-// script the right length and the right general shape before it sends a single
-// request. Both were removed, so both are asserted absent.
+// ---- the format must not appear in the visible UI at all -------------------
+// Not hidden, not behind a click: absent. A control that reveals the format on
+// demand was tried and reverted, because "Namba haijasikika? Onyesha mfano" is
+// itself a statement that a format exists, and the shape then lives in the
+// served JS bundle for anyone who opens the source. If the shape has to be kept
+// out of the page, the way to do that is to not have it there.
 const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
 const verifyView = html.slice(html.indexOf('id="view-verify"'), html.indexOf('id="view-submit"'));
+const motionCss = fs.readFileSync(path.join(ROOT, "css", "motion.css"), "utf8");
+const lookupFn = fs.readFileSync(
+  path.join(ROOT, "supabase", "functions", "lookup-student", "index.ts"), "utf8");
+const configJs = fs.readFileSync(path.join(ROOT, "supabase", "config.js"), "utf8");
 
 ok("the character counter is gone", !/id="ver1_counter"/.test(html));
 ok("nothing renders a character counter", !/fcounter/.test(js) && !/fcounter/.test(html));
 ok("the placeholder states no format", !/placeholder="[^"]*RU\//i.test(verifyView));
 ok("the neutral instruction is present",
   /Andika Namba yako rasmi ya Usajili iliyotolewa na chuo/.test(verifyView));
-
-// The format may still be available, but only behind a deliberate click.
-ok("the format example is hidden in the served HTML",
-  /id="ver1_example"[^>]*\bhidden\b/.test(verifyView));
-ok("there is a control that reveals it", /id="ver1_reveal"/.test(verifyView));
-ok("the reveal control is wired", /data-action="reveal-format"/.test(verifyView));
-ok("the reveal is accessible",
-  /aria-expanded="false"[^>]*aria-controls="ver1_example"/.test(verifyView));
+ok("there is no reveal control", !/id="ver1_reveal"/.test(html));
+ok("there is no format example element", !/id="ver1_example"/.test(html));
+ok("no format example is served in the verify view", !/RU\/BAFIT/.test(verifyView));
+ok("no control offers to show the format", !/Onyesha mfano/.test(verifyView));
+ok("the reveal handler is gone from the script", !/toggleFormat|reveal-format/.test(js));
+ok("no reveal styles remain", !/freveal/.test(motionCss));
+// A literal example anywhere in the view is a leak, hidden or not.
+ok("the verify view never spells out a sample number",
+  !/RU\/[A-Z]{2,6}\/\d{4}\/\d{3,4}/.test(verifyView));
 
 // ---- no success oracle -----------------------------------------------------
 // "that looks right" is as much a leak as the format itself.
 ok("no success confirmation is shown for a valid number",
   !/Namba inaonekana sahihi/.test(js) && !/Namba inaonekana sahihi/.test(html));
 ok("the hint never confirms correctness", !/fhint--ok/.test(js));
+
+// The hint's *presence* is a signal too. It used to render only when the number
+// was well-formed, which meant watching #ver1_hint told you whether the shape
+// matched without sending a request.
+const hintBlock = js.slice(js.indexOf("if (els.hint)"), js.indexOf("function renderLimit"));
+ok("the hint does not branch on whether the number validated",
+  !/result\.ok\s*&&/.test(hintBlock) && !/result\.ok\s*\|\|/.test(hintBlock),
+  "the hint text still depends on the number's validity, which is an oracle");
 
 // ---- one message for every failure ----------------------------------------
 ok("a single failure string is defined", /var FAIL_TEXT =/.test(js));
@@ -195,20 +213,114 @@ ok("no code path still builds a legacy-specific message",
 ok("support links are not attached to individual failures", !/supportHtml/.test(appJs));
 ok("the unused support-link builder was removed", !/function supportHtml/.test(js));
 
-// ---- the contradictory pair ------------------------------------------------
-// The reported bug: "Namba inaonekana sahihi" next to "Huduma ya kuangalia namba
-// ya usajili haijawekwa bando". One is gone; the other must render in the same
-// place as every other error rather than being appended alongside.
-ok("the catch block is the single place server errors are rendered",
-  /const text = await functionErrorText\(e\);\s*msg\.innerHTML/.test(appJs),
-  "errors are still rendered from more than one place");
-ok("a misconfigured backend is logged for the operator, not the student",
-  /NOT_CONFIGURED/.test(appJs) && /console\.error/.test(appJs));
+// ---- the static "not configured" message is gone ---------------------------
+// The reported bug: a permanent "Huduma ya kuangalia namba ya usajili
+// haijawekwa bado" that appeared for every visitor who mistyped a number.
+//
+// Comments are stripped first. The prose explaining why the string was removed
+// necessarily quotes it, and a test that fails on its own explanation is a test
+// that pushes the next person to delete the explanation instead of the string.
+const appCode = appJs.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
+ok("the static not-configured sentence is gone from the shipped bundle",
+  !/Huduma ya kuangalia namba ya usajili/.test(appCode),
+  "the deployment's configuration is still being announced to visitors");
+// Anchored to the start of a line so SMS_PROVIDER_NOT_CONFIGURED, which is a
+// different code with a legitimately different message, is not matched by the
+// substring NOT_CONFIGURED.
+ok("it is not in the message table either", !/^[ \t]*NOT_CONFIGURED:/m.test(appCode));
+ok("the unrelated SMS code keeps its own message",
+  /^[ \t]*SMS_PROVIDER_NOT_CONFIGURED:/m.test(appCode));
+ok("the lookup catch renders the generic sentence, not the code's own text",
+  /esc\(lookupFailureText\(\)\)/.test(appCode),
+  "the catch block is still rendering a per-code message");
+ok("the catch block does not consult the per-code message table",
+  !/functionErrorText/.test(appCode.slice(
+    appCode.indexOf("async function verifyStep1"), appCode.indexOf("let otpTimer"))),
+  "the lookup step is still able to render a code-specific sentence");
+ok("the real reason is still logged for the operator",
+  /console\.error\("verify: lookup-student failed\./.test(appCode));
 
-// ---- spinner ---------------------------------------------------------------
+// ---- uppercase + caret -----------------------------------------------------
+ok("input is forced to upper case", /function forceUpper/.test(js));
+ok("the caret is saved and restored around the transform",
+  /selectionStart/.test(js) && /selectionEnd/.test(js) && /setSelectionRange/.test(js));
+ok("a paste is normalised too", /addEventListener\("paste"/.test(js));
+
+// ---- CAPTCHA ---------------------------------------------------------------
+ok("the button gate combines the number, the budget and the CAPTCHA",
+  /disabled = !\(result\.ok && left > 0 && captchaOk\)/.test(js));
+ok("the CAPTCHA mount sits inside the form",
+  verifyView.indexOf('id="verCaptcha"') > -1
+  && verifyView.indexOf('id="verCaptcha"') < verifyView.indexOf('id="ver1_btn"'),
+  "Turnstile must mount immediately above the button");
+ok("a missing site key fails closed rather than passing",
+  /function captchaSatisfied\(\) \{\s*if \(!isCaptchaEnabled\(\)\) return false;/.test(js),
+  "a deployment with no Turnstile key is running with no CAPTCHA and no warning");
+ok("a Turnstile load failure also fails closed", /captchaFault = "load-failed"/.test(js));
+ok("the fault is reported to the operator", /TURNSTILE_SITE_KEY is not set/.test(js));
+ok("the fault message says nothing about configuration",
+  /function captchaFaultText\(\) \{\s*return CAPTCHA_FAULT_TEXT;/.test(js)
+  && !/haijasajiliwa|not configured/i.test(js.slice(
+    js.indexOf("var CAPTCHA_FAULT_TEXT"), js.indexOf("function captchaFaultText"))),
+  "the student-facing fault text is explaining the deployment");
+ok("the token is read only from the widget", /function captchaTokenValue/.test(js));
+ok("the secret is never referenced in the browser",
+  !/TURNSTILE_SECRET_KEY/.test(js) && !/TURNSTILE_SECRET_KEY/.test(appJs));
+ok("the token is sent with the lookup",
+  /lookupRegistrationNumber\(reg, captchaToken\)/.test(appJs));
+ok("the server verifies the token", /siteverify/.test(lookupFn));
+
+// The client fails closed on a blank site key, but the client cannot see the
+// secret — so a site key without a secret is a deployment where the widget
+// renders, the student solves it, and the server discards the token. The server
+// has to refuse that outright rather than treat the missing secret as "no
+// CAPTCHA configured".
+ok("the server requires the secret rather than skipping the check when it is absent",
+  /if \(!captchaSecret\)/.test(lookupFn)
+  && !/if \(Deno\.env\.get\("TURNSTILE_SECRET_KEY"\)\) \{/.test(lookupFn),
+  "an absent secret is being treated as no CAPTCHA configured");
+ok("an absent secret with no opt-in is a hard failure",
+  /return json\(req, \{ error: "NOT_CONFIGURED" \}, 503\)/.test(lookupFn));
+ok("running without the secret is an explicit, named opt-in",
+  /LOCAL_DEV_SKIP_CAPTCHA/.test(lookupFn));
+ok("the opt-in must be set to exactly 1, so a typo cannot enable it",
+  /Deno\.env\.get\("LOCAL_DEV_SKIP_CAPTCHA"\) === "1"/.test(lookupFn));
+ok("the opt-in warns on every request, so it cannot be silent in production",
+  /LOCAL_DEV_SKIP_CAPTCHA[\s\S]{0,200}console\.warn/.test(lookupFn));
+ok("the opt-in is not wired into the browser or the committed config",
+  !/LOCAL_DEV_SKIP_CAPTCHA/.test(js) && !/LOCAL_DEV_SKIP_CAPTCHA/.test(appJs)
+  && !/LOCAL_DEV_SKIP_CAPTCHA/.test(configJs));
+
+// ---- spinner + duplicate submits -------------------------------------------
 ok("the button has a spinner element", /id="ver1_btn"[\s\S]{0,200}btn__spin/.test(verifyView));
 ok("busy() preserves the spinner markup", /querySelector\("\.btn__label"\)/.test(appJs));
+ok("the button is disabled and marked busy on click",
+  /busy\(btn, true, "Inathibitisha\.\.\."\)/.test(appJs));
 ok("there is a minimum visible spinner duration", /MIN_SPIN_MS/.test(appJs));
+ok("the spinner floor is 1500ms", /MIN_SPIN_MS = 1500/.test(appJs));
+ok("the floor only waits out the remainder",
+  /remaining = MIN_SPIN_MS - \(Date\.now\(\) - startedAt\)/.test(appJs),
+  "the floor must not delay the request itself");
+ok("duplicate submits are refused while one is in flight",
+  /let verifyInFlight = false/.test(appJs) && /if \(verifyInFlight\) return;/.test(appJs)
+  && /verifyInFlight = false/.test(appJs));
+ok("the in-flight flag is released in a finally block",
+  /finally \{[\s\S]{0,400}verifyInFlight = false/.test(appJs),
+  "a thrown request would leave the form permanently locked");
+
+// ---- success only after the OTP --------------------------------------------
+ok("the success sentence is defined once",
+  /const VERIFIED_TEXT = "Utambulisho umethibitishwa kikamilifu!"/.test(appJs));
+const otpFn = appJs.slice(appJs.indexOf("async function verifyOtp"));
+ok("it is shown only after verifyOtp returns verified",
+  otpFn.indexOf("await API.verifyOtp") < otpFn.indexOf("msg.textContent = VERIFIED_TEXT")
+  && /res\.verified !== true\) \{[\s\S]{0,200}return;/.test(otpFn),
+  "the success message is not gated on the OTP having passed");
+ok("a rejection renders the one shared sentence, not a per-case one",
+  /msg\.textContent = OTP_MESSAGES\.INVALID_CODE;/.test(otpFn),
+  "the OTP rejection is no longer uniform");
+ok("the success message does not use the error class",
+  /msg\.className = "ok-msg"/.test(appJs));
 
 // ---- the map ---------------------------------------------------------------
 const mapJs = fs.readFileSync(path.join(ROOT, "js", "map.js"), "utf8");
@@ -262,32 +374,68 @@ ok("there is a worklist for whoever supplies course codes", /registration_course
 ok("there is a report to confirm the migration finished", /registration_migration_report/.test(mig));
 
 // ---- server and client must agree on the format ---------------------------
+//
+// The format now lives in one place — _shared/otp.ts — so that lookup-student,
+// send-otp and verify-otp cannot drift apart and start disagreeing about which
+// numbers exist. That was a real bug once: lookup-student and send-otp each
+// built their own match, and a student could pass step 1 and then be told the
+// same number did not exist.
+const sharedFn = fs.readFileSync(
+  path.join(ROOT, "supabase", "functions", "_shared", "otp.ts"), "utf8");
 const fn = fs.readFileSync(
   path.join(ROOT, "supabase", "functions", "lookup-student", "index.ts"), "utf8");
-ok("the server enforces the same current format", /\^RU\\\/\[A-Z\]\{2,6\}\\\/\\d\{4\}\\\/\\d\{3,4\}\$/i.test(fn));
+ok("the server enforces the same current format",
+  /\^RU\\\/\[A-Z\]\{2,6\}\\\/\\d\{4\}\\\/\\d\{3,4\}\$\/i/.test(sharedFn));
+ok("the format check is a single shared helper",
+  /isRegistrationShaped/.test(fn) && /export function isRegistrationShaped/.test(sharedFn));
 ok("the server rejects malformed input before spending rate-limit budget",
-  fn.indexOf("CURRENT_RE.test") < fn.indexOf("consume_student_lookup_attempt"));
-ok("the legacy switch still exists for deployments that want it off",
-  /MIGRATION_LEGACY_LOOKUP/.test(fn));
+  // Compare call sites, not first mentions — both names appear in the import
+  // block, so indexOf finds the import first and says nothing.
+  fn.indexOf("isRegistrationShaped(reg)") < fn.indexOf("await consumeRateLimit("));
 ok("the server never returns a student column", !/select\([^)]*full_name/i.test(fn));
 
+// The existence oracle.
+//
 // The body is the last place a student can look, including without devtools —
-// any script that can POST can read it. Every negative branch must therefore be
-// the same { found:false }, with the reason kept in the server log.
+// any script that can POST can read it — so there is nothing left in it to read.
+// These are stronger than the old "every negative branch returns the same
+// found:false", because there is no longer a positive branch to leak.
 ok("the server sends no reason field at all", !/found: false, reason/.test(fn));
-ok("the legacy branch returns a bare found:false",
-  /allowLegacy\) \{[\s\S]{0,200}return json\(req, \{ found: false \}\)/.test(fn));
+ok("lookup-student has no existence field at all",
+  !/\bfound\b/.test(fn.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "")),
+  "lookup-student still mentions `found` in code");
+ok("every accepted response is the same constant",
+  /const ACCEPTED = \{ ok: true \}/.test(fn)
+  && (fn.match(/return json\(req, ACCEPTED\)/g) || []).length >= 3,
+  "the uniform response is not used everywhere it must be");
+ok("the registry query is still made, so timing does not leak",
+  /countStudentsMatching/.test(fn));
+// The one thing the count may do is reach the log. It must not reach a response.
+ok("the count cannot reach a response body",
+  !(fn.match(/return json\([^)]*matched/g) || []).length,
+  "the matched count is interpolated into a response");
+ok("the count is logged instead, for the operator",
+  /console\.log\([^)]*legacy/.test(fn));
 ok("the legacy case is logged server-side instead",
   /console\.log\([^)]*legacy/.test(fn));
-ok("the not-found branch returns a bare found:false too",
-  /if \(!found\) \{[\s\S]{0,120}return json\(req, \{ found: false \}\)/.test(fn));
 
 const client = fs.readFileSync(path.join(ROOT, "supabase", "supabase-client.js"), "utf8");
-ok("the client returns found and nothing else",
-  /return \{ found: !!\(data && data\.found === true\) \}/.test(client),
-  "the client is still surfacing a second field to the page");
-ok("the client no longer names the legacy case", !/"legacy"/.test(client));
-ok("app.js does not branch on a reason", !/result\.reason/.test(appJs));
+const clientCode = client.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+ok("the client returns no existence value at all",
+  !/\bfound\s*:/.test(clientCode) && !/\.found\b/.test(clientCode),
+  "the client is still surfacing an existence field to the page");
+ok("the client's lookup resolves to nothing",
+  /async lookupRegistrationNumber\(/.test(clientCode)
+  && !/return \{[^{}]*found/.test(clientCode));
+ok("the client no longer names the legacy case", !/"legacy"/.test(clientCode));
+ok("app.js does not branch on a reason", !/result\.reason/.test(appCode));
+ok("app.js does not branch on existence", !/\.found\b/.test(appCode));
+ok("there is no pre-OTP identity path in the browser",
+  !/verifyStudentIdentity/.test(clientCode) && !/confirmPhoneOnFile/.test(appCode));
+ok("the OTP step cannot be pointed at another destination",
+  !/id="ver_phone"/.test(html) && !/sendOtp\s*\(\s*phone/i.test(clientCode));
+ok("both OTP calls are keyed on the registration number",
+  /sendOtp\(verifyMatch\.reg\)/.test(appCode) && /verifyOtp\(verifyMatch\.reg, code\)/.test(appCode));
 
 report();
 

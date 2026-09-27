@@ -74,7 +74,7 @@ An `admin` additionally sees only the sidebar entries its `profiles.permissions`
 | `supabase/migrations/006_student_phone_verification.sql` | `verify_student_identity()` RPC |
 | `supabase/migrations/013_leadership_hierarchy.sql` | Tiers, positions, assignment trigger, executive access scope |
 | `supabase/functions/send-otp`, `verify-otp`, `rucuso-ai`, `leader-admin` | Edge Functions |
-| `supabase/functions/lookup-student` | Boolean-only registration check. Rate limited per number and per client; optional Turnstile |
+| `supabase/functions/lookup-student` | Pre-OTP gate. Rate limited per number and per client, Turnstile verified server-side, returns `{ok:true}` and nothing else — see "The existence oracle" |
 | `robots.txt`, `sitemap.xml`, `CNAME` | SEO / custom domain |
 
 ### The enhancement layer is optional by construction
@@ -146,49 +146,135 @@ visibly pending instead.
 
 ### Migrating the existing registry
 
-Until the backfill runs, `lookup-student` also searches
-`legacy_registration_number` and answers a legacy-shaped number with
-`found:false, reason:"legacy"`. The web form turns that into a specific
-message telling the student their record is pending migration and to contact
-the office — rather than the "number not found" message they would get for a
-genuine typo, which is false and sends them off to re-check a number that was
-correct all along.
+`lookup-student` still searches `legacy_registration_number`, because a student
+who has not been backfilled yet should not be told their number is wrong. It does
+not *say* so, though — see below.
 
-That response does disclose that a number belongs to a real, unmigrated
-student. It is bounded — it is strictly less than identity, and it is rate
-limited identically — but if a deployment would rather not disclose even that:
+`MIGRATION_LEGACY_LOOKUP` has been removed. There is no longer a switch to turn
+off, because there is no longer a response to turn off: the legacy case is now
+logged server-side and returned to the browser as the same `{ "ok": true }` that
+every other accepted number gets. The `legacy_registration_number` search stays
+until the backfill is finished, and can be dropped from `_shared/otp.ts` in the
+release that finishes it.
 
-```bash
-supabase secrets set MIGRATION_LEGACY_LOOKUP=false
-```
+### The existence oracle
 
-which collapses every legacy number to an ordinary not-found. Remove the legacy
-branch from `lookup-student` in the same release that finishes the backfill.
+This form is the only unauthenticated entry point into the student registry, so
+"which registration numbers exist" is worth protecting on its own. A registration
+number is a short, partly sequential, human-chosen string; an attacker can
+enumerate the plausible space quickly and, without care, learn who is enrolled
+and which cohort they are in.
+
+**The rule: nothing before the SMS code has been proved says anything about
+whether a number exists.** Not the status code, not the body, not the timing, and
+certainly not who receives a text message.
+
+| Stage | Known number | Unknown number |
+| --- | --- | --- |
+| `lookup-student` | `200 {"ok":true}` | `200 {"ok":true}` |
+| `send-otp` | `200 {"ok":true,"expires_in":300}` | `200 {"ok":true,"expires_in":300}` |
+| `verify-otp`, wrong code | `400 {"verified":false,"error":"INVALID_CODE"}` | `400 {"verified":false,"error":"INVALID_CODE"}` |
+| `verify-otp`, correct code | `200` + identity | unreachable — no code was ever sent |
+
+Four things make that hold.
+
+1. **The client never receives an existence value.** `lookup-student` returns
+   `{ "ok": true }` and nothing else. The form advances to step 2 on acceptance
+   alone, and `lookupRegistrationNumber()` resolves to `undefined` so there is
+   nothing to branch on. Reaching step 2 is not the answer any more.
+
+2. **The destination phone is server-side.** An earlier version had the student
+   type their phone number into step 2, and `send-otp` posted it. Uniform HTTP
+   responses would not have helped: an attacker who owns a phone can watch which
+   numbers produce a text message arriving at *their own* handset, and that is an
+   oracle no amount of response-shaping touches. `send-otp` now takes only the
+   registration number, resolves the student itself, and texts the number on
+   file. An unknown number sends nothing at all.
+
+3. **Identity arrives with the proof.** `verify-otp` is the first and only place
+   a name, programme, year, faculty or phone number is returned, and it returns
+   them only after the code matches. The browser holds no phone number at any
+   point before that, so a request field cannot be repointed at another student.
+
+4. **Failures are not just equal in body, they are equal in cause.** No pending
+   code, expired code, exhausted attempts, wrong code, deleted row, unknown
+   number and malformed number all resolve to the same
+   `INVALID_CODE`. An earlier version returned a distinct `NOT_FOUND` for a
+   number with no pending row, which was reachable *only* for numbers that exist
+   — the oracle, in a different coat.
+
+`verify-otp` also hashes a dummy value against a dummy phone number when there is
+no row to check, so a rejection costs the same work whether or not a code was
+ever issued. `lookup-student` runs its registry query for known and unknown
+numbers alike and returns the result to the log, not the response.
+
+**What this costs.** A student whose record has no usable phone on file, or whose
+SMS provider is down, is told the same thing as somebody whose number is not in
+the registry. Both outcomes are logged server-side with the reason, so the
+operator can see them, and neither is visible to the student. That is a
+deliberate trade of support convenience for a closed oracle, and it is the
+reason the operator log matters more than it used to.
 
 ### CAPTCHA
 
-Off by default, and the default is not a stub. `supabase/config.js` ships with
-`TURNSTILE_SITE_KEY: ""`, and while it is empty the identity check runs on the
-server-side rate limits alone — 20 attempts per registration number and 60 per
-client per 10 minutes. Those limits are the actual control; the CAPTCHA only
-raises the cost of an automated run.
+**A missing CAPTCHA locks the form. This is deliberate, and it is the one
+setting that can stop a student verifying at all.**
 
-To enable it:
+`supabase/config.js` ships with `TURNSTILE_SITE_KEY: ""`. In that state the
+verification form does *not* fall back to working without a CAPTCHA: the button
+stays disabled and the hint reads "Uthibitisho wa usalama haupatikani kwa sasa."
+The same happens if Cloudflare is unreachable at page load.
+
+The blank key is safe because the browser can see it. A blank
+`TURNSTILE_SECRET_KEY` on the function is *not* the same situation and used to be
+treated as though it were: the earlier code skipped verification entirely when
+the secret was absent, which fails open in the one deployment that matters — a
+site key set in `config.js` with the server secret forgotten. The widget renders,
+the student solves it honestly, the token arrives, and the server discards it
+without checking. The CAPTCHA is decorative and any script can skip it.
+
+So the server now requires the secret, and refuses the request with
+`503 NOT_CONFIGURED` when it is missing. Local work without a CAPTCHA is an
+explicit, loudly named opt-in that logs a warning on every request:
+
+```bash
+# LOCAL DEVELOPMENT ONLY. Never set this on a deployed function.
+supabase secrets set LOCAL_DEV_SKIP_CAPTCHA=1
+```
+
+The previous behaviour was the opposite. A missing site key made
+`captchaSatisfied()` return `true`, on the reasoning that the button would
+otherwise never enable on a fresh deployment. The problem is that a deployment
+which *forgot* to configure Turnstile then ran with no bot protection while the
+button looked identical to one where a CAPTCHA had been solved — no visible
+difference, no console warning, no way for anyone to notice. For a system whose
+entire job is deciding who may claim a student identity, "usable but unguarded"
+is the worse failure, so the gate now fails closed and the reason goes to the
+console.
+
+**Set the site key before telling students the form is live.** The order matters:
 
 1. Create a Turnstile widget for `rucuso.online` in the Cloudflare dashboard.
-2. Put the **site** key in `supabase/config.js`. Site keys are meant to be public.
-3. Set the secret on the server — this is the one that must never be in a file:
+2. Set the secret on the server — this is the one that must never be in a file:
 
    ```bash
    supabase secrets set TURNSTILE_SECRET_KEY=<secret>
    supabase functions deploy lookup-student
    ```
 
+3. Put the **site** key in `supabase/config.js`. Site keys are meant to be
+   public.
+
 `lookup-student` then requires a token and verifies it against Cloudflare's
 `siteverify` endpoint **on the server**, before spending any rate-limit budget.
-A token checked in the browser is a checkbox, not a CAPTCHA. A site key and
-secret that are both empty is a working site; a site key without the matching
-secret would reject every student, which is why the key ships blank.
+A token checked in the browser is a checkbox, not a CAPTCHA. Note the ordering
+in the steps above: deploying the secret before publishing the site key means
+there is no window in which the page shows a widget the server will not accept.
+
+If the site key is blank and you need the form usable immediately, that is a
+deliberate downgrade and it should be a temporary one — server-side rate limits
+(20 per registration number, 60 per client per 10 minutes) still apply, but they
+are a ceiling rather than a filter.
 
 ## What still lives in the browser
 
@@ -213,10 +299,12 @@ operation succeeded.
   Postgres decides what comes back. Migration 004 splits this per permission
   (`profiles.permissions`), and `super_admin` passes every check implicitly.
 - The public cannot read the `students` or `feedback` tables. Student verification goes through
-  the `lookup-student` Edge Function, which answers only "does this registration number exist?"
-  and is rate-limited per number and per client IP; the student's name, programme and year are
-  returned by `verify-otp` and only after the SMS code is proved. `lookup_student()` itself is
-  `service_role` only as of migration 012. Tracking goes through `track_feedback()`.
+  the `lookup-student`, `send-otp` and `verify-otp` Edge Functions, which return the same
+  response for every registration number until the SMS code is proved; the student's name,
+  programme, year and phone are returned by `verify-otp` and only after that. All three are
+  rate-limited per number and per client IP, and Turnstile is verified server-side.
+  `lookup_student()` itself is `service_role` only as of migration 012. Tracking goes through
+  `track_feedback()`.
 - Public submissions go through `submit_feedback()`, which mints the reference number, enforces
   anonymity server-side, and blocks duplicate spam inside the database.
 - The public leadership directory reads a dedicated `public_leaders` view, so registration
@@ -247,9 +335,10 @@ operation succeeded.
    anon key is public by design and is only safe because RLS is on every table. Never put a
    `service_role` or AI key in it. There is no second copy of this file — every page loads this
    one path.
-5. SMS OTP. `REQUIRE_SMS_OTP` in `js/app.js` is `true`, so a real SMS code is mandatory — set the
-   provider's credentials as Supabase secrets and deploy the three functions before letting
-   students in, or the verification screen will show a failure it cannot recover from:
+5. SMS OTP. A real SMS code is mandatory — the browser holds no phone number at any point, so
+   `send-otp` resolves the student itself and texts the number on file. Set the provider's
+   credentials as Supabase secrets and deploy the three functions before letting students in, or
+   every attempt will be refused with an error the form cannot recover from:
    ```bash
    supabase secrets set SMS_PROVIDER=beem            # or africastalking
    supabase secrets set SMS_API_KEY=your_key
@@ -261,10 +350,23 @@ operation succeeded.
    supabase functions deploy verify-otp
    supabase functions deploy lookup-student
    ```
-   See `supabase/edge-functions-README.md`. The phone-on-file fallback from migration 006 is
-   unreachable while the flag is `true`; turning it back off is a deliberate, documented
-   downgrade, not a default.
-6. Optional — the AI assistant:
+   `STUDENT_LOOKUP_RATE_LIMIT_SECRET` and `OTP_PEPPER` are not optional. All three functions
+   return `503 NOT_CONFIGURED` without them, which is the same response a caller gets if the
+   registry is unreachable, so a missing secret is a deployment fault to fix in the function log
+   rather than something a student can be told about.
+
+   Deploying these three is also what closes the oracle. The form's behaviour cannot be verified
+   from the browser alone: if `send-otp` is still on a revision that accepts a `phone` field, a
+   student can be texted at a number of their choosing. Check the deployed revision before
+   opening the form to anyone.
+6. Turnstile, required for the same reason and configured the same way — see "CAPTCHA" above.
+   Set both halves, or the form locks:
+   ```bash
+   # supabase/config.js: TURNSTILE_SITE_KEY = "<site key>"   (public, safe to commit)
+   supabase secrets set TURNSTILE_SECRET_KEY=<secret>
+   supabase functions deploy lookup-student
+   ```
+7. Optional — the AI assistant:
    ```bash
    supabase secrets set AI_API_KEY=your_provider_key
    supabase secrets set AI_MODEL=gpt-4o-mini
@@ -274,7 +376,7 @@ operation succeeded.
    Any OpenAI-compatible provider works; set `AI_API_BASE_URL` for gateways such as Groq,
    OpenRouter, DeepSeek or Together. Without this step the app still works and the AI button
    falls back to its built-in answers.
-7. Push to `main`; GitHub Pages publishes it.
+8. Push to `main`; GitHub Pages publishes it.
 
 ## Running it locally
 
@@ -320,11 +422,29 @@ node --test tests/heslb-security.test.js
 
 | Suite | What it covers |
 | --- | --- |
+| `otp-oracle.test.js` | Loads the real `lookup-student`, `send-otp` and `verify-otp` sources and calls them against a stub PostgREST. Asserts that known and unknown registration numbers get the same status, the same body and the same work; that no identity field appears before the code is proved; that a phone supplied in a request is never used; that an absent server secret fails closed; and that the uniform responses still leave the reasons in the operator log. It was checked by mutation: reintroducing `found` into the response fails 8 checks, and restoring the fail-open CAPTCHA gate fails 5. |
+| `verify-behaviour.test.js` | Runs the real `js/verify-ux.js` in a vm against a stub DOM and calls it. Covers upper-casing and caret preservation, the exact accept/reject set, that every failure returns one message, that the button stays locked without a solved CAPTCHA, the attempt budget, and that no mock approval path exists. |
+| `verify-rules.test.js` | Static guarantees over the markup and the bundle: no format in the visible UI, no per-code error message, no secret referenced in the browser, the CAPTCHA gate and the 1.5s spinner floor, and that no existence field survives anywhere in the flow. |
 | `hierarchy.test.js` | `refreshHierarchy`, `positionsByTier`, `vacantSlots`, `positionLabel`, and the LIKE escaping in `registrationPattern`. Loads the real `js/data.js` in a vm. |
 | `assets.test.js` | Every local `src`/`href` in all 20 pages resolves, every page has a favicon, and the icon files are valid ICO/PNG. |
 | `sql-structure.test.js` | Migrations have no unterminated string, dollar-quote or parenthesis, no mixed-case object names, and are numbered in order. |
 | `no-secrets.js` | No credential-shaped literal, and no service role key in the committed config. `no-secrets.test.js` proves the scanner would catch one. |
 | `heslb-*.test.js` | The HESLB verification, import and page behaviour. |
+
+Two helpers are not suites and are not run by `run-all.js`, because they print
+a snapshot rather than asserting:
+
+```
+node tests/show-verify-copy.js   # what a student can read on the registration step
+node tests/show-rls.js           # the RLS policies
+```
+
+`verify-behaviour.test.js` exists because the earlier suite only read
+`verify-ux.js` as text and re-ran the regexes it found, which cannot tell you
+what `validate()` returns or whether the button actually stays disabled. Writing
+it surfaced two real defects on the first run: a mutual recursion between
+`setButtonState()` and `renderLimit()` that overflowed the stack on page load,
+and a gate that counted a missing Turnstile key as a solved CAPTCHA.
 
 Two helpers are for reading, not for CI: `tests/show-rls.js` prints the policies, grants
 and RLS tables in a migration, and `tests/show-config.js` prints the *shape* of the config
@@ -380,17 +500,28 @@ toast. Nothing is ever written to `localStorage`.
 - [ ] Type nothing, type a malformed number, and type a well-formed number that belongs to nobody.
       All three must produce the same failure sentence. If any of them differ, that difference is
       an enumeration oracle.
-- [ ] Confirm the placeholder and the instruction state no format, and that the format example is
-      not in the page until "Namba haijasikika? Onyesha mfano" is pressed.
-- [ ] Press the reveal control twice and confirm it collapses again and `aria-expanded` tracks it.
-- [ ] Open the browser console, submit a number that does not exist, and confirm the page says
-      only the generic failure. Any `reason: "legacy"` / `reason: "not-found"` detail belongs on
-      the server, not in a value a student can read.
-- [ ] With `TURNSTILE_SITE_KEY` set, confirm "Endelea" stays disabled until the widget reports
-      success, and re-locks when the token expires. With it unset, confirm the button is governed
-      by the number alone.
-- [ ] Submit a real number on a slow connection and confirm the spinner is visible long enough to
-      read as progress, and that the button is never left spinning if the call throws.
+- [ ] Inspect the rendered copy of step 1 (`node tests/show-verify-copy.js`). It must contain no
+      sample number, no segment names and no quantifiers. There is no control that reveals the
+      format — it is not in the page at all, so a student who cannot recall it has to ask the
+      office.
+- [ ] With `TURNSTILE_SITE_KEY` blank, confirm the form **locks**: the button stays disabled and
+      the hint says the security check is unavailable. This is deliberate — see "CAPTCHA fails
+      closed" below. With a key set, confirm "Endelea" stays disabled until the widget reports
+      success, and re-locks when the token expires.
+- [ ] Submit a real number and a number that belongs to nobody, and compare `send-otp`'s two
+      responses with devtools open: same status, same body, same shape. Then confirm only the
+      real one produced a text message, and that it arrived at the number **on file** — not one
+      typed into the form, because there is no longer a field to type one into.
+- [ ] With a `TURNSTILE_SITE_KEY` set in `config.js` but no `TURNSTILE_SECRET_KEY` on the
+      function, confirm the form refuses with `503 NOT_CONFIGURED` rather than accepting. This is
+      the deployment that used to fail open. If you need to work locally without a CAPTCHA, set
+      `LOCAL_DEV_SKIP_CAPTCHA=1` and confirm the warning appears in the function log.
+- [ ] Submit a real number, then read the response of every request up to the correct code. None
+      of them may contain a name, programme, year, faculty, student id or phone number. If any
+      detail a student can read says something is not right, that is an enumeration oracle.
+- [ ] Submit a real number on a slow connection and confirm the spinner is visible for at least
+      1.5s, that the button is never left spinning if the call throws, and that a second click
+      during the request does not send a second lookup or spend a second attempt.
 
 ## Not built yet
 
