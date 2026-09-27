@@ -7,7 +7,14 @@
 <meta name="robots" content="noindex, nofollow">
 <link rel="stylesheet" href="/css/portal.css">
 <link rel="icon" type="image/png" sizes="32x32" href="../../assets/favicon-32.png">
-<link rel="apple-touch-icon" sizes="180x180" href="../../assets/apple-touch-icon.png">
+<link rel="apple-touch-icon" widths="180x180" href="../../assets/apple-touch-icon.png">
+<style>
+  /* Executive-only modules are hidden until the script confirms the caller
+     holds an executive post. RLS (migration 015) is the real boundary —
+     this only keeps the markup off screen for everyone else. */
+  .exec-only { display: none !important; }
+  .exec-only.visible { display: block !important; }
+</style>
 </head>
 <body>
 <header class="top">
@@ -21,6 +28,8 @@
   <nav class="sidebar">
     <a href="/leader/dashboard/" class="active">Dashibodi</a>
     <a href="#" id="navIssues">Masuala ya Wizara</a>
+    <a href="#" id="navStudents" class="exec-only">Wanafunzi</a>
+    <a href="#" id="navAnnouncements" class="exec-only">Matangazo</a>
   </nav>
   <main class="content">
     <div id="gate" class="card"><p class="muted">Inathibitisha akaunti...</p></div>
@@ -55,6 +64,45 @@
           </table>
         </div>
       </div>
+
+      <!-- Student directory: executive leaders only (migration 015 grants
+           is_executive_leader() read access to the students table). -->
+      <section class="card hidden exec-only" id="studentsModule" aria-labelledby="studentsHeading">
+        <h3 id="studentsHeading" style="margin-top:0">Wanafunzi</h3>
+        <p class="muted" style="margin-top:0">Orodha ya wanafunzi walioajisiliwa. Uthibitisho wa RLS (migration 015) huwapa viongozi wa kiutendaji uwezo wa kusoma orodha hii.</p>
+        <div style="margin-bottom:10px">
+          <input id="studentSearch" type="search" placeholder="Tafuta kwa jina au namba ya usajili…"
+                 style="width:100%;max-width:420px;padding:8px 10px;border:1px solid var(--border,#d9e0e8);border-radius:8px;font:inherit;">
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Namba ya Usajili</th><th>Jina</th><th>Programu</th><th>Mwaka</th><th>Hali</th></tr></thead>
+            <tbody id="studentRows"><tr><td colspan="5" class="muted">Inapakia...</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Announcements: executive leaders can publish and broadcast
+           system-wide (migration 015). -->
+      <section class="card hidden exec-only" id="announcementsModule" aria-labelledby="announcementsHeading">
+        <h3 id="announcementsHeading" style="margin-top:0">Matangazo</h3>
+        <p class="muted" style="margin-top:0">Chapisha na tangaza matangazo kwa wanafunzi wote. Uthibitisho wa RLS (migration 015) huwapa viongozi wa kiutendaji uwezo wa kuchapisha.</p>
+        <details style="margin-bottom:12px">
+          <summary style="cursor:pointer;font-weight:600;">+ Chapisha Tangazo Jipya</summary>
+          <div style="margin-top:10px;display:grid;gap:10px;max-width:560px">
+            <input id="annTitle" placeholder="Kichwa *" style="padding:8px 10px;border:1px solid var(--border,#d9e0e8);border-radius:8px;font:inherit;">
+            <textarea id="annDescription" placeholder="Maelezo *" rows="4" style="padding:8px 10px;border:1px solid var(--border,#d9e0e8);border-radius:8px;font:inherit;"></textarea>
+            <input id="annAudience" placeholder="Wanafunzi Wote" style="padding:8px 10px;border:1px solid var(--border,#d9e0e8);border-radius:8px;font:inherit;">
+            <button class="btn btn--primary" id="publishAnnouncementBtn" type="button">Chapisha</button>
+          </div>
+        </details>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Kichwa</th><th>Aina</th><th>Watazamaji</th><th>Tarehe</th></tr></thead>
+            <tbody id="announcementRows"><tr><td colspan="4" class="muted">Inapakia...</td></tr></tbody>
+          </table>
+        </div>
+      </section>
     </div>
   </main>
 </div>
@@ -127,6 +175,116 @@
       <td>${esc(r.status)}</td>
       <td>${esc(new Date(r.created_at).toLocaleDateString("sw-TZ"))}</td>
     </tr>`).join("") : `<tr><td colspan="5" class="muted">Hakuna masuala kwa sasa.</td></tr>`;
+
+  // ---------- Executive modules (migration 015) ----------
+  // is_executive_leader() names exactly the five posts the spec lists
+  // (president, vice_president, prime_minister, secretary_general, speaker).
+  // RLS is the real boundary — the students select and the announcements
+  // insert/update are granted in the database — this only reveals the UI.
+  if (executive) {
+    document.querySelectorAll(".exec-only").forEach((el) => el.classList.add("visible"));
+    setupExecutiveModules();
+  }
+
+  function setupExecutiveModules() {
+    // Nav: jump to the matching module.
+    document.getElementById("navStudents").addEventListener("click", (e) => {
+      e.preventDefault();
+      document.getElementById("studentsModule").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    document.getElementById("navAnnouncements").addEventListener("click", (e) => {
+      e.preventDefault();
+      document.getElementById("announcementsModule").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    // ----- Students -----
+    // The students table is readable by executives via the migration 015
+    // policy. listStudentsFull pages and counts server-side.
+    const studentRows = document.getElementById("studentRows");
+    const studentSearch = document.getElementById("studentSearch");
+    async function loadStudents() {
+      const term = studentSearch.value.trim();
+      let query = client.from("students").select(
+        "id, registration_number, full_name, programme, year_of_study, student_status",
+        { count: "exact" }
+      ).order("registration_number");
+      if (term) query = query.or(`full_name.ilike.%${term}%,registration_number.ilike.%${term}%`);
+      const { data, error } = await query.range(0, 99);
+      if (error) {
+        studentRows.innerHTML = `<tr><td colspan="5" class="err">${esc(error.message)}</td></tr>`;
+        return;
+      }
+      studentRows.innerHTML = data.length ? data.map(r => `
+        <tr>
+          <td>${esc(r.registration_number)}</td>
+          <td>${esc(r.full_name)}</td>
+          <td>${esc(r.programme || "—")}</td>
+          <td>${esc(r.year_of_study || "—")}</td>
+          <td>${esc(r.student_status || "active")}</td>
+        </tr>`).join("") : `<tr><td colspan="5" class="muted">Hakuna wanafunzi waliojapatikana.</td></tr>`;
+    }
+    let searchTimer = null;
+    studentSearch.addEventListener("input", () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(loadStudents, 250);
+    });
+    loadStudents();
+
+    // ----- Announcements -----
+    // Readable by any staff; publishing goes through the validated
+    // publish_announcement() RPC, whose RLS policy admits executives.
+    const annRows = document.getElementById("announcementRows");
+    async function loadAnnouncements() {
+      const { data, error } = await client
+        .from("announcements")
+        .select("id, title, category, audience, publish_date, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) {
+        annRows.innerHTML = `<tr><td colspan="5" class="err">${esc(error.message)}</td></tr>`;
+        return;
+      }
+      annRows.innerHTML = data.length ? data.map(a => `
+        <tr>
+          <td>${esc(a.title)}</td>
+          <td>${esc(a.category || "—")}</td>
+          <td>${esc(a.audience || "Wanafunzi Wote")}</td>
+          <td>${esc(new Date(a.created_at).toLocaleDateString("sw-TZ"))}</td>
+        </tr>`).join("") : `<tr><td colspan="5" class="muted">Hakuna matangazo kwa sasa.</td></tr>`;
+    }
+    document.getElementById("publishAnnouncementBtn").addEventListener("click", async (ev) => {
+      const btn = ev.currentTarget;
+      const title = document.getElementById("annTitle").value.trim();
+      const description = document.getElementById("annDescription").value.trim();
+      const audience = document.getElementById("annAudience").value.trim();
+      if (!title || !description) {
+        alert("Kichwa na maelezo yanahitajika.");
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = "Inachapisha...";
+      try {
+        // The RPC validates every field server-side and stamps the author
+        // from auth.uid(), so the leader cannot publish attributed to
+        // someone else.
+        await window.RucusoAPI.publishAnnouncement({
+          title, description, audience: audience || "All Students",
+          publishDate: new Date().toISOString().slice(0, 10),
+        });
+        document.getElementById("annTitle").value = "";
+        document.getElementById("annDescription").value = "";
+        document.getElementById("annAudience").value = "";
+        await loadAnnouncements();
+        alert("Tangazo limechapishwa kikamilifu.");
+      } catch (e) {
+        alert(e.message || "Imeshindikana kuchapisha tangazo.");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Chapisha";
+      }
+    });
+    loadAnnouncements();
+  }
 })();
 </script>
 </body>

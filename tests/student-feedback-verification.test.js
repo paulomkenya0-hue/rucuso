@@ -22,7 +22,7 @@ test('student verification uses registration number and last name instead of pho
 
 test('verification logic normalizes last-name checks and keeps identity hidden until success', () => {
   assert.match(appJs, /lastName.*trim|trim\(\).*lastName|verifyStudentLastName|last_name_verified/i);
-  assert.match(verifyStudent, /function normalizeLastName\(raw: unknown\)[\s\S]{0,120}raw\.trim\(\)\.toLowerCase\(\)/);
+  assert.match(verifyStudent, /function normalizeLastName\(raw: unknown\)[\s\S]{0,160}raw\.normalize\("NFKC"\)\.trim\(\)\.toLowerCase\(\)/);
   assert.match(verifyStudent, /verified:\s*true/);
   assert.match(client, /verifyStudent\(|last_name:|verifyStudentLastName/i);
   assert.doesNotMatch(appJs, /phone_number.*verified|otp_verified.*true|sendOtp\(/i);

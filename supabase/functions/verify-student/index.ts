@@ -9,10 +9,13 @@ import {
   preflight,
   readJson,
   getSupabase,
+  regFilter,
 } from "../_shared/otp.ts";
 
+
 function normalizeLastName(raw: unknown): string {
-  return typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  if (typeof raw !== "string") return "";
+  return raw.normalize("NFKC").trim().toLowerCase();
 }
 
 function errorResponse(req: Request, code: string, message: string, status: number) {
@@ -73,10 +76,11 @@ serve(async (req: Request) => {
       return errorResponse(req, "RATE_LIMITED", "Too many attempts. Please wait a moment and try again.", 429);
     }
 
+
     const { data, error } = await supabase
       .from("students")
       .select("id, registration_number, full_name, programme, year_of_study, last_name")
-      .or(`registration_number.ilike.${reg.replace(/([\\%_])/g, "\\$1")},legacy_registration_number.ilike.${reg.replace(/([\\%_])/g, "\\$1")}`)
+      .or(regFilter(reg))
       .limit(1)
       .maybeSingle();
 

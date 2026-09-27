@@ -117,7 +117,13 @@ export function isRegistrationShaped(reg: string): boolean {
 // this filter separately, and the two could disagree about what a registration
 // number is — which is how a student could pass the lookup step and then be
 // told the same number does not exist when the code was sent.
-function regFilter(reg: string): string {
+//
+// verify-student uses this too. It built its own inline filter for a while,
+// which disagreed with this one about whitespace: a number pasted as
+// "RU / BAFIT / 2024 / 007" matched here (normaliseReg strips the spaces) but
+// not there, so the same student was found by lookup-student and then rejected
+// by verify-student. One helper means the three functions cannot drift.
+export function regFilter(reg: string): string {
   const pattern = registrationPattern(normaliseReg(reg));
   return `registration_number.ilike.${pattern},legacy_registration_number.ilike.${pattern}`;
 }

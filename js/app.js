@@ -1899,12 +1899,16 @@ function openLeader(i) {
     ? '<a class="btn btn--gold" href="tel:' + esc(l.phone.replace(/\s+/g, "")) + '">' + navIcon(ICON_PHONE) + " " + esc(l.phone) + "</a>"
     : '<p class="muted">Namba ya simu ya kiongozi huyu bado haijawekwa kwenye mfumo.</p>';
   modalShell("leaderModalBg", l.name,
-    '<span class="avatar" style="width:84px;height:84px;margin:0 0 var(--sp-4)">' + (l.photo
-      ? '<img src="' + esc(l.photo) + '" alt="" width="84" height="84">'
+    // Enlarged photo: the card shows a 92px avatar, the lightbox shows the
+    // same picture large enough to actually recognise a face.
+    '<span class="avatar" style="width:160px;height:160px;margin:0 0 var(--sp-4)">' + (l.photo
+      ? '<img src="' + esc(l.photo) + '" alt="" width="160" height="160">'
       : navIcon("M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2")) + "</span>"
     + '<p class="leadercard__role" style="margin:0 0 var(--sp-3)">' + esc(leaderPositionLabel(l)) + "</p>"
     + (l.ministry ? '<p class="muted" style="margin:0 0 var(--sp-3)">' + esc(l.ministry) + "</p>" : "")
+    + (l.office ? '<p class="muted" style="margin:0 0 var(--sp-3)">' + esc(l.office) + "</p>" : "")
     + '<p style="color:var(--muted);line-height:1.75">' + (l.bio ? esc(l.bio) : "Maelezo ya majukumu ya kiongozi huyu bado hayajawekwa.") + "</p>"
+    + (l.responsibilities ? '<p style="color:var(--muted);line-height:1.75;margin-top:var(--sp-3)"><strong>Majukumu:</strong> ' + esc(l.responsibilities) + "</p>" : "")
     + '<div class="btnrow" style="margin-top:var(--sp-4);justify-content:flex-start">' + contact + "</div>",
     l.ministry || "Uongozi wa RUCUSO");
 }

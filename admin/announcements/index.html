@@ -1438,9 +1438,13 @@
 
     try {
 
+      // Both writes go through the validated RPCs (migration 015), which
+      // check every field server-side and take the author from auth.uid().
+      // The checks above are a fast-fail convenience for the operator; the
+      // RPC is the real boundary.
       if (id) {
 
-        await window.RucusoAPI.updateAnnouncement(
+        await window.RucusoAPI.updateAnnouncementValidated(
           id,
           payload
         );
@@ -1451,7 +1455,7 @@
 
       } else {
 
-        await window.RucusoAPI.createAnnouncement(
+        await window.RucusoAPI.publishAnnouncement(
           payload
         );
 

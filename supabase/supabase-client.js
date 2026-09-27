@@ -603,6 +603,39 @@
     async updateAnnouncement(id, patch) {
       return ok(await client.from("announcements").update(patch).eq("id", id).select());
     },
+    // Validated publish path (migration 015). The RPC checks every field
+    // server-side — title/description required and length-capped, expiry not
+    // before publish, image URL must be http(s) — and takes the author from
+    // auth.uid(), so a caller cannot publish attributed to someone else.
+    // RLS still applies: only super_admin, admins with manage_announcements,
+    // and executive leaders may publish.
+    async publishAnnouncement(payload) {
+      const row = ok(await client.rpc("publish_announcement", {
+        p_title: payload.title,
+        p_description: payload.description,
+        p_category: payload.category || null,
+        p_audience: payload.audience || "All Students",
+        p_publish_date: payload.publishDate || null,
+        p_expiry_date: payload.expiryDate || null,
+        p_image_url: payload.imageUrl || null,
+      }));
+      return row && row[0] ? row[0].id : null;
+    },
+    // Validated edit path (migration 015). Same server-side checks as
+    // publish_announcement(), for an existing announcement.
+    async updateAnnouncementValidated(id, payload) {
+      const row = ok(await client.rpc("update_announcement", {
+        p_id: id,
+        p_title: payload.title,
+        p_description: payload.description,
+        p_category: payload.category || null,
+        p_audience: payload.audience || "All Students",
+        p_publish_date: payload.publishDate || null,
+        p_expiry_date: payload.expiryDate || null,
+        p_image_url: payload.imageUrl || null,
+      }));
+      return row && row[0] ? row[0].id : null;
+    },
     async deleteAnnouncement(id) {
       return ok(await client.from("announcements").delete().eq("id", id));
     },
