@@ -41,9 +41,13 @@
     '<circle class="rucu-pin__core" cx="17" cy="14" r="5.4"/>' +
     "</svg>";
 
+  // The popup carries one outbound link, to Google Maps directions. An earlier
+  // version also offered a "Uongozi" link to rucuso.online/leader/ — that path
+  // does not exist (leader/ only has dashboard/ and login/), so it was a 404.
+  // There is nothing to link leadership to from here, so it is simply not
+  // offered rather than pointed somewhere that breaks.
   var directionsUrl = "https://www.google.com/maps/dir/?api=1&destination=" +
     CAMPUS.lat + "," + CAMPUS.lng;
-  var osmUrl = "https://www.openstreetmap.org/?mlat=" + CAMPUS.lat + "&mlon=" + CAMPUS.lng + "#map=17/" + CAMPUS.lat + "/" + CAMPUS.lng;
 
   var map = null;
 
@@ -86,8 +90,7 @@
       '<p class="rucu-popup__meta">Iringa, Tanzania<br>' +
       "7&deg;46&prime;34&Prime;S 35&deg;41&prime;47&Prime;E</p>" +
       '<div class="rucu-popup__actions">' +
-      '<a href="' + directionsUrl + '" target="_blank" rel="noopener noreferrer"> directions</a>' +
-      '<a class="is-alt" href="https://rucuso.online/leader/" target="_blank" rel="noopener noreferrer">Uongozi</a>' +
+      '<a href="' + directionsUrl + '" target="_blank" rel="noopener noreferrer">Fungua kwenye Google Maps</a>' +
       "</div>" +
       "</div>"
     );
@@ -182,26 +185,53 @@
     });
   }
 
-  // Only build the map once the section is close to the viewport. Leaflet is
-  // ~42KB gzipped plus tiles; a student who never scrolls to the map should not
-  // pay for it.
-  function initWhenNear() {
-    var section = document.getElementById("sec-location");
-    if (!section) return;
-    if (!("IntersectionObserver" in window)) { init(); return; }
-    var once = new IntersectionObserver(function (entries) {
+  // Only build the map once the section is close to the viewport.
+  //
+  // The map lives inside #view-verify, which is display:none until the student
+  // navigates there. A hidden element has no box, so an IntersectionObserver on
+  // it reports "not intersecting" — and whether it re-fires when the ancestor
+  // becomes visible is browser-dependent. Relying on that alone meant the map
+  // sometimes never appeared, which is the worst possible failure for the one
+  // thing on this screen that a student is looking for.
+  //
+  // So the observer is only an optimisation, and app.js also calls ensure()
+  // from go() when the verify view is opened. Whichever happens first wins, and
+  // build() is idempotent via the `map` guard.
+  var observer = null;
+
+  function observeWhenNear() {
+    var host = document.getElementById("mapHost");
+    if (!host || observer) return;
+    if (!("IntersectionObserver" in window)) return; // ensure() will handle it
+
+    observer = new IntersectionObserver(function (entries) {
       if (!entries.some(function (e) { return e.isIntersecting; })) return;
-      once.disconnect();
+      observer.disconnect();
+      observer = null;
       init();
     }, { rootMargin: "300px" });
-    once.observe(section);
+    observer.observe(host);
   }
 
-  window.RucusoMap = { init: init, CAMPUS: CAMPUS, get instance() { return map; } };
+  // Called by app.js when the verify view is shown. Safe to call repeatedly.
+  function ensure() {
+    var host = document.getElementById("mapHost");
+    if (!host) return;
+    if (map) {
+      // Already built, but the frame may have been laid out at a different size
+      // while hidden, so the tile grid and centre need recomputing.
+      if (map.invalidateSize) setTimeout(function () { map.invalidateSize(); }, 0);
+      return;
+    }
+    observeWhenNear();
+    init();
+  }
+
+  window.RucusoMap = { init: init, ensure: ensure, CAMPUS: CAMPUS, get instance() { return map; } };
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initWhenNear);
+    document.addEventListener("DOMContentLoaded", observeWhenNear);
   } else {
-    initWhenNear();
+    observeWhenNear();
   }
 })();

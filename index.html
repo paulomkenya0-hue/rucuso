@@ -427,44 +427,6 @@
     </div>
   </section>
 
-  <!-- ---------- location / map ----------
-       Placed between the links and the contact card: both of those are about
-       getting in touch, and a map is the same question answered spatially. -->
-  <section class="section" id="sec-location" aria-labelledby="locationTitle">
-    <div class="container">
-      <div class="sectionhead-row">
-        <div class="sechead">
-          <span class="eyebrow">Tupo Yetu</span>
-          <h2 class="sectitle" id="locationTitle">Tupo ya RUCUSO</h2>
-          <p class="secsub">
-            Makao makuu ya RUCUSO yapo ndani ya Ruaha Catholic University, Iringa.
-            Tumia ramani hapa chini kupata njia, au fungua mapato ya RUCU.
-          </p>
-        </div>
-      </div>
-
-      <div class="mapcard tilt-host">
-        <div class="mapcard__frame" id="mapHost">
-          <!-- Stays put if Leaflet is blocked on the campus network. The
-               address and coordinates are in here, so a student on a restricted
-               network is never left with a blank grey box. -->
-          <div class="mapcard__fallback">
-            <strong style="color:var(--navy);font-size:15px;">Ruaha Catholic University (RUCU)</strong>
-            <span>Iringa, Tanzania &middot; 7&deg;46&prime;34&Prime;S 35&deg;41&prime;47&Prime;E</span>
-            <span class="muted" style="font-size:var(--fs-xs);" data-map-note>Ramani inapakia&hellip;</span>
-          </div>
-        </div>
-        <div class="mapcard__actions">
-          <a class="btn btn--ghost btn--sm" href="https://www.google.com/maps/dir/?api=1&amp;destination=-7.7760,35.6963"
-             target="_blank" rel="noopener noreferrer">Fungua njia kwenye Google Maps</a>
-          <a class="btn btn--ghost btn--sm" href="https://www.openstreetmap.org/?mlat=-7.7760&amp;mlon=35.6963#map=17/-7.7760/35.6963"
-             target="_blank" rel="noopener noreferrer">Fungua kwenye OpenStreetMap</a>
-          <a class="btn btn--ghost btn--sm" href="https://rucuso.online/leader/" target="_blank" rel="noopener noreferrer">Tazama uongozi</a>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- ---------- contact ---------- -->
   <section class="section section--tint" id="sec-contact" aria-labelledby="contactTitle">
     <div class="container">
@@ -606,13 +568,13 @@
 
         <div id="ver-step1">
           <h3 style="margin-top:0;">Namba ya Usajili</h3>
-          <p class="muted muted--lg">Andika namba yako ya usajili ya RUCU. Tutatafuta taarifa zako kwenye kumbukumbu zetu.</p>
+          <p class="muted muted--lg">Andika Namba yako rasmi ya Usajili iliyotolewa na chuo.</p>
           <label for="ver_reg">Namba ya usajili</label>
-          <input id="ver_reg" placeholder="RU/BAFIT/2024/007" autocomplete="off" autocapitalize="characters" spellcheck="false"
-                 aria-describedby="ver1_example ver1_hint ver1_counter ver1_limit">
-          <!-- format hint: the shape, stated before they type, not after they fail -->
-          <p class="fhelper" id="ver1_example">Mfumo wa namba: <code>RU/&lt;KODI&gt;/&lt;MWAKA&gt;/&lt;NUMIA&gt;</code> &mdash; kwa mfano <code>RU/BAFIT/2024/007</code></p>
-          <div class="fcounter" id="ver1_counter"></div>
+          <!-- No format in the placeholder and no character counter. Both were
+               oracles: together they told a script the right length and the
+               right general shape before it sent a single request. -->
+          <input id="ver_reg" placeholder="Namba yako ya usajili" autocomplete="off" autocapitalize="characters" spellcheck="false"
+                 aria-describedby="ver1_hint ver1_limit">
           <p class="fhint" id="ver1_hint" role="status" aria-live="polite"></p>
           <div id="ver1_limit" class="ratelimit" role="status" aria-live="polite" hidden></div>
           <div id="ver1_msg" role="status" aria-live="polite" style="margin-top:var(--sp-3);"></div>
@@ -625,6 +587,11 @@
             <span class="btn__spin" aria-hidden="true"></span>
             <span class="btn__label">Endelea</span>
           </button>
+          <!-- Hidden in the served HTML. A student who cannot recall the shape
+               asks for it, so the format costs one deliberate click instead of
+               being public to every visitor and every scraper. -->
+          <p class="freveal" id="ver1_example" hidden>Mfumo wa namba: <code>RU/&lt;KODI&gt;/&lt;MWAKA&gt;/&lt;NUMIA&gt;</code> &mdash; kwa mfano <code>RU/BAFIT/2024/007</code></p>
+          <button type="button" class="link freveal__btn" id="ver1_reveal" data-action="reveal-format" aria-expanded="false" aria-controls="ver1_example">Namba haijasikika? Onyesha mfano</button>
         </div>
 
         <div id="ver-step2" class="hidden">
@@ -654,6 +621,28 @@
       </div>
 
       <p class="srcline">Taarifa zako hutumika kuthibitisha utambulisho wako na hushirikiwa na wasimamizi wa RUCUSO pekee.</p>
+    </div>
+
+    <!-- ---------- location ----------
+         Directly below the verification panel. The only outbound links are to
+         map providers: an earlier version also linked to /leader/, which does not
+         exist and returned a 404. Kept inside this .view on purpose — a .view is
+         display:none until navigated to, so Leaflet is only ever loaded by
+         students who actually reach this screen. -->
+    <div class="mapcard tilt-host" style="margin-top:var(--sp-5);">
+      <div class="mapcard__frame" id="mapHost">
+        <div class="mapcard__fallback">
+          <strong style="color:var(--navy);font-size:15px;">Ruaha Catholic University (RUCU)</strong>
+          <span>Iringa, Tanzania</span>
+          <span class="muted" style="font-size:var(--fs-xs);" data-map-note>Ramani inapakia&hellip;</span>
+        </div>
+      </div>
+      <div class="mapcard__actions">
+        <a class="btn btn--ghost btn--sm" href="https://www.google.com/maps/dir/?api=1&amp;destination=-7.7760,35.6963"
+           target="_blank" rel="noopener noreferrer">Fungua kwenye Google Maps</a>
+        <a class="btn btn--ghost btn--sm" href="https://www.openstreetmap.org/?mlat=-7.7760&amp;mlon=35.6963#map=17/-7.7760/35.6963"
+           target="_blank" rel="noopener noreferrer">Fungua kwenye OpenStreetMap</a>
+      </div>
     </div>
   </div>
 </section>

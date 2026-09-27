@@ -33,12 +33,15 @@
 //   legacy:   <PREFIX>/<YEAR>/<INDEX>                    e.g. RUCU/2024/01
 //
 // The two coexist during the migration window. A number in the legacy shape is
-// matched too, but it comes back as found:false with reason:"legacy" rather than
-// found:true — because accepting it would let an unmigrated student through a
-// flow whose next step assumes the new format, and rejecting it silently would
-// tell a real student their number does not exist. The distinction is the whole
-// point: same status code, same shape of response, but the client can say
-// something true instead of something false.
+// matched too, but it comes back as found:false rather than found:true — because
+// accepting it would let an unmigrated student through a flow whose next step
+// assumes the new format, and rejecting it outright would turn away a student
+// whose record is sitting right there.
+//
+// The response cannot say which of those it was. found:false carries no
+// distinguishing field, so a legacy student, a mistyped number and a number that
+// belongs to nobody all return the identical body. What the student is told is
+// decided at the call site from found alone.
 //
 // A legacy match is a deliberate, temporary widening. Remove it in the same
 // release that finishes the backfill, once students.course_code is populated —
@@ -175,7 +178,7 @@ serve(async (req: Request) => {
   // strings cannot consume another student's budget. The response is the same
   // { found: false } either way, so this leaks nothing about the registry.
   if (!CURRENT_RE.test(normalised) && !LEGACY_RE.test(normalised)) {
-    return json(req, { found: false, reason: "malformed" });
+    return json(req, { found: false });
   }
 
   const [regHash, ipHash] = await Promise.all([
@@ -205,9 +208,8 @@ serve(async (req: Request) => {
   //   legacy_registration_number — the pre-2026 number, preserved on backfill
   //
   // Searching the legacy column is what keeps an unmigrated student from being
-  // told their number does not exist. It only ever produces found:false with
-  // reason:"legacy" (see below), so it discloses that a real student record is
-  // pending migration and nothing more.
+  // shut out mid-migration. It only ever produces an ordinary found:false, so
+  // searching it discloses nothing beyond the rate limit.
   //
   // student_status is matched with coalesce semantics, the same way
   // verify_student_identity does it: rows imported before the column existed
@@ -226,21 +228,35 @@ serve(async (req: Request) => {
 
   const found = (count ?? 0) > 0;
 
-  // A legacy-shaped number that resolves to a row is reported as found:false
-  // with reason:"legacy". Not found:false plain — the student's record does
-  // exist, and telling them otherwise is simply untrue. Not found:true either,
+  // A legacy-shaped number that resolves to a row is reported as found:false.
+  // Not found:false plain would be fine too, except the student's record does
+  // exist, and "no such student" is simply untrue. Not found:true either,
   // because the rest of the flow assumes the current format and there is no
   // course code to build the next screen with.
   //
-  // A response with found:false, reason:"legacy" still discloses that the
-  // number belongs to a real, unmigrated student. That is an acceptable, bounded
-  // disclosure — strictly less than identity, and rate limited identically. If
-  // even that is too much for a deployment, set MIGRATION_LEGACY_LOOKUP=false and
-  // every legacy number collapses to an ordinary not-found.
+  // Both of those come back as the same { found:false } as a number belonging to
+  // nobody. The reason is written to the server log and never put in the
+  // response body.
+  //
+  // That matters more than it looks. An earlier version returned
+  // { found:false, reason:"legacy" }, on the reasoning that disclosing "a real
+  // student is pending migration" is strictly less than identity. It is less,
+  // but it is still an oracle: the page renders one message while the response
+  // body carries a field a student can read in devtools, and a script does not
+  // have to open devtools to check it. Every branch now returns the same
+  // body, so the only way to tell the cases apart is to ask the server, which
+  // is exactly the rate limit's job.
   if (found && LEGACY_RE.test(normalised)) {
     const allowLegacy = (Deno.env.get("MIGRATION_LEGACY_LOOKUP") || "true") !== "false";
-    if (allowLegacy) return json(req, { found: false, reason: "legacy" });
+    if (allowLegacy) {
+      console.log("lookup: legacy number pending course-code migration");
+      return json(req, { found: false });
+    }
   }
 
-  return json(req, { found, ...(found ? {} : { reason: "not-found" }) });
+  if (!found) {
+    return json(req, { found: false });
+  }
+
+  return json(req, { found: true });
 });

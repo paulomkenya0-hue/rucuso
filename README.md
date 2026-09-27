@@ -372,12 +372,25 @@ toast. Nothing is ever written to `localStorage`.
 - [ ] Submit the verification form five times with a bad number and confirm the sixth attempt is
       refused with a countdown, and that the limit clears after a minute.
 - [ ] Enter a valid number in lower case (`ru/bafit/2024/007`) and confirm it is upper-cased as
-      you type, the caret stays put when editing mid-number, and "Endelea" enables.
-- [ ] Enter a number one character short of valid and confirm the button stays disabled *and* the
-      hint says why, rather than just going grey with no explanation.
+      you type, the caret stays put when editing mid-number, and "Endelea" enables. Confirm the
+      form never says the number is correct — that would confirm a guess before any request.
+- [ ] Enter a number one character short of valid and confirm the button stays disabled. The hint
+      must *not* explain which segment is wrong; it may only state the one thing the student can
+      act on (CAPTCHA unsolved, or wait for the rate limit).
+- [ ] Type nothing, type a malformed number, and type a well-formed number that belongs to nobody.
+      All three must produce the same failure sentence. If any of them differ, that difference is
+      an enumeration oracle.
+- [ ] Confirm the placeholder and the instruction state no format, and that the format example is
+      not in the page until "Namba haijasikika? Onyesha mfano" is pressed.
+- [ ] Press the reveal control twice and confirm it collapses again and `aria-expanded` tracks it.
+- [ ] Open the browser console, submit a number that does not exist, and confirm the page says
+      only the generic failure. Any `reason: "legacy"` / `reason: "not-found"` detail belongs on
+      the server, not in a value a student can read.
 - [ ] With `TURNSTILE_SITE_KEY` set, confirm "Endelea" stays disabled until the widget reports
       success, and re-locks when the token expires. With it unset, confirm the button is governed
       by the number alone.
+- [ ] Submit a real number on a slow connection and confirm the spinner is visible long enough to
+      read as progress, and that the button is never left spinning if the call throws.
 
 ## Not built yet
 

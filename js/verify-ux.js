@@ -138,42 +138,54 @@
 
   // Returns { ok, value, code, message }. `code` is one of:
   //   ok | empty | too-long | legacy | shape
-  // `message` is Kiswahili and shown under the field. `value` is the canonical
-  // number, safe to send, but only meaningful when ok is true.
+  // `value` is the canonical number, safe to send, but only meaningful when ok.
+  //
+  // `code` is for the form's own logic and for logging, never for display — see
+  // FAIL_TEXT. Every failure below returns the same message.
   function validate(raw) {
     var value = canonical(raw);
     var spaced = loose(raw);
 
     if (!value) {
-      return { ok: false, value: "", code: "empty", message: "Andika namba yako ya usajili." };
+      return { ok: false, value: "", code: "empty", message: "" };
     }
     if (value.length > MAX_LEN) {
-      return {
-        ok: false, value: value, code: "too-long",
-        message: "Namba hii ni ndefu mno. Tarakimu " + MAX_LEN + " au kidogo.",
-      };
+      return { ok: false, value: value, code: "too-long", message: FAIL_TEXT };
     }
     if (NEW_RE.test(spaced)) {
       return { ok: true, value: spaced, code: "ok", message: "" };
     }
     if (LEGACY_RE.test(spaced)) {
-      return { ok: false, value: value, code: "legacy", message: legacyMessage() };
+      return { ok: false, value: value, code: "legacy", message: FAIL_TEXT };
     }
-    return {
-      ok: false, value: value, code: "shape",
-      message: "Namba ya usajili lazima iwe RU/KODI/2024/NUMIA — mfano " + EXAMPLE + ".",
-    };
+    return { ok: false, value: value, code: "shape", message: FAIL_TEXT };
   }
 
-  // Said only when the number is structurally a registration number but not in
-  // the current format. This is a different problem from a typo and deserves a
-  // different answer: the student's record exists, it just has not been
-  // migrated, and only the registry office can supply the course code.
-  function legacyMessage() {
-    return "Namba hii iko katika mpaka wa awali. Mpaka mpya wa RUCU ni "
-      + EXAMPLE + ", ambapo CODII ni nengo la kozi yako. Rekodi yako bado haijasajiliwa "
-      + "katika mpaka mpya — wasiliana na ofisi ya RUCUSO ili kuirekebisha, kisha rudi.";
-  }
+  // One message for every failure. Malformed, pending-migration and genuinely
+  // unknown are deliberately indistinguishable.
+  //
+  // This is a real reduction in what the form leaks: previously a student whose
+  // record was merely unmigrated got a different sentence from someone who had
+  // typed a wrong number, which meant a script could tell "real student, not
+  // migrated" from "no such student" and keep going. Now every negative looks
+  // identical, and the only signal left is the rate limit — which is the one
+  // that is supposed to be the control.
+  //
+  // The cost is real and worth stating: a student with an unmigrated number now
+  // has to ask the office rather than being told what is wrong. That is the
+  // trade, and it is the right side of it — a wrong "your number does not
+  // exist" is worse than a support call, and the migration worklist in
+  // migration 014 is what actually clears the queue.
+  var FAIL_TEXT = "Namba ya usajili sio sahihi au haijapatikana.";
+
+  // There is deliberately no legacyMessage(). A function of that name implied a
+  // separate sentence for the pre-2026 shape, and every caller that could have
+  // used it now renders FAIL_TEXT instead. If a future need appears for a
+  // migration-specific message, it belongs in an operator-only surface such as
+  // the Edge Function log — not in a value the browser can read.
+
+  // ---- CAPTCHA -------------------------------------------------------------
+
 
   // ---- CAPTCHA -------------------------------------------------------------
 
@@ -257,54 +269,14 @@
     captchaToken = null;
   }
 
-  // ---- support links --------------------------------------------------------
-
-  // Shown inside error banners. The contacts come from the database when a super
-  // admin has set them, so a number that is not filled in is simply left out
-  // rather than rendering a dead link.
-  function supportHtml() {
-    var db = (window.RucusoData && window.RucusoData.DB) || {};
-    var contacts = db.contacts || {};
-    var items = [];
-
-    if (contacts.phone) {
-      var digits = String(contacts.phone).replace(/[^\d+]/g, "");
-      items.push(
-        '<a href="tel:' + esc(digits) + '">' +
-        svg("M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.1a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z") +
-        esc(contacts.phone) + "</a>"
-      );
-    }
-
-    if (contacts.email) {
-      items.push(
-        '<a href="mailto:' + esc(contacts.email) + '">' +
-        svg("M2 4h20v16H2z M2 4l10 8 10-8") +
-        esc(contacts.email) + "</a>"
-      );
-    }
-
-    items.push(
-      '<button type="button" data-action="open-ai">' + svg("M12 3l8 4v5c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V7z") + "Uliza RUCUSO AI</button>"
-    );
-    items.push('<button type="button" data-action="go-verify">Njia nyingine ya uthibitisho</button>');
-
-    return (
-      '<div class="support" role="group" aria-label="Njia za msaada">' +
-      '<span class="support__label">Ushikiliaji</span>' +
-      items.join("") +
-      "</div>"
-    );
-  }
+  // ---- escaping ------------------------------------------------------------
+  // Kept even though supportHtml is gone: every message the form renders goes
+  // through esc(), and the value under test is attacker-influenced input.
 
   function esc(value) {
     return String(value == null ? "" : value)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-  }
-
-  function svg(path) {
-    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + path + '"/></svg>';
   }
 
   // ---- the CAPTCHA gate ----------------------------------------------------
@@ -329,9 +301,10 @@
   function cache() {
     els.input = el("ver_reg");
     els.button = el("ver1_btn");
-    els.counter = el("ver1_counter");
     els.limit = el("ver1_limit");
     els.hint = el("ver1_hint");
+    els.reveal = el("ver1_reveal");
+    els.example = el("ver1_example");
   }
 
   function setButtonState() {
@@ -342,11 +315,16 @@
     // Three independent reasons the button can be off. Each is explained where
     // it is visible rather than leaving the student to guess at a grey button.
     var captchaOk = captchaSatisfied();
-    var ready = result.ok && left > 0 && captchaOk;
-    els.button.disabled = !ready;
+    els.button.disabled = !(result.ok && left > 0 && captchaOk);
 
-    // Tells the student *why* it is still grey, which is the thing they cannot
-    // work out on their own.
+    // Deliberately no success message and no character counter.
+    //
+    // Both were leaks. A live "17 / 24" counter plus a "namba inaonekana
+    // sahihi" confirmation is a free oracle: it tells an attacker that a
+    // guessed string is the right length and the right general shape before a
+    // single request is sent, which is exactly the feedback a script needs to
+    // search the space. The only states worth speaking are the ones the student
+    // cannot otherwise act on — an unsolved CAPTCHA, or an exhausted budget.
     if (els.hint) {
       if (result.ok && !captchaOk) {
         els.hint.textContent = "Thibitisha kwamba wewe si roboti ili kuendelea.";
@@ -354,22 +332,9 @@
       } else if (result.ok && left === 0) {
         els.hint.textContent = "Subiri sekunda " + secondsUntilReset() + " kisha jaribu tena.";
         els.hint.className = "fhint fhint--warn";
-      } else if (result.ok) {
-        els.hint.textContent = "Namba inaonekana sahihi. Endelea.";
-        els.hint.className = "fhint fhint--ok";
       } else {
         els.hint.textContent = "";
         els.hint.className = "fhint";
-      }
-    }
-
-    if (els.counter) {
-      var text = els.input.value;
-      els.counter.textContent = text ? text.length + " / " + MAX_LEN : "";
-      els.counter.className = "fcounter";
-      if (text && text.length > MAX_LEN) {
-        els.counter.classList.add("fcounter--bad");
-        els.counter.textContent = text.length + " / " + MAX_LEN + " — ndefu mno";
       }
     }
 
@@ -403,15 +368,16 @@
   // Runs before the real submit. Returns false to stop it.
   function guard(event) {
     var result = validate(els.input.value);
+    var msg = el("ver1_msg");
 
     if (!result.ok) {
-      var msg = el("ver1_msg");
+      // Only the empty case is worth a word. Every other failure gets the same
+      // generic sentence, because a specific message is an oracle: it tells a
+      // script which part of its guess was wrong.
       if (msg) {
-        // The legacy case gets its own wording, and does not suggest retrying:
-        // retrying the same number cannot help, the record has to be migrated.
-        var canRetry = result.code !== "legacy";
-        msg.innerHTML = '<p class="err">' + esc(result.message) + "</p>"
-          + (canRetry ? supportHtml() : "");
+        msg.innerHTML = result.code === "empty"
+          ? '<p class="err">Andika namba yako ya usajili.</p>'
+          : '<p class="err">' + esc(result.message) + "</p>";
       }
       els.input.focus();
       return false;
@@ -421,20 +387,20 @@
     // token has to have been solved. Checked here as well as in
     // setButtonState, so a keyboard Enter or a programmatic call cannot skip it.
     if (!captchaSatisfied()) {
-      var capMsg = el("ver1_msg");
-      if (capMsg) {
-        capMsg.innerHTML = '<p class="err">Thibitisha kwamba wewe si roboti ili kuendelea.</p>';
+      if (msg) {
+        msg.innerHTML = '<p class="err">Thibitisha kwamba wewe si roboti ili kuendelea.</p>';
       }
       return false;
     }
 
     if (attemptsLeft() === 0) {
-      var limitMsg = el("ver1_msg");
       var secs = secondsUntilReset();
-      if (limitMsg) {
-        limitMsg.innerHTML =
+      if (msg) {
+        // No support links here. Offering them only on a rate-limit tells a
+        // script it hit a real, counted limit rather than a rejected format.
+        msg.innerHTML =
           '<p class="err">Umefanya majaribio mengi. Subiri sekunda <strong>' + secs +
-          "</strong> kisha jaribu tena.</p>" + supportHtml();
+          "</strong> kisha jaribu tena.</p>";
       }
       renderLimit();
       return false;
@@ -519,21 +485,35 @@
       }
     });
 
-    // Support links are delegated, since the banner is rebuilt on every error.
+    // Delegated because the reveal control lives outside the cached elements and
+    // may be re-rendered. Only one action remains — the others used to belong to
+    // supportHtml, which is gone.
     document.addEventListener("click", function (event) {
-      var target = event.target.closest ? event.target.closest("[data-action]") : null;
+      var target = event.target.closest ? event.target.closest('[data-action="reveal-format"]') : null;
       if (!target) return;
-      var action = target.dataset.action;
-      if (action === "open-ai" && typeof window.openAI === "function") {
-        event.preventDefault();
-        window.openAI();
-      } else if (action === "go-verify" && typeof window.go === "function") {
-        event.preventDefault();
-        window.go("verify");
-      }
+      event.preventDefault();
+      toggleFormat();
     });
 
     setButtonState();
+  }
+
+  // The format example is NOT in the initial HTML and is not shown on load. A
+  // student who cannot remember the shape can ask for it, which puts the format
+  // behind one deliberate action instead of broadcasting it to every visitor and
+  // to every scraper that reads the page source.
+  //
+  // If you would rather not have it at all, delete the #ver1_reveal button from
+  // index.html and this function — nothing else depends on them.
+  function toggleFormat() {
+    if (!els.example) return;
+    var shown = els.example.hidden;
+    els.example.hidden = !shown;
+    if (els.reveal) {
+      els.reveal.setAttribute("aria-expanded", shown ? "true" : "false");
+      els.reveal.textContent = shown ? "Sogeza mfano" : "Namba haijasikika? Onyesha mfano";
+    }
+    if (shown) els.input.focus();
   }
 
   // Public surface, so app.js can consume the same validation and the same
@@ -542,8 +522,6 @@
     init: init,
     validate: validate,
     guard: guard,
-    supportHtml: supportHtml,
-    legacyMessage: legacyMessage,
     attemptsLeft: attemptsLeft,
     secondsUntilReset: secondsUntilReset,
     isCaptchaEnabled: isCaptchaEnabled,
@@ -557,6 +535,7 @@
     MAX_LEN: MAX_LEN,
     MAX_ATTEMPTS: MAX_ATTEMPTS,
     WINDOW_MS: WINDOW_MS,
+    FAIL_TEXT: FAIL_TEXT,
   };
 
   if (document.readyState === "loading") {

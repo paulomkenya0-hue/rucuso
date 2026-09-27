@@ -17,7 +17,11 @@ const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
 const MODULES = ["js/verify-ux.js", "js/map.js", "js/tilt.js"];
 
 // Classes the new modules attach to, which have to be styled somewhere.
-const NEEDS_STYLE = [".tilt", ".btn__spin", ".mapcard", ".ratelimit", ".support", ".fcounter"];
+// Classes that must be styled because markup or JS depends on them. Kept in
+// step with what the verify view actually renders: the character counter and
+// the support-link row were both removed, so requiring them here would only
+// keep dead CSS alive.
+const NEEDS_STYLE = [".tilt", ".btn__spin", ".mapcard", ".ratelimit", ".freveal", ".vercaptcha", ".fhint"];
 
 let problems = 0;
 const seen = new Set();

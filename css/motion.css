@@ -312,45 +312,13 @@ button.pri:disabled {
   box-shadow: none;
 }
 
-/* Live character counter under the registration input. */
-.fcounter {
-  font-variant-numeric: tabular-nums;
-  font-size: var(--fs-xs);
-  color: var(--muted);
-  margin-top: 6px;
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.fcounter--ok { color: var(--ok); }
-.fcounter--bad { color: var(--err); }
-
-/* The shape of a valid number, stated before the student types rather than
-   after they fail. Pushed slightly into the field's own colour so it reads as
-   guidance attached to the input and not as body copy. */
-.fhelper {
-  margin: 6px 0 0;
-  font-size: var(--fs-xs);
-  color: var(--muted);
-  line-height: 1.5;
-}
-
-.fhelper code {
-  font-family: var(--font-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
-  background: var(--bg-alt);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 1px 5px;
-  font-size: 0.95em;
-  letter-spacing: 0.01em;
-}
-
 /* Live state of the Endelea button. This is the piece that answers the one
    question a greyed-out button cannot: is it grey because the number is wrong,
-   because the CAPTCHA is unsolved, or because too many attempts? Each state
-   says so in words. Reserved space is not needed because it is always
-   rendered, empty or not, so the button does not jump as messages appear. */
+   because the CAPTCHA is unsolved, or because too many attempts?
+
+   It deliberately never says "that looks right". A success confirmation is an
+   oracle — it tells a script its guess satisfied the format before any request
+   is sent. Only states the student can act on get a sentence. */
 .fhint {
   margin: var(--sp-2) 0 0;
   min-height: 1.2em;
@@ -362,59 +330,44 @@ button.pri:disabled {
 .fhint--ok { color: var(--ok); }
 .fhint--warn { color: var(--warn, #a8630a); }
 
+/* The format example, and the control that reveals it. Not in view on load, so
+   the shape is not public to every visitor and every scraper. Still available
+   to a student who asks for it, which is the difference between hiding it and
+   making people guess. */
+.freveal {
+  margin: var(--sp-3) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* hidden beats the display rule below, so the reveal genuinely disappears
+   rather than being pushed around by it */
+.freveal[hidden] { display: none; }
+
+.freveal code {
+  font-family: var(--font-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 5px;
+  font-size: 0.95em;
+}
+
+.freveal__btn {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  margin-top: 2px;
+}
+
+.freveal__btn:hover { color: var(--navy); }
+
 /* The Turnstile mount. Centred and given a little air, because Cloudflare
    renders an iframe in here and the form should not reflow around it. */
 .vercaptcha:empty { display: none; }
 .vercaptcha { min-height: 0; }
-
-/* Support links inside an error banner. Tucked under the message so the reason
-   for the failure stays the first thing read. */
-.support {
-  margin-top: var(--sp-3);
-  padding-top: var(--sp-3);
-  border-top: 1px dashed var(--border);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2);
-}
-
-.support__label {
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.support a,
-.support button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  color: var(--navy);
-  text-decoration: none;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  padding: 6px 12px;
-  background: var(--surface);
-  cursor: pointer;
-  transition:
-    border-color var(--dur) var(--ease),
-    background var(--dur) var(--ease),
-    transform var(--dur) var(--ease);
-}
-
-.support a:hover,
-.support button:hover {
-  border-color: var(--gold);
-  background: var(--gold-tint, #fdf8ec);
-  transform: translateY(-1px);
-}
-
-.support svg { width: 14px; height: 14px; flex: none; }
 
 /* Rate limit countdown. */
 .ratelimit {

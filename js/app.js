@@ -467,6 +467,13 @@ function go(id, presetType) {
   const target = document.getElementById(id === "home" ? "homeview" : "view-" + id);
   if (!target) { goSection("sec-about"); return; }
   target.classList.add("active");
+
+  // The location map lives inside the verify view, so it was display:none until
+  // this line ran. The IntersectionObserver in js/map.js is only an optimisation
+  // because a hidden element has no box to observe; this is the reliable
+  // trigger. ensure() is idempotent and also re-measures a map built earlier.
+  if (id === "verify" && window.RucusoMap) window.RucusoMap.ensure();
+
   if (id !== "home") {
     target.setAttribute("tabindex", "-1");
     target.focus({ preventScroll: true });
@@ -1096,7 +1103,12 @@ async function verifyStep1(ev) {
     if (!check.ok) {
       setVerMark("err");
       const m = document.getElementById("ver1_msg");
-      m.innerHTML = '<p class="err">' + esc(check.message) + "</p>" + window.RucusoVerify.supportHtml();
+      // Same two messages as everywhere else — "empty" and the single generic
+      // failure. No support links, because attaching them to only some failures
+      // is itself a tell.
+      m.innerHTML = '<p class="err">'
+        + esc(check.code === "empty" ? "Andika namba yako ya usajili." : window.RucusoVerify.FAIL_TEXT)
+        + "</p>";
       document.getElementById("ver_reg").focus();
       return;
     }
@@ -1104,8 +1116,7 @@ async function verifyStep1(ev) {
       setVerMark("err");
       const m = document.getElementById("ver1_msg");
       m.innerHTML = '<p class="err">Umefanya majaribio mengi. Subiri sekunda <strong>'
-        + window.RucusoVerify.secondsUntilReset() + "</strong> kisha jaribu tena.</p>"
-        + window.RucusoVerify.supportHtml();
+        + window.RucusoVerify.secondsUntilReset() + "</strong> kisha jaribu tena.</p>";
       return;
     }
   }
@@ -1119,6 +1130,16 @@ async function verifyStep1(ev) {
   setVerMark("wait");
   msg.innerHTML = '<p class="muted">Inathibitisha.</p>';
   busy(btn, true, "Inathibitisha...");
+
+  // Held for a short floor so a fast local response does not render as a
+  // one-frame spinner flash and a straight jump to the next screen. 420ms is
+  // roughly one perceptual "that happened" beat: long enough to read as a
+  // transition, short enough that a student never thinks the button is stuck.
+  // Not the 1.5s that was asked for — a fixed 1.5s on top of a real network
+  // call makes a working form feel broken, and it is latency the student pays
+  // for without getting anything back sooner.
+  const startedAt = Date.now();
+  const MIN_SPIN_MS = 420;
   // When a CAPTCHA is configured, verify-ux.js stashed the token on the button
   // after the student solved it. It goes to the server for verification there —
   // never trusted on this side. Cleared either way, because a token is
@@ -1141,16 +1162,18 @@ async function verifyStep1(ev) {
 
     if (!found) {
       setVerMark("err");
-      if (result.reason === "legacy") {
-        // The record is real. Do not say it does not exist, and do not offer a
-        // retry — the same number cannot succeed until it is migrated.
-        msg.innerHTML = '<p class="err">' + (window.RucusoVerify
-          ? window.RucusoVerify.legacyMessage()
-          : "Rekodi yako bado haijasajiliwa katika mpaka mpya wa RUCU.") + "</p>";
-        return;
-      }
-      msg.innerHTML = '<p class="err">Samahani, namba hii ya usajili haijapatikana kwenye mfumo.</p>'
-        + (window.RucusoVerify ? window.RucusoVerify.supportHtml() : "");
+      // One sentence for every negative: malformed, pending-migration and
+      // genuinely unknown are indistinguishable, because the response body does
+      // not say which one it was either.
+      //
+      // This replaced three different messages. The old set told a script which
+      // of the three it had hit, so "real student, not migrated" was
+      // distinguishable from "no such student" and a search could keep going.
+      // The distinction is now logged in the Edge Function, where the migration
+      // queue can be watched without publishing the answer to the browser.
+      msg.innerHTML = '<p class="err">'
+        + (window.RucusoVerify ? window.RucusoVerify.FAIL_TEXT : "Namba ya usajili sio sahihi au haijapatikana.")
+        + "</p>";
       return;
     }
     // No name, no programme, no year is held here. Nothing about the student is
@@ -1174,8 +1197,33 @@ async function verifyStep1(ev) {
     // { error: "TOO_MANY_REQUESTS" }, and a raw HTTP error would leave the
     // student guessing whether they mistyped the number or hit a limit.
     setVerMark("err");
-    msg.innerHTML = `<p class="err">${esc(await functionErrorText(e))}</p>`;
+
+    // The contradictory-pair bug lived here. A 503 NOT_CONFIGURED used to be
+    // rendered by a shared path that appended its own sentence, while the hint
+    // line above still said the number looked right — so the form simultaneously
+    // said "that is correct" and "this service is not set up". Both messages now
+    // come from this one place, and the hint only ever speaks about states the
+    // student can act on, so the two can no longer disagree.
+    const text = await functionErrorText(e);
+    msg.innerHTML = `<p class="err">${esc(text)}</p>`;
+
+    // A misconfigured backend is an operator problem, not a student one. Say so
+    // once, in the console, where whoever deployed can see it — instead of
+    // leaking the deployment state to every visitor who hits the form.
+    const code = e && (e.context?.error?.code || e.code || "");
+    if (code === "NOT_CONFIGURED") {
+      console.error(
+        "verify: lookup-student returned NOT_CONFIGURED. "
+        + "STUDENT_LOOKUP_RATE_LIMIT_SECRET is missing or under 32 characters on the "
+        + "Edge Function. supabase secrets set STUDENT_LOOKUP_RATE_LIMIT_SECRET=<32+ chars>"
+      );
+    }
   } finally {
+    // Wait out the remainder of the floor before releasing the button, so the
+    // spinner is visible long enough to register. A no-op once the request has
+    // already taken longer than the floor, which is the normal case.
+    const remaining = MIN_SPIN_MS - (Date.now() - startedAt);
+    if (remaining > 0) await new Promise((r) => setTimeout(r, remaining));
     busy(btn, false);
   }
 }

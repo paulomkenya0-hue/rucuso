@@ -31,6 +31,10 @@ function ok(name, condition, detail) {
 // cannot be required. The regexes are read out of the source and re-run here,
 // which is the point: if someone changes the rule, this test has to fail.
 const src = fs.readFileSync(path.join(ROOT, "js", "verify-ux.js"), "utf8");
+// Shorter aliases, because the assertions below read better as `js` and
+// `appJs` than as the full paths repeated on every line.
+const js = src;
+const appJs = fs.readFileSync(path.join(ROOT, "js", "app.js"), "utf8");
 
 function grab(name) {
   const m = src.match(new RegExp("var " + name + " = (/.+?/[a-z]*);"));
@@ -132,8 +136,12 @@ ok("pasted text is normalised too", /"paste"/.test(src));
 // regression against a stated requirement, so both are asserted.
 ok("button state consults the CAPTCHA gate", /captchaSatisfied\(\)/.test(src));
 ok(
+  // Inverted form: the button is enabled only when all three hold. Matching
+  // either "ready = a && b && c" or "disabled = !(a && b && c)" accepts both
+  // the current code and a refactor that keeps the same gate.
   "the gate is regex AND captcha, not either",
-  /var ready = result\.ok && left > 0 && captchaOk/.test(src),
+  /var ready = result\.ok && left > 0 && captchaOk/.test(src)
+  || /disabled = !\(result\.ok && left > 0 && captchaOk\)/.test(src),
   "setButtonState does not combine all three conditions",
 );
 ok(
@@ -145,20 +153,94 @@ ok("solving the CAPTCHA re-runs the gate", /callback: function \(token\) \{[\s\S
 ok("an expired CAPTCHA re-closes the gate", /expired-callback[\s\S]{0,120}setButtonState/.test(src));
 ok("the guard re-checks the captcha, not just the button", /if \(!captchaSatisfied\(\)\)/.test(src));
 
-// ---- helper text -----------------------------------------------------------
+// ---- helper text: must NOT leak the format --------------------------------
+// The format and a live character counter together are an oracle: they tell a
+// script the right length and the right general shape before it sends a single
+// request. Both were removed, so both are asserted absent.
 const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
-ok("helper text states the format", /id="ver1_example"/.test(html));
-ok("helper text shows the required example", /RU\/BAFIT\/2024\/007/.test(html));
-ok("the live state hint exists", /id="ver1_hint"/.test(html));
-ok("the input placeholder is a valid number", /placeholder="RU\/BAFIT\/2024\/007"/.test(html));
-ok("no legacy example survives in the markup", !/RUCU\/2024/.test(html));
+const verifyView = html.slice(html.indexOf('id="view-verify"'), html.indexOf('id="view-submit"'));
 
-// ---- the legacy case must not invite a pointless retry --------------------
+ok("the character counter is gone", !/id="ver1_counter"/.test(html));
+ok("nothing renders a character counter", !/fcounter/.test(js) && !/fcounter/.test(html));
+ok("the placeholder states no format", !/placeholder="[^"]*RU\//i.test(verifyView));
+ok("the neutral instruction is present",
+  /Andika Namba yako rasmi ya Usajili iliyotolewa na chuo/.test(verifyView));
+
+// The format may still be available, but only behind a deliberate click.
+ok("the format example is hidden in the served HTML",
+  /id="ver1_example"[^>]*\bhidden\b/.test(verifyView));
+ok("there is a control that reveals it", /id="ver1_reveal"/.test(verifyView));
+ok("the reveal control is wired", /data-action="reveal-format"/.test(verifyView));
+ok("the reveal is accessible",
+  /aria-expanded="false"[^>]*aria-controls="ver1_example"/.test(verifyView));
+
+// ---- no success oracle -----------------------------------------------------
+// "that looks right" is as much a leak as the format itself.
+ok("no success confirmation is shown for a valid number",
+  !/Namba inaonekana sahihi/.test(js) && !/Namba inaonekana sahihi/.test(html));
+ok("the hint never confirms correctness", !/fhint--ok/.test(js));
+
+// ---- one message for every failure ----------------------------------------
+ok("a single failure string is defined", /var FAIL_TEXT =/.test(js));
 ok(
-  "the legacy error does not offer a retry",
-  /result\.code !== "legacy"/.test(src),
-  "a legacy number is being told to try again, which cannot help",
+  "every failure code returns the same message",
+  /code: "too-long", message: FAIL_TEXT/.test(js)
+  && /code: "legacy", message: FAIL_TEXT/.test(js)
+  && /code: "shape", message: FAIL_TEXT/.test(js),
+  "a failure path returns a distinct message — that is an oracle",
 );
+// Matches a definition, not the name in a comment explaining its removal.
+ok("no code path still builds a legacy-specific message",
+  !/function legacyMessage/.test(js) && !/legacyMessage\(/.test(appJs));
+ok("support links are not attached to individual failures", !/supportHtml/.test(appJs));
+ok("the unused support-link builder was removed", !/function supportHtml/.test(js));
+
+// ---- the contradictory pair ------------------------------------------------
+// The reported bug: "Namba inaonekana sahihi" next to "Huduma ya kuangalia namba
+// ya usajili haijawekwa bando". One is gone; the other must render in the same
+// place as every other error rather than being appended alongside.
+ok("the catch block is the single place server errors are rendered",
+  /const text = await functionErrorText\(e\);\s*msg\.innerHTML/.test(appJs),
+  "errors are still rendered from more than one place");
+ok("a misconfigured backend is logged for the operator, not the student",
+  /NOT_CONFIGURED/.test(appJs) && /console\.error/.test(appJs));
+
+// ---- spinner ---------------------------------------------------------------
+ok("the button has a spinner element", /id="ver1_btn"[\s\S]{0,200}btn__spin/.test(verifyView));
+ok("busy() preserves the spinner markup", /querySelector\("\.btn__label"\)/.test(appJs));
+ok("there is a minimum visible spinner duration", /MIN_SPIN_MS/.test(appJs));
+
+// ---- the map ---------------------------------------------------------------
+const mapJs = fs.readFileSync(path.join(ROOT, "js", "map.js"), "utf8");
+ok("the map lives inside the verify view",
+  html.indexOf('id="mapHost"') > html.indexOf('id="view-verify"')
+  && html.indexOf('id="mapHost"') < html.indexOf('id="view-submit"'));
+ok("the map has a reliable init for a hidden view", /function ensure\(\)/.test(mapJs));
+ok("app.js triggers it on navigation", /RucusoMap\.ensure\(\)/.test(appJs));
+ok("the pin is the RUCU campus", /lat: -7\.7760, lng: 35\.6963/.test(mapJs));
+ok("the popup label is correct",
+  /RUCUSO Headquarters/.test(mapJs) && /Ruaha Catholic University/.test(mapJs));
+ok("the popup links to Google Maps", /google\.com\/maps\/dir/.test(mapJs));
+
+// The reported 404: the map linked to /leader/, which does not exist. The live
+// links are all /leader/login/, which does exist, so this has to match the bare
+// path and not merely the substring. Comments are stripped first, because both
+// files explain in prose that /leader/ was removed and that is not a link.
+const stripComments = (s) => s.replace(/<!--[\s\S]*?-->/g, "").replace(/^[ \t]*\/\/.*$/gm, "");
+ok("nothing links to the non-existent /leader/ index",
+  !/href="\/leader\/"/.test(stripComments(mapJs) + stripComments(verifyView))
+  && !/rucuso\.online\/leader\//.test(stripComments(mapJs) + stripComments(verifyView)));
+ok("the working /leader/login/ links are still there",
+  /href="\/leader\/login\/"/.test(verifyView) || /leader\/login/.test(html));
+ok("leader/index.html genuinely does not exist",
+  !fs.existsSync(path.join(ROOT, "leader", "index.html")));
+
+// ---- no raw developer email in the header ----------------------------------
+const header = html.slice(0, html.indexOf('id="homeview"'));
+const emails = header.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) || [];
+ok("no hardcoded email address in the header", emails.length === 0, emails.join(", "));
+ok("no hardcoded email anywhere in the verify script",
+  !/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(js));
 
 // ---- migration safety ------------------------------------------------------
 const mig = fs.readFileSync(path.join(ROOT, "supabase", "migrations", "014_course_codes.sql"), "utf8");
@@ -185,13 +267,27 @@ const fn = fs.readFileSync(
 ok("the server enforces the same current format", /\^RU\\\/\[A-Z\]\{2,6\}\\\/\\d\{4\}\\\/\\d\{3,4\}\$/i.test(fn));
 ok("the server rejects malformed input before spending rate-limit budget",
   fn.indexOf("CURRENT_RE.test") < fn.indexOf("consume_student_lookup_attempt"));
-ok("the server reports legacy separately from not-found", /reason: "legacy"/.test(fn));
-ok("the legacy disclosure can be switched off", /MIGRATION_LEGACY_LOOKUP/.test(fn));
+ok("the legacy switch still exists for deployments that want it off",
+  /MIGRATION_LEGACY_LOOKUP/.test(fn));
 ok("the server never returns a student column", !/select\([^)]*full_name/i.test(fn));
 
+// The body is the last place a student can look, including without devtools —
+// any script that can POST can read it. Every negative branch must therefore be
+// the same { found:false }, with the reason kept in the server log.
+ok("the server sends no reason field at all", !/found: false, reason/.test(fn));
+ok("the legacy branch returns a bare found:false",
+  /allowLegacy\) \{[\s\S]{0,200}return json\(req, \{ found: false \}\)/.test(fn));
+ok("the legacy case is logged server-side instead",
+  /console\.log\([^)]*legacy/.test(fn));
+ok("the not-found branch returns a bare found:false too",
+  /if \(!found\) \{[\s\S]{0,120}return json\(req, \{ found: false \}\)/.test(fn));
+
 const client = fs.readFileSync(path.join(ROOT, "supabase", "supabase-client.js"), "utf8");
-ok("the client exposes the reason", /reason/.test(client));
-ok("the client distinguishes legacy from not-found", /"legacy"/.test(client));
+ok("the client returns found and nothing else",
+  /return \{ found: !!\(data && data\.found === true\) \}/.test(client),
+  "the client is still surfacing a second field to the page");
+ok("the client no longer names the legacy case", !/"legacy"/.test(client));
+ok("app.js does not branch on a reason", !/result\.reason/.test(appJs));
 
 report();
 

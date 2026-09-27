@@ -215,19 +215,21 @@
     // after the student has proved they hold the phone number on file. The
     // lookup_student() RPC is service_role only as of migration 012, so this
     // path cannot be reopened from the browser.
-    // Resolves to { found, reason }.
+    // Resolves to { found: boolean }.
     //
-    // reason is "legacy" when the number is a real registry entry still in the
-    // pre-2026 format, and "not-found" when nothing matched. Both have
-    // found:false, but they need different messages: telling a student whose
-    // record is merely unmigrated that their number does not exist is false and
-    // sends them away to re-check a number that was correct all along.
+    // There is deliberately no second field. A number that is real but still in
+    // the legacy format, a number nobody holds, and a number that is not a
+    // registration number at all all come back as the same { found: false }.
+    // Distinguishing them in the response would let a script learn which
+    // numbers exist by reading devtools instead of by brute force, which is the
+    // one thing the rate limit is there to prevent. The UI shows one message
+    // for every failure, so nothing is lost by not knowing which it was.
     async lookupStudentDetailed(regNumber, captchaToken) {
       const body = { reg: String(regNumber == null ? "" : regNumber).trim() };
       if (captchaToken) body.captchaToken = String(captchaToken);
       const { data, error } = await client.functions.invoke("lookup-student", { body });
       if (error) throw friendlyError(error);
-      return { found: !!(data && data.found === true), reason: (data && data.reason) || "not-found" };
+      return { found: !!(data && data.found === true) };
     },
 
     async lookupStudent(regNumber, captchaToken) {
