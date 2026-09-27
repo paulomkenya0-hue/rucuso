@@ -112,7 +112,8 @@ on conflict (key) do update set
 -- prompted this migration was that migration 010 added four executive posts
 -- which the hardcoded list never picked up, and the seed is written to match the
 -- "executive sees executive reports" intent rather than the letter of the 004
--- list.
+-- list. sees_all_ministries=true for president, vice_president, prime_minister,
+-- secretary_general, speaker.
 --
 -- If the narrower original behaviour is what was actually wanted, set these to
 -- false for vice_president, deputy_secretary_general, prime_minister and
@@ -128,15 +129,16 @@ on conflict (key) do update set
 insert into public.leadership_positions
   (key, label_sw, label_en, tier_key, rank, sees_all_ministries, ministry_required) values
   ('president',                'Rais',                          'President',        'executive', 1, true,  false),
-  ('vice_president',           'Makamu wa Rais',                'Vice President',   'executive', 2, false,  false),
+  ('vice_president',           'Makamu wa Rais',                'Vice President',   'executive', 2, true,  false),
   ('secretary_general',        'Katibu Mkuu',                   'Secretary General', 'executive', 3, true,  false),
   ('deputy_secretary_general', 'Naibu Katibu Mkuu',             'Deputy Secretary General', 'executive', 4, false, false),
-  ('prime_minister',           'Waziri Kuu',                    'Prime Minister',   'executive', 5, false,  false),
-  ('prime_minister_secretary', 'Katibu wa Ofisi ya Waziri Kuu', 'Secretary to the Prime Minister', 'executive', 6, false, false),
-  ('minister',                 'Waziri',                        'Minister',         'ministry',  1, false, true),
-  ('deputy_minister',          'Naibu Waziri',                  'Deputy Minister',  'ministry',  2, false, true),
-  ('representative',           'Mwakilishi',                    'Representative',   'section',   1, false, false),
-  ('officer',                  'Afisa',                         'Officer',          'section',   2, false, false)
+  ('prime_minister',           'Waziri Mkuu',                   'Prime Minister',   'executive', 5, true,  false),
+  ('speaker',                  'Spika',                        'Speaker',          'executive', 6, true,  false),
+  ('prime_minister_secretary', 'Katibu wa Ofisi ya Waziri Mkuu', 'Secretary to the Prime Minister', 'executive', 7, false, false),
+  ('minister',                 'Waziri',                       'Minister',         'ministry',  1, false, true),
+  ('deputy_minister',          'Naibu Waziri',                 'Deputy Minister',  'ministry',  2, false, true),
+  ('representative',           'Mwakilishi',                   'Representative',   'section',   1, false, false),
+  ('officer',                  'Afisa',                        'Officer',          'section',   2, false, false)
 on conflict (key) do update set
   label_sw = excluded.label_sw,
   label_en = excluded.label_en,

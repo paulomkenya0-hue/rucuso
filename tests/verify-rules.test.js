@@ -173,7 +173,7 @@ ok("the character counter is gone", !/id="ver1_counter"/.test(html));
 ok("nothing renders a character counter", !/fcounter/.test(js) && !/fcounter/.test(html));
 ok("the placeholder states no format", !/placeholder="[^"]*RU\//i.test(verifyView));
 ok("the neutral instruction is present",
-  /Andika Namba yako rasmi ya Usajili iliyotolewa na chuo/.test(verifyView));
+  /Ingiza Registration Number yako ili kuanza uthibitisho/.test(verifyView));
 ok("there is no reveal control", !/id="ver1_reveal"/.test(html));
 ok("there is no format example element", !/id="ver1_example"/.test(html));
 ok("no format example is served in the verify view", !/RU\/BAFIT/.test(verifyView));
@@ -308,19 +308,21 @@ ok("the in-flight flag is released in a finally block",
   /finally \{[\s\S]{0,400}verifyInFlight = false/.test(appJs),
   "a thrown request would leave the form permanently locked");
 
-// ---- success only after the OTP --------------------------------------------
+// ---- success only after the last-name check --------------------------------
 ok("the success sentence is defined once",
   /const VERIFIED_TEXT = "Utambulisho umethibitishwa kikamilifu!"/.test(appJs));
-const otpFn = appJs.slice(appJs.indexOf("async function verifyOtp"));
-ok("it is shown only after verifyOtp returns verified",
-  otpFn.indexOf("await API.verifyOtp") < otpFn.indexOf("msg.textContent = VERIFIED_TEXT")
-  && /res\.verified !== true\) \{[\s\S]{0,200}return;/.test(otpFn),
-  "the success message is not gated on the OTP having passed");
-ok("a rejection renders the one shared sentence, not a per-case one",
-  /msg\.textContent = OTP_MESSAGES\.INVALID_CODE;/.test(otpFn),
-  "the OTP rejection is no longer uniform");
+const studentFn = appJs.slice(
+  appJs.indexOf("async function verifyStudentLastName"),
+  appJs.indexOf("function studentLogout"));
+ok("identity is revealed only after verifyStudent succeeds",
+  studentFn.indexOf("await API.verifyStudent") < studentFn.indexOf("verifiedStudentInfo")
+  && studentFn.indexOf("await API.verifyStudent") < studentFn.indexOf("status.textContent = VERIFIED_TEXT"),
+  "identity or success is shown before the last-name verification returns");
+ok("a rejection renders the shared verification failure text",
+  /VERIFY_FAIL_TEXT/.test(studentFn) && /catch \(e\)/.test(studentFn),
+  "the last-name rejection is not handled as a verification failure");
 ok("the success message does not use the error class",
-  /msg\.className = "ok-msg"/.test(appJs));
+  /status\.className = "ok-msg"/.test(studentFn));
 
 // ---- the map ---------------------------------------------------------------
 const mapJs = fs.readFileSync(path.join(ROOT, "js", "map.js"), "utf8");
@@ -434,8 +436,8 @@ ok("there is no pre-OTP identity path in the browser",
   !/verifyStudentIdentity/.test(clientCode) && !/confirmPhoneOnFile/.test(appCode));
 ok("the OTP step cannot be pointed at another destination",
   !/id="ver_phone"/.test(html) && !/sendOtp\s*\(\s*phone/i.test(clientCode));
-ok("both OTP calls are keyed on the registration number",
-  /sendOtp\(verifyMatch\.reg\)/.test(appCode) && /verifyOtp\(verifyMatch\.reg, code\)/.test(appCode));
+ok("the last-name verification is keyed on the registration number",
+  /verifyStudent\(verifyMatch\.reg, lastName\)/.test(appCode));
 
 report();
 

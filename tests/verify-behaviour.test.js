@@ -395,35 +395,36 @@ pending.push((async function guardTests() {
     between.length > 0 && !/\breturn\b/.test(between),
     "the reveal is still conditioned on something the lookup returned");
 
-  // Success requires the server, at both gates. Scoped to the verifyOtp body
-  // rather than the whole file so the comparison cannot pass or fail for the
-  // wrong reason.
-  const otpBody = appJs.slice(
-    appJs.indexOf("async function verifyOtp"),
+  // Identity is stored only after the registration-number + last-name check
+  // returns a verified student. Scope this to the handler so the assertions
+  // cannot pass because of unrelated API or test code.
+  const studentBody = appJs.slice(
+    appJs.indexOf("async function verifyStudentLastName"),
     appJs.indexOf("function studentLogout"));
-  ok("a session is only written after verifyOtp succeeds",
-    otpBody.indexOf("await API.verifyOtp") < otpBody.indexOf("DB.studentSession = {"));
-  ok("an unverified response returns before the session is written",
-    /if \(!res \|\| res\.verified !== true\) \{[^}]*return;/.test(otpBody));
-  ok("otp_verified is set from the server result",
-    /otp_verified: true/.test(otpBody));
+  ok("a session is only written after verifyStudent succeeds",
+    studentBody.indexOf("await API.verifyStudent") < studentBody.indexOf("DB.studentSession = {"));
+  ok("the verified server response supplies the student identity",
+    /name: res\.full_name/.test(studentBody)
+    && /programme: res\.programme/.test(studentBody)
+    && /year: res\.year_of_study/.test(studentBody));
+  ok("the session records the last-name verification method",
+    /verification_method: "last_name"/.test(studentBody)
+    && /last_name_verified: true/.test(studentBody));
 
   // There is no longer a branch to take. The pre-OTP bypass is gone, not
   // disabled: a future edit that reintroduces one should fail here rather than
-  // be noticed in production. Strip comments first, or the comments explaining
-  // the removal would pass this check for the wrong reason.
+  // be noticed in production. Strip comments first so explanatory prose does
+  // not count as an implementation.
   const appCode = appJs.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
   ok("there is no pre-OTP bypass to take",
     !/confirmPhoneOnFile/.test(appCode) && !/REQUIRE_SMS_OTP \?/.test(appCode),
     "a bypass branch has been reintroduced");
-  ok("the OTP guard still requires a verified session at submit",
-    /REQUIRE_SMS_OTP && DB\.studentSession\.otp_verified !== true/.test(appCode));
-  ok("the OTP step has no destination phone input",
-    !/id="ver_phone"/.test(html) && !/id="ver_phone_out"/.test(html));
-  ok("the phone on file is read back only after the OTP passes",
-    /phone:\s*res\.phone_number/.test(otpBody)
-    && otpBody.indexOf("res.verified !== true") < otpBody.indexOf("phone: res.phone_number"),
-    "the session is not populated from the verified server response");
+  ok("legacy sessions without the current verification method are discarded",
+    /verification_method !== "last_name"/.test(appCode));
+  ok("the last-name step has no phone or OTP input",
+    !/id="ver_phone"|id="ver_phone_out"|id="ver_otp"/.test(html));
+  ok("identity is displayed only after the last-name request succeeds",
+    studentBody.indexOf("await API.verifyStudent") < studentBody.indexOf("verifiedStudentInfo"));
 }
 
 // Report only once every async block has finished. Two of the blocks above wait

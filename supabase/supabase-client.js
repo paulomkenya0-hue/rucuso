@@ -237,6 +237,21 @@
       const { error } = await client.functions.invoke("lookup-student", { body });
       if (error) throw friendlyError(error);
     },
+    async verifyStudent(regNumber, lastName) {
+      const { data, error } = await client.functions.invoke("verify-student", {
+        body: {
+          reg: String(regNumber == null ? "" : regNumber).trim(),
+          last_name: String(lastName == null ? "" : lastName).trim(),
+        },
+      });
+      if (error) throw friendlyError(error);
+      if (!data || data.verified !== true) {
+        const err = new Error("Uthibitisho wa namba ya usajili na jina la mwisho haukufaulu.");
+        err.code = "INVALID_CREDENTIALS";
+        throw err;
+      }
+      return data;
+    },
     // student_count() returns a scalar, so PostgREST replies with a bare number.
     async studentCount() {
       return Number((await ok(await client.rpc("student_count"))) || 0);

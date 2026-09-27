@@ -312,8 +312,12 @@
             <option value="prime_minister">Waziri Mkuu</option>
             <option value="prime_minister_secretary">Katibu wa Ofisi ya Waziri Mkuu</option>
             <option value="deputy_secretary_general">Naibu Katibu Mkuu</option>
+            <option value="attorney_general">Mwanasheria Mkuu</option>
+            <option value="deputy_attorney_general">Naibu Mwanasheria Mkuu</option>
+            <option value="presidential_advisor">Mshauri wa Rais</option>
             <option value="minister">Waziri</option>
             <option value="deputy_minister">Naibu Waziri</option>
+            <option value="ministry_secretary">Katibu wa Wizara</option>
             <option value="representative">Representative</option>
             <option value="officer">Officer</option>
           </select>
@@ -334,7 +338,7 @@
         <div class="form-group">
           <label for="email">Barua pepe *</label>
           <input id="email" type="email" required>
-          <small>Kiongozi atapokea kiungo cha kuthibitisha barua pepe na kuweka nenosiri.</small>
+          <small>Kiongozi atatakiwa kubadilisha password baada ya kuingia kwenye mfumo.</small>
         </div>
 
         <div class="form-group">
@@ -661,9 +665,12 @@
     president: "Rais",
     vice_president: "Makamu wa Rais",
     secretary_general: "Katibu Mkuu",
-    prime_minister: "Waziri Kuu",
+    prime_minister: "Waziri Mkuu",
     prime_minister_secretary: "Katibu wa Ofisi ya Waziri Mkuu",
     deputy_secretary_general: "Naibu Katibu Mkuu",
+    attorney_general: "Mwanasheria Mkuu",
+    deputy_attorney_general: "Naibu Mwanasheria Mkuu",
+    presidential_advisor: "Mshauri wa Rais",
     minister: "Waziri",
     deputy_minister: "Naibu Waziri",
     representative: "Mwakilishi",
@@ -1125,7 +1132,7 @@
         closeCreateModal();
 
         showMessage(
-          "Akaunti imeundwa. Kiungo cha kuthibitisha barua pepe kimetumwa kwa kiongozi.",
+          "Akaunti imeundwa kikamilifu. Tumia Reset Password kupata password ya muda.",
           "success"
         );
 

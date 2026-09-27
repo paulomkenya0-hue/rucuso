@@ -57,7 +57,7 @@
 
   function isExecutiveLeader(profile) {
     return !!profile && profile.role === "leader" &&
-      ["president", "secretary_general"].includes(profile.position);
+      ["president", "vice_president", "prime_minister", "secretary_general", "speaker"].includes(profile.position);
   }
 
   async function logout(redirectUrl) {

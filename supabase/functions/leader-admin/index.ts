@@ -184,10 +184,15 @@ async function createLeader(req: Request, supabase: any, caller: { id: string; f
     .maybeSingle();
   if (existing) return json(req, { error: "USERNAME_TAKEN" }, 409);
 
-  const siteUrl = (Deno.env.get("SITE_URL") || "https://rucuso.online").replace(/\/+$/, "");
-  const { data: created, error: createErr } = await supabase.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${siteUrl}/change-password/`,
+ const initialPassword = generateTempPassword();
+
+const { data: created, error: createErr } =
+  await supabase.auth.admin.createUser({
+    email,
+    password: initialPassword,
+    email_confirm: true,
   });
+
   if (createErr || !created?.user) {
     return json(req, { error: "AUTH_CREATE_FAILED", detail: createErr?.message }, 500);
   }
@@ -238,7 +243,7 @@ async function createLeader(req: Request, supabase: any, caller: { id: string; f
 
   return json(req, {
     ok: true,
-    message: "Akaunti imeundwa. Kiungo cha kuthibitisha barua pepe kimetumwa kwa kiongozi.",
+    message: "Akaunti imeundwa kikamilifu. Tumia Reset Password kupata password ya muda.",
     leader_id: leaderRow.id,
     profile_id: newUserId,
     username,

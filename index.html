@@ -567,67 +567,43 @@
         </div>
 
         <div id="ver-step1">
-          <h3 style="margin-top:0;">Namba ya Usajili</h3>
-          <p class="muted muted--lg">Andika Namba yako rasmi ya Usajili iliyotolewa na chuo.</p>
+          <h3 style="margin-top:0;">Uthibitisho wa Mwanafunzi</h3>
+          <p class="muted muted--lg">
+            Ingiza Registration Number yako ili kuanza uthibitisho. Baada ya hapo
+            utaombwa kuingiza jina lako la mwisho kama lilivyosajiliwa chuoni.
+            Jina, programu na mwaka wako vitaonekana baada ya uthibitisho kufaulu.
+          </p>
           <label for="ver_reg">Namba ya usajili</label>
-          <!-- Nothing here states the format: no placeholder example, no helper
-               line, no character counter, and no control that reveals one. The
-               shape lives only in verify-ux.js and in the database CHECK
-               constraint. A student who cannot recall it has to ask the office,
-               which is the intended cost of not handing the number space to
-               every visitor and every scraper that reads the page source. -->
           <input id="ver_reg" placeholder="Namba yako ya usajili" autocomplete="off" autocapitalize="characters" spellcheck="false"
                  aria-describedby="ver1_hint ver1_limit">
           <p class="fhint" id="ver1_hint" role="status" aria-live="polite"></p>
           <div id="ver1_limit" class="ratelimit" role="status" aria-live="polite" hidden></div>
           <div id="ver1_msg" role="status" aria-live="polite" style="margin-top:var(--sp-3);"></div>
-          <!-- Turnstile mounts here, inside the form, immediately above the
-               button. With no site key configured the form fails closed and says
-               so generically rather than letting a regex match stand in for a
-               solved CAPTCHA. -->
           <div id="verCaptcha" class="vercaptcha" style="margin-top:var(--sp-3);"></div>
           <button class="pri" id="ver1_btn" onclick="verifyStep1(event)">
             <span class="btn__spin" aria-hidden="true"></span>
-            <span class="btn__label">Endelea</span>
+            <span class="btn__label">ENDELEA</span>
           </button>
         </div>
 
         <div id="ver-step2" class="hidden">
-          <span class="badge badge--live">Uthibitisho wa simu</span>
-          <p class="muted muted--lg" style="margin-top:var(--sp-3);">
-            Tutakutumia namba ya uthibitisho (OTP) kwa simu iliyosajiliwa na
-            chuo. Jina, programu na mwaka wako wataonekana baada ya uthibitisho
-            kufaulu.
+          <h3 style="margin-top:0;">Ingiza Jina la Mwisho</h3>
+          <p class="muted muted--lg">
+            Ingiza jina lako la mwisho kama lilivyosajiliwa chuoni. Kulinganisha
+            kwa makini ni sehemu ya uthibitisho wa mwanafunzi.
           </p>
-          <!-- No phone field here, and its absence is load-bearing.
-               This step used to ask the student to type their phone number, and
-               send-otp delivered the code to whatever was typed. That made the
-               delivery destination attacker-controlled: a script could submit a
-               guessed registration number with a phone it owns and learn the
-               answer by seeing whether an SMS arrived, no matter what the
-               response said. The code now goes to the number on file, so there
-               is nothing here for the browser to choose and nothing to render
-               back. This screen is also reached by a registration number that
-               belongs to nobody, identically to one that does not — that is the
-               point of the step, and it is why it cannot claim the number was
-               recognised. -->
-          <p class="muted" id="ver2_hint" style="margin-top:var(--sp-2);">
-            Kama namba ya simu uliyosajiliwa si yako, wasiliana na msimamizi wa
-            mfumo.
-          </p>
+          <label for="ver_last_name">Jina la mwisho</label>
+          <input id="ver_last_name" autocomplete="family-name" autocapitalize="words" spellcheck="false" placeholder="Jina la mwisho">
           <div id="ver2_msg" class="err" role="alert" aria-live="assertive" style="margin-top:var(--sp-2);"></div>
-          <button class="pri" id="ver2_btn" onclick="sendOtp(event)">TUMA OTP</button>
+          <button class="pri" id="ver2_btn" onclick="verifyStudentLastName(event)">THIBITISHA</button>
         </div>
 
         <div id="ver-step3" class="hidden">
-          <label for="ver_otp">Namba ya uthibitisho</label>
-          <p class="muted">Ingiza tarakimu 6 zilizotumwa kwa simu yako iliyosajiliwa.</p>
-          <input id="ver_otp" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" style="letter-spacing:.35em;font-size:var(--fs-lg);text-align:center;">
-          <div id="ver3_msg" class="err" role="alert" aria-live="assertive" style="margin-top:var(--sp-2);"></div>
-          <button class="pri" onclick="verifyOtp(event)">THIBITISHA OTP</button>
-          <p class="muted" style="margin-top:var(--sp-3);text-align:center;">
-            <button class="link" id="resendLink" onclick="sendOtp(event)">Tuma tena OTP</button>
-          </p>
+          <h3 style="margin-top:0;">Uthibitisho umekamilika</h3>
+          <p class="muted">Taarifa zako za msingi zimehakikishwa na zinaweza kuonekana kwenye fomu ya maoni.</p>
+          <div id="verifiedStudentInfo" class="card card--quiet" style="margin-top:var(--sp-3);"></div>
+          <div id="ver3_msg" class="ok-msg" role="status" aria-live="polite" style="margin-top:var(--sp-2);"></div>
+          <button class="pri" id="verContinueBtn" onclick="go('submit', verifyTarget && verifyTarget.preset)" style="margin-top:var(--sp-3);">ENDELEA KWA FOMU</button>
         </div>
       </div>
 
@@ -680,14 +656,6 @@
         <span class="muted">Umethibitishwa kama <b id="vb_name"></b> (<span id="vb_reg"></span>) —
           <button class="link" onclick="studentLogout()">Toka</button>
         </span>
-      </div>
-
-      <!-- Only ever visible if the SMS provider is down and a deliberately
-           weaker path is switched on. Unreachable while REQUIRE_SMS_OTP is true
-           in js/app.js, and boot() drops any session left by an older build. -->
-      <div id="otpBypassNotice" class="hidden" style="margin-bottom:var(--sp-4);padding:var(--sp-3) var(--sp-4);border-radius:var(--radius-sm);background:var(--warn-bg);color:var(--warn);font-size:var(--fs-sm);">
-        Uthibitisho wako umekamilika kwa njia rahisi (namba ya usajili na namba ya simu),
-        bila namba ya uthibitisho ya SMS. Tafadhali thibitisha tena kupitia SMS ili kuendelea.
       </div>
 
       <div id="privacyGate" class="card">
