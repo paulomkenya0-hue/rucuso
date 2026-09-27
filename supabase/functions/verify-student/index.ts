@@ -105,8 +105,8 @@ serve(async (req: Request) => {
     }
 
     const allowed = await consumeRateLimit(supabase, secret, [
-      { scope: "student_verify_reg", value: reg },
-      { scope: "student_verify_ip", value: remoteIp },
+      { scope: "reg", value: reg },
+      { scope: "ip", value: remoteIp },
     ]);
     if (!allowed) {
       return errorResponse(req, "RATE_LIMITED", "Too many attempts. Please wait a moment and try again.", 429);
