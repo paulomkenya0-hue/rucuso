@@ -24,7 +24,11 @@
 <meta name="twitter:description" content="Jukwaa rasmi la uongozi wa wanafunzi, huduma za wanafunzi, na mfumo wa maoni wa Ruaha Catholic University.">
 <meta name="twitter:image" content="https://rucuso.online/assets/ruc-logo.png">
 <meta name="twitter:image:alt" content="Nembo la Ruaha Catholic University">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
+<!-- Tab icon, home-screen icon and the legacy /favicon.ico fallback. The 32px
+     file is a letterboxed resize of assets/ruc-logo.png, so it stays sharp at tab
+     size without shipping the 56KB original to every page view. -->
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
 <link rel="stylesheet" href="css/portal.css">
 </head>
 <body>
@@ -398,7 +402,9 @@
   </section>
 
   <!-- ---------- important links ---------- -->
-  <section class="section section--tint" id="sec-links" aria-labelledby="linksTitle">
+  <!-- Plain, not cream: sec-documents above is already section--tint, and the
+       page alternates tinted/plain sections. Contact below carries the tint. -->
+  <section class="section" id="sec-links" aria-labelledby="linksTitle">
     <div class="container">
       <div class="sectionhead-row">
         <div class="sechead">
@@ -415,7 +421,7 @@
   </section>
 
   <!-- ---------- contact ---------- -->
-  <section class="section" id="sec-contact" aria-labelledby="contactTitle">
+  <section class="section section--tint" id="sec-contact" aria-labelledby="contactTitle">
     <div class="container">
       <div class="grid" style="grid-template-columns:1fr;gap:var(--sp-5);" data-contact-grid>
         <div class="sechead" style="margin-bottom:0;">
@@ -564,11 +570,11 @@
 
         <div id="ver-step2" class="hidden">
           <span class="badge badge--live">Namba imepatikana</span>
-          <dl class="identity" style="margin-top:var(--sp-4);">
-            <div class="identity__row"><dt>Jina</dt><dd id="ver_name"></dd></div>
-            <div class="identity__row"><dt>Programu</dt><dd id="ver_prog"></dd></div>
-            <div class="identity__row"><dt>Mwaka</dt><dd id="ver_year"></dd></div>
-          </dl>
+          <p class="muted muted--lg" style="margin-top:var(--sp-3);">
+            Namba yako ya usajili ipo kwenye kumbukumbu zetu. Ili kuendelea, ithibitishe
+            kwamba namba ya simu unayo ni yako kwa kupokea namba ya uthibitisho (OTP).
+            Jina, programu na mwaka wako wataonekana baada ya uthibitisho kufaulu.
+          </p>
           <label for="ver_phone">Namba ya simu</label>
           <p class="muted" id="ver2_hint">Ingiza namba yako ya simu ya Tanzania (mfano 07XXXXXXXX au +255XXXXXXXXX).</p>
           <input id="ver_phone" placeholder="07XXXXXXXX" inputmode="tel" autocomplete="tel">
@@ -617,8 +623,12 @@
         </span>
       </div>
 
+      <!-- Only ever visible if the SMS provider is down and a deliberately
+           weaker path is switched on. Unreachable while REQUIRE_SMS_OTP is true
+           in js/app.js, and boot() drops any session left by an older build. -->
       <div id="otpBypassNotice" class="hidden" style="margin-bottom:var(--sp-4);padding:var(--sp-3) var(--sp-4);border-radius:var(--radius-sm);background:var(--warn-bg);color:var(--warn);font-size:var(--fs-sm);">
-        Akaunti yako imethibitishwa kupitia Namba ya Usajili. (Usalama wa OTP utaongezwa hivi karibuni)
+        Uthibitisho wako umekamilika kwa njia rahisi (namba ya usajili na namba ya simu),
+        bila namba ya uthibitisho ya SMS. Tafadhali thibitisha tena kupitia SMS ili kuendelea.
       </div>
 
       <div id="privacyGate" class="card">
@@ -977,10 +987,16 @@
       <div id="leaderAdminList"></div>
       <div class="row2" style="margin-top:var(--sp-3);">
         <input id="ld_name" placeholder="Jina kamili">
-        <input id="ld_position" placeholder="Nafasi (mfano: Rais)">
+        <label for="ld_position" class="sr-only">Nafasi</label>
+        <select id="ld_position">
+          <option value="">Chagua nafasi…</option>
+        </select>
       </div>
       <div class="row2">
-        <input id="ld_ministry" placeholder="Wizara (hiari)">
+        <label for="ld_ministry" class="sr-only">Wizara</label>
+        <select id="ld_ministry">
+          <option value="">Bila wizara</option>
+        </select>
         <input id="ld_phone" placeholder="Namba ya simu, +255...">
       </div>
       <label for="ld_bio">Maelezo mafupi</label>

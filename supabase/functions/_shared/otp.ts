@@ -21,6 +21,20 @@ export function normalizePhone(raw: unknown): string | null {
   return null;
 }
 
+// A registration number to match with ilike(). The LIKE metacharacters are
+// escaped so the value is matched literally, and the number is normalised to
+// upper case so the comparison is case-insensitive.
+//
+// This is shared by lookup-student and send-otp on purpose. The RPC they
+// replaced compared lower(registration_number) = lower(p_reg), so a student who
+// typed their number in lower case was found. If only one of the two functions
+// matched case-insensitively, the student would pass the "is this number in the
+// registry?" screen and then be told the same number does not exist when the
+// code was sent — the two steps disagreeing about the same input.
+export function registrationPattern(raw: string): string {
+  return raw.trim().toUpperCase().replace(/([\\%_])/g, "\\$1");
+}
+
 export function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("origin") ?? "*";
   return {

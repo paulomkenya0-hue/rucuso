@@ -94,7 +94,10 @@ operation succeeded.
   Postgres decides what comes back. Migration 004 splits this per permission
   (`profiles.permissions`), and `super_admin` passes every check implicitly.
 - The public cannot read the `students` or `feedback` tables. Student verification goes through
-  `lookup_student()` and `verify_student_identity()`; tracking goes through `track_feedback()`.
+  the `lookup-student` Edge Function, which answers only "does this registration number exist?"
+  and is rate-limited per number and per client IP; the student's name, programme and year are
+  returned by `verify-otp` and only after the SMS code is proved. `lookup_student()` itself is
+  `service_role` only as of migration 012. Tracking goes through `track_feedback()`.
 - Public submissions go through `submit_feedback()`, which mints the reference number, enforces
   anonymity server-side, and blocks duplicate spam inside the database.
 - The public leadership directory reads a dedicated `public_leaders` view, so registration
@@ -125,10 +128,23 @@ operation succeeded.
    anon key is public by design and is only safe because RLS is on every table. Never put a
    `service_role` or AI key in it. There is no second copy of this file — every page loads this
    one path.
-5. Optional — SMS OTP. Set the SMS provider's credentials as Supabase secrets and deploy
-   `send-otp` and `verify-otp` (see `supabase/edge-functions-README.md`). Until a provider is
-   connected, `REQUIRE_SMS_OTP = false` and verification falls back to the narrower
-   phone-on-file check from migration 006.
+5. SMS OTP. `REQUIRE_SMS_OTP` in `js/app.js` is `true`, so a real SMS code is mandatory — set the
+   provider's credentials as Supabase secrets and deploy the three functions before letting
+   students in, or the verification screen will show a failure it cannot recover from:
+   ```bash
+   supabase secrets set SMS_PROVIDER=beem            # or africastalking
+   supabase secrets set SMS_API_KEY=your_key
+   supabase secrets set SMS_API_SECRET=your_secret   # Beem only
+   supabase secrets set SMS_SENDER_ID=RUCUSO
+   supabase secrets set OTP_PEPPER=<openssl rand -base64 48>
+   supabase secrets set STUDENT_LOOKUP_RATE_LIMIT_SECRET=<openssl rand -base64 32>
+   supabase functions deploy send-otp
+   supabase functions deploy verify-otp
+   supabase functions deploy lookup-student
+   ```
+   See `supabase/edge-functions-README.md`. The phone-on-file fallback from migration 006 is
+   unreachable while the flag is `true`; turning it back off is a deliberate, documented
+   downgrade, not a default.
 6. Optional — the AI assistant:
    ```bash
    supabase secrets set AI_API_KEY=your_provider_key
@@ -161,6 +177,43 @@ The `CNAME` file already pins this repo to `rucuso.online`; point the domain's D
 Pages per GitHub's "Managing a custom domain" docs. For indexing: add the domain in Google
 Search Console, submit `https://rucuso.online/sitemap.xml` under **Sitemaps**, then use
 **URL Inspection → Request Indexing**.
+
+## Tests
+
+There is no build step, so the tests run on plain node with no dependencies:
+
+```
+node tests/run-all.js
+```
+
+That runs every `*.test.js` in `tests/`, then parses the JS the browser loads (`js/*.js`,
+`supabase/supabase-client.js`) and every inline `<script>` in the HTML pages, and finally
+scans the tree for credentials. Individual suites can be run on their own; the HESLB ones
+use the node test runner:
+
+```
+node tests/hierarchy.test.js
+node tests/assets.test.js
+node tests/sql-structure.test.js
+node tests/no-secrets.js
+node --test tests/heslb-security.test.js
+```
+
+| Suite | What it covers |
+| --- | --- |
+| `hierarchy.test.js` | `refreshHierarchy`, `positionsByTier`, `vacantSlots`, `positionLabel`, and the LIKE escaping in `registrationPattern`. Loads the real `js/data.js` in a vm. |
+| `assets.test.js` | Every local `src`/`href` in all 20 pages resolves, every page has a favicon, and the icon files are valid ICO/PNG. |
+| `sql-structure.test.js` | Migrations have no unterminated string, dollar-quote or parenthesis, no mixed-case object names, and are numbered in order. |
+| `no-secrets.js` | No credential-shaped literal, and no service role key in the committed config. `no-secrets.test.js` proves the scanner would catch one. |
+| `heslb-*.test.js` | The HESLB verification, import and page behaviour. |
+
+Two helpers are for reading, not for CI: `tests/show-rls.js` prints the policies, grants
+and RLS tables in a migration, and `tests/show-config.js` prints the *shape* of the config
+values without printing them.
+
+What the tests do **not** cover: nothing here talks to Supabase, so RLS, the triggers, the
+Edge Functions and the OTP flow are only verified once they are deployed. Use the checklist
+below for those.
 
 ## How a data change flows
 

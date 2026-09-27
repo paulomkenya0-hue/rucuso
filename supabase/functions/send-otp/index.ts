@@ -18,6 +18,7 @@ import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
 import {
   MAX_SENDS_PER_WINDOW, OTP_TTL_SECONDS, SEND_WINDOW_MINUTES,
   hashOtp, json, newOtp, normalizePhone, preflight, readJson, getSupabase, getPepper,
+  registrationPattern,
 } from "../_shared/otp.ts";
 
 serve(async (req: Request) => {
@@ -34,11 +35,14 @@ serve(async (req: Request) => {
   const supabase = getSupabase();
 
   // The registration number must already be in the registry — the front end
-  // verified it with lookup_student() before this function is called.
+  // checked it with the lookup-student function before this one is called.
+  // Matched with the same registrationPattern() that function uses, so a number
+  // typed in lower case is found here too rather than being reported as
+  // unknown after the front end had already said it existed.
   const { data: student, error: sErr } = await supabase
     .from("students")
     .select("id, full_name, phone_number")
-    .eq("registration_number", reg)
+    .ilike("registration_number", registrationPattern(reg))
     .limit(1)
     .maybeSingle();
   if (sErr) return json(req, { error: "LOOKUP_FAILED" }, 500);

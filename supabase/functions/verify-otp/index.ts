@@ -67,15 +67,34 @@ serve(async (req: Request) => {
 
   await supabase.from("otp_verifications").update({ verified: true }).eq("id", row.id);
 
-  // Best-effort identity for the "you are verified as ..." banner. The front
-  // end already has these values from lookup_student(), so this is a
-  // convenience, not a trust boundary.
+  // Student identity, returned only now — after the code was proved. This is
+  // the first and only point in the whole verification flow at which a name,
+  // programme or year leaves the server. (lookup_student() used to hand these
+  // out to anyone with a registration number, before any OTP; that RPC is now
+  // service_role only and the browser reaches the registry only through
+  // lookup-student, which returns a bare boolean.)
   let fullName: string | null = null;
+  let programme: string | null = null;
+  let yearOfStudy: string | null = null;
+  let faculty: string | null = null;
   if (row.student_id) {
     const { data: st } = await supabase
-      .from("students").select("full_name").eq("id", row.student_id).maybeSingle();
+      .from("students")
+      .select("full_name, programme, year_of_study, faculty")
+      .eq("id", row.student_id)
+      .maybeSingle();
     fullName = st?.full_name ?? null;
+    programme = st?.programme ?? null;
+    yearOfStudy = st?.year_of_study ?? null;
+    faculty = st?.faculty ?? null;
   }
 
-  return json(req, { verified: true, student_id: row.student_id, full_name: fullName });
+  return json(req, {
+    verified: true,
+    student_id: row.student_id,
+    full_name: fullName,
+    programme,
+    year_of_study: yearOfStudy,
+    faculty,
+  });
 });

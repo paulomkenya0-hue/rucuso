@@ -1423,6 +1423,33 @@ input[type="checkbox"] {
 /* --------------------------------------------------------------------------
    15. Leadership
    -------------------------------------------------------------------------- */
+
+/* The public directory groups leaders by tier (migration 013), highest tier
+   first. #leaderGrid holds one .leadertier block per tier, each with its own
+   .leadgrid inside, so the group heading spans the full width while the cards
+   inside it keep the responsive 2/3/4 column layout. */
+.leadertier { margin-top: var(--sp-6); }
+.leadertier:first-child { margin-top: 0; }
+.leadertier__title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin: 0 0 var(--sp-4);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--text-strong);
+  letter-spacing: .01em;
+}
+.leadertier__title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+}
+:root[data-theme="dark"] .leadertier__title::after {
+  background: linear-gradient(90deg, var(--border), transparent);
+}
+
 .leadgrid { display: grid; gap: var(--sp-4); grid-template-columns: repeat(2, 1fr); }
 @media (min-width: 620px) { .leadgrid { grid-template-columns: repeat(3, 1fr); } }
 @media (min-width: 1000px) { .leadgrid { grid-template-columns: repeat(4, 1fr); } }

@@ -15,12 +15,6 @@
   const KEY_STUDENT = "rucu_student_session_v1";
   const KEY_UI = "rucu_ui_v1";
 
-  // Expected leadership positions. These are NOT stored in the database and
-  // are NOT fake leaders: the admin list uses them to show which posts are
-  // still unfilled, derived from the ministries that actually exist.
-  const SINGULAR_POSITIONS = ["president", "vice_president", "secretary_general", "prime_minister", "prime_minister_secretary", "deputy_secretary_general"];
-  const MINISTRY_ROLES = ["Waziri", "Naibu Waziri", "Katibu"];
-
   // ---------- Viungo Muhimu (Important Links) ----------
   //
   // Every URL below was read off an official RUCU / HESLB page. Nothing here is
@@ -111,6 +105,8 @@
     categories: [],       // [{ id, name, active }]
     ministries: [],       // [{ id, name, description, active }]
     leaders: [],          // mapped to the shape the render functions use
+    hierarchy: [],        // [{ tier_key, tier_label, tier_rank }] ordered
+    positions: [],        // flat tier+position rows from leadership_hierarchy()
     services: [],
     announcements: [],
     documents: [],
@@ -191,6 +187,14 @@
       office: r.office_location || "",
       responsibilities: r.responsibilities || "",
       active: r.active !== false,
+      // Hierarchy, joined onto the row by public_leaders (migration 013). Absent
+      // for staff, who read the leaders table directly - the admin screens get
+      // this from positionsByTier() instead.
+      tier_key: r.tier_key || null,
+      tier_label: r.tier_label || "",
+      tier_rank: r.tier_rank == null ? null : Number(r.tier_rank),
+      position_label: r.position_label || "",
+      position_rank: r.position_rank == null ? null : Number(r.position_rank),
     };
   }
   function mapFeedback(r) {
@@ -332,6 +336,65 @@
     }
   }
 
+  // ---------- leadership hierarchy ----------
+  // The tiers and the posts inside them, ordered. Read once per public load and
+  // kept on DB so the directory, the leader modal and the admin screens all
+  // agree on wording and order.
+  //
+  // Failure here is not fatal on purpose: the public directory still renders, it
+  // just falls back to the flat, ungrouped presentation. A structure table
+  // should never be able to blank out the leadership page.
+  async function refreshHierarchy() {
+    try {
+      const rows = await API.leadershipHierarchy();
+      const seen = new Set();
+      DB.hierarchy = (rows || [])
+        .filter((r) => {
+          if (seen.has(r.tier_key)) return false;
+          seen.add(r.tier_key);
+          return true;
+        })
+        .map((r) => ({
+          tier_key: r.tier_key,
+          tier_label: r.tier_label,
+          tier_rank: Number(r.tier_rank) || 0,
+        }))
+        .sort((a, b) => a.tier_rank - b.tier_rank);
+      // leadership_hierarchy() returns position_key / position_label /
+      // position_rank; the tables those come from are leadership_positions.key /
+      // .label_sw / .rank. Renamed once here so everything downstream can use the
+      // column names, and so the two halves of the site (this file and
+      // /admin/leaders/) agree on one shape.
+      DB.positions = (rows || []).map((r) => ({
+        key: r.position_key,
+        label_sw: r.position_label,
+        rank: Number(r.position_rank) || 0,
+        tier_key: r.tier_key,
+        ministry_required: r.ministry_required === true,
+      }));
+    } catch (e) {
+      DB.hierarchy = [];
+      DB.positions = [];
+    }
+  }
+  // Label for a position key, from the hierarchy when it loaded.
+  function positionLabel(key) {
+    const hit = DB.positions.find((p) => p.key === key);
+    return hit ? hit.label_sw : null;
+  }
+  // Every post, grouped by tier, for the admin pickers.
+  function positionsByTier() {
+    const tiers = DB.hierarchy.length
+      ? DB.hierarchy
+      : [{ tier_key: "executive", tier_label: "Uongozi wa Juu", tier_rank: 1 }];
+    return tiers.map((t) => ({
+      ...t,
+      positions: DB.positions
+        .filter((p) => p.tier_key === t.tier_key)
+        .sort((a, b) => a.rank - b.rank),
+    })).filter((t) => t.positions.length);
+  }
+
   // ---------- leaders ----------
   // Staff see the real table (inactive rows + private fields for the edit
   // form); everyone else sees the public view, which cannot leak them.
@@ -378,30 +441,51 @@
     await refreshLeaders();
   }
   // Unfilled posts, derived from the real data. Nothing is written to the DB.
+  // Vacancies are worked out from leadership_positions, not from a list typed
+  // here. This used to hardcode the six standalone posts and three ministry
+  // roles, which is a second copy of the structure: adding a post in the
+  // database left it missing from this page, and the ministry vacancies it
+  // invented were free text ("Waziri wa Uchelewa") that matched no position key
+  // at all, so filling one created a leader the hierarchy could not label.
+  //
+  // A post is vacant when no leader holds that key. A post that requires a
+  // ministry is tracked per ministry, because "Waziri" is filled once for every
+  // ministry rather than once overall.
   function vacantSlots() {
     const filled = DB.leaders.filter((l) => l.name);
-    const positionAliases = {
-      "Rais": "president",
-      "Makamu wa Rais": "vice_president",
-      "Katibu Mkuu": "secretary_general",
-      "Waziri Mkuu": "prime_minister",
-      "Katibu wa Ofisi ya Waziri Mkuu": "prime_minister_secretary",
-      "Naibu Katibu Mkuu": "deputy_secretary_general",
-    };
+    const positions = DB.positions.length ? DB.positions : [];
     const out = [];
-    SINGULAR_POSITIONS.forEach((pos) => {
-      if (!filled.some((l) => l.position === pos || positionAliases[l.position] === pos)) {
-        out.push({ position: pos, ministry: "", ministry_id: null, vacant: true });
+
+    positions.forEach((p) => {
+      if (p.ministry_required) {
+        DB.ministries.filter((m) => m.active).forEach((m) => {
+          const taken = filled.some(
+            (l) => l.position === p.key && (!l.ministry_id || l.ministry_id === m.id),
+          );
+          if (!taken) {
+            out.push({
+              position: p.key,
+              position_label: p.label_sw,
+              ministry: m.name,
+              ministry_id: m.id,
+              vacant: true,
+            });
+          }
+        });
+        return;
+      }
+      // ministry_required is false: a standalone post, filled by anyone.
+      if (!filled.some((l) => l.position === p.key)) {
+        out.push({
+          position: p.key,
+          position_label: p.label_sw,
+          ministry: "",
+          ministry_id: null,
+          vacant: true,
+        });
       }
     });
-    DB.ministries.filter((m) => m.active).forEach((m) => {
-      MINISTRY_ROLES.forEach((role) => {
-        const pos = `${role} wa ${m.name}`;
-        if (!filled.some((l) => l.position === pos && (!l.ministry_id || l.ministry_id === m.id))) {
-          out.push({ position: pos, ministry: m.name, ministry_id: m.id, vacant: true });
-        }
-      });
-    });
+
     return out;
   }
 
@@ -616,8 +700,6 @@
 
   window.RucusoData = {
       DB,
-      SINGULAR_POSITIONS,
-      MINISTRY_ROLES,
       DEFAULT_IMPORTANT_LINKS,
       ICON_SVGS,
       normalizeLinks,
@@ -626,6 +708,7 @@
     mapLeader, mapFeedback,
     loadPublic, loadAdmin, setSession, audit,
     refreshLeaders, saveLeader, toggleLeader, removeLeader, vacantSlots,
+    refreshHierarchy, positionLabel, positionsByTier,
     refreshMinistries, saveMinistry, updateMinistryDetails, toggleMinistry, removeMinistry,
     refreshServices, saveService, toggleService, removeService,
     refreshAnnouncements, saveAnnouncement, removeAnnouncement,

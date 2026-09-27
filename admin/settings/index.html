@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Msimamizi | RUCUSO</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../../assets/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="../../assets/apple-touch-icon.png">
+<meta name="robots" content="noindex, nofollow">
 
   <style>
     * { box-sizing: border-box; }
@@ -287,6 +290,85 @@
       line-height: 1.8;
     }
 
+    /* Viungo Muhimu editor */
+    .links-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+
+    .linkrow {
+      border: 1px solid #e7ebf0;
+      border-radius: 10px;
+      padding: 14px;
+      background: #f8fafc;
+    }
+
+    .linkrow__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .linkrow__title {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #8a94a6;
+    }
+
+    .linkrow__grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr;
+    }
+
+    @media (min-width: 760px) {
+      .linkrow__grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .linkrow__grid > .wide {
+        grid-column: 1 / -1;
+      }
+    }
+
+    .linkrow__actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .iconbtn {
+      border: 1px solid #ccd4df;
+      background: #fff;
+      color: #39465a;
+      border-radius: 7px;
+      padding: 5px 9px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .iconbtn:hover {
+      background: #edf2f7;
+    }
+
+    .iconbtn--danger {
+      color: #b42318;
+      border-color: #f3c6c6;
+      background: #fff5f5;
+    }
+
+    .links-empty {
+      color: #8a94a6;
+      font-size: 13px;
+      padding: 10px 0;
+    }
+
     @media (max-width: 900px) {
       .grid {
         grid-template-columns: 1fr;
@@ -351,7 +433,7 @@
       <a href="../reports/index.html">Ripoti</a>
       <a href="../ai/index.html">RUCUSO AI</a>
       <a href="./index.html" class="active">Msimamizi</a>
-      <a href="../audit/index.html">Audit Logs</a>
+      <a href="../audit-logs/">Audit Logs</a>
     </nav>
   </aside>
 
@@ -487,6 +569,39 @@
 
       <section class="panel">
         <div class="panel-head">
+          <h2>Viungo Muhimu</h2>
+          <p>Viungo vinavyoonyeshwa kwenye sehemu "Viungo Muhimu" ya ukurasa wa nyumbani.</p>
+        </div>
+
+        <div class="panel-body">
+
+          <div id="linksList" class="links-list"></div>
+
+          <div class="actions">
+            <button class="btn-secondary" id="addLink" type="button">
+              Ongeza Kiungo
+            </button>
+            <button class="btn-secondary" id="resetLinks" type="button">
+              Rudia Majengo
+            </button>
+            <button class="btn-primary" id="saveLinks">
+              Hifadhi Viungo
+            </button>
+          </div>
+
+          <div class="setting-help" style="margin-top:12px;">
+            Weka URL kamili inaanza na <code>https://</code> au <code>http://</code>.
+            Miungo ya ndani ya tovuti (kama <code>#sec-contact</code>) pia inakubaliwa.
+            Tangaza zisizo za ukweli hazihitajiki — ikiwa URL haijulikani,
+            acha ipo wazi (blank) badala ya kubahatisha.
+          </div>
+
+        </div>
+      </section>
+
+
+      <section class="panel">
+        <div class="panel-head">
           <h2>Muhtasari wa Mfumo</h2>
           <p>Vipengele vinavyopatikana kwenye RUCUSO.</p>
         </div>
@@ -542,6 +657,8 @@
 <script src="../../supabase/config.js"
         onerror="console.warn('supabase/config.js haipo.')"></script>
 <script src="../../supabase/supabase-client.js"></script>
+<script src="../../js/data.js"
+        onerror="console.warn('js/data.js haipo — Viungo Muhimu zitaonyesha majengo yaliyomo kwenye ukurasa wa nyumbani.')"></script>
 <script src="../../js/auth-guard.js"></script>
 
 <script>
@@ -591,6 +708,189 @@
 
   const saveAcademicYear = document.getElementById("saveAcademicYear");
   const saveContact = document.getElementById("saveContact");
+
+  // ---------- Viungo Muhimu ----------
+  //
+  // The shared data layer owns the defaults, the icon list and the URL
+  // allow-list, so this editor and the public renderer cannot drift apart.
+  // data.js has no load-time side effects; it only defines window.RucusoData.
+  const dataLayer = window.RucusoData;
+  const ICON_KEYS = dataLayer ? Object.keys(dataLayer.ICON_SVGS) : ["university"];
+
+  const linksList = document.getElementById("linksList");
+  const addLinkBtn = document.getElementById("addLink");
+  const resetLinksBtn = document.getElementById("resetLinks");
+  const saveLinksBtn = document.getElementById("saveLinks");
+
+  // Working copy. The DOM is the source of truth while editing; this holds the
+  // last loaded/validated list.
+  let workingLinks = [];
+
+  function defaultLinks() {
+    return dataLayer
+      ? dataLayer.DEFAULT_IMPORTANT_LINKS.map((l) => Object.assign({}, l))
+      : [];
+  }
+
+  function renderLinksEditor() {
+    if (!linksList) return;
+
+    if (!workingLinks.length) {
+      linksList.innerHTML =
+        '<p class="links-empty">Hakuna kiungo bado. Bofya "Ongeza Kiungo" kuongeza mwanzo.</p>';
+      return;
+    }
+
+    linksList.innerHTML = workingLinks
+      .map(function (item, index) {
+        const options = ICON_KEYS.map(function (key) {
+          const selected = key === item.icon ? " selected" : "";
+          return '<option value="' + key + '"' + selected + ">" + key + "</option>";
+        }).join("");
+
+        return (
+          '<div class="linkrow" data-index="' + index + '">' +
+          '<div class="linkrow__head">' +
+          '<span class="linkrow__title">Kiungo #' + (index + 1) + "</span>" +
+          '<span class="linkrow__actions">' +
+          '<button type="button" class="iconbtn" data-act="up">&uarr; Sogeza juu</button>' +
+          '<button type="button" class="iconbtn" data-act="down">&darr; Sogeza chini</button>' +
+          '<button type="button" class="iconbtn iconbtn--danger" data-act="remove">Ondoa</button>' +
+          "</span>" +
+          "</div>" +
+          '<div class="linkrow__grid">' +
+          '<div><label>Jina</label><input data-f="label" maxlength="120" value="' +
+          escapeAttr(item.label || "") +
+          '"></div>' +
+          '<div><label>URL</label><input data-f="url" maxlength="500" placeholder="https://..." value="' +
+          escapeAttr(item.url || "") +
+          '"></div>' +
+          '<div class="wide"><label>Maelezo mafupi (si lazima)</label><input data-f="note" maxlength="200" value="' +
+          escapeAttr(item.note || "") +
+          '"></div>' +
+          '<div><label>Aikoni</label><select data-f="icon">' + options + "</select></div>" +
+          "</div>" +
+          "</div>"
+        );
+      })
+      .join("");
+  }
+
+  function escapeAttr(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  // Reads the editor back into workingLinks, dropping rows the allow-list
+  // rejects (bad protocol, missing label) so an invalid URL can never reach
+  // the public page.
+  function collectLinks() {
+    if (!linksList) return [];
+    const rows = Array.prototype.slice.call(linksList.querySelectorAll(".linkrow"));
+    const collected = [];
+
+    rows.forEach(function (row) {
+      const get = function (field) {
+        const el = row.querySelector('[data-f="' + field + '"]');
+        return el ? el.value.trim() : "";
+      };
+
+      const label = get("label");
+      const url = get("url");
+
+      if (!label && !url) return; // untouched empty row
+
+      collected.push({
+        label: label,
+        url: url,
+        note: get("note"),
+        icon: get("icon"),
+      });
+    });
+
+    return dataLayer ? dataLayer.normalizeLinks(collected) || [] : collected;
+  }
+
+  if (addLinkBtn) {
+    addLinkBtn.addEventListener("click", function () {
+      workingLinks = workingLinks.concat([
+        { label: "", url: "", note: "", icon: "university" },
+      ]);
+      renderLinksEditor();
+    });
+  }
+
+  if (resetLinksBtn) {
+    resetLinksBtn.addEventListener("click", function () {
+      workingLinks = defaultLinks();
+      renderLinksEditor();
+      showNotice("Majengo yametengenezwa. Bofya Hifadhi Viungo kuyahifadhi.", "success");
+    });
+  }
+
+  if (linksList) {
+    linksList.addEventListener("click", function (event) {
+      const button = event.target.closest("button[data-act]");
+      if (!button) return;
+
+      const row = button.closest(".linkrow");
+      if (!row) return;
+
+      const index = Number(row.getAttribute("data-index"));
+      const action = button.getAttribute("data-act");
+
+      workingLinks = collectLinks();
+      // collectLinks drops blank rows, so indices can shift. Re-derive the
+      // target from the row's own data-index against the fresh array.
+      if (action === "remove") {
+        workingLinks.splice(index, 1);
+      } else if (action === "up" && index > 0) {
+        const moved = workingLinks.splice(index, 1)[0];
+        if (moved) workingLinks.splice(index - 1, 0, moved);
+      } else if (action === "down") {
+        const moved = workingLinks.splice(index, 1)[0];
+        if (moved) workingLinks.splice(index + 1, 0, moved);
+      }
+      renderLinksEditor();
+    });
+  }
+
+  if (saveLinksBtn) {
+    saveLinksBtn.addEventListener("click", async function () {
+      const links = collectLinks();
+
+      if (!links.length) {
+        showNotice(
+          "Hakuna kiungo chenye jina na URL. Ongeza angalau kiungo kimoja au fungua Mfumo.",
+          "error"
+        );
+        return;
+      }
+
+      setButtonLoading(saveLinksBtn, true, "Inahifadhi...", "Hifadhi Viungo");
+
+      try {
+        await api.setSetting("important_links", JSON.stringify(links));
+        workingLinks = links;
+        renderLinksEditor();
+        showNotice(
+          "Viungo " + links.length + " vimehifadhiwa. Ukurasa wa nyumbani utaonyesha mabadiliko mara moja.",
+          "success"
+        );
+      } catch (err) {
+        console.error(err);
+        showNotice(
+          err && err.message ? err.message : "Imeshindikana kuhifadhi viungo.",
+          "error"
+        );
+      } finally {
+        setButtonLoading(saveLinksBtn, false, "Inahifadhi...", "Hifadhi Viungo");
+      }
+    });
+  }
 
   const logoutBtn = document.getElementById("logoutBtn");
   const logoutDanger = document.getElementById("logoutDanger");
@@ -659,6 +959,11 @@
 
       contactEmail.value =
         settings.contact_email || "";
+
+      // Viungo Muhimu: the stored list if there is one, otherwise the verified
+      // defaults from the shared data layer.
+      workingLinks = (dataLayer && dataLayer.normalizeLinks(settings.important_links)) || defaultLinks();
+      renderLinksEditor();
 
     } catch (err) {
       console.error(err);

@@ -1,4 +1,11 @@
 User-agent: *
 Allow: /
 
+# Staff and leadership areas hold no public content. They are excluded here so
+# they never appear in search results; every one of them also carries a
+# noindex, nofollow meta tag, and the real boundary is Supabase RLS.
+Disallow: /admin/
+Disallow: /leader/
+Disallow: /change-password/
+
 Sitemap: https://rucuso.online/sitemap.xml

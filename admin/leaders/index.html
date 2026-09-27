@@ -6,6 +6,8 @@
 <title>Viongozi | RUCUSO</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="stylesheet" href="/css/portal.css">
+<link rel="icon" type="image/png" sizes="32x32" href="../../assets/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="../../assets/apple-touch-icon.png">
 <style>
   .toolbar {
     display:flex;
@@ -252,6 +254,7 @@
               <tr>
                 <th>Jina</th>
                 <th>Username</th>
+                <th>Ngazi</th>
                 <th>Nafasi</th>
                 <th>Wizara</th>
                 <th>Status</th>
@@ -262,7 +265,7 @@
 
             <tbody id="leadersBody">
               <tr>
-                <td colspan="7" class="empty">
+                <td colspan="8" class="empty">
                   Inapakia viongozi...
                 </td>
               </tr>
@@ -592,12 +595,25 @@
     }
 
     if (!response.ok) {
-      const errorText =
-        result &&
-        (result.detail || result.error || result.message);
+      const code = result && (result.detail || result.error || result.message);
+
+      // Known failure codes from the leader-admin function, in Swahili. Without
+      // this the admin is shown a raw code like "MINISTRY_REQUIRED" and has no
+      // way to tell what to fix.
+      const MESSAGES = {
+        MINISTRY_REQUIRED: "Nafasi hii inahitaji kuteuliwa kwenye wizara. Chagua wizara kisha uhifadhi tena.",
+        INVALID_POSITION: "Nafasi uliyochagua haipo kwenye muundo wa uongozi.",
+        FULL_NAME_REQUIRED: "Jina kamili linawezekana.",
+        VALID_EMAIL_REQUIRED: "Barua pepe si sahihi.",
+        INVALID_USERNAME: "Username si sahihi (herufi, nambari, . _ - tu, 3-32).",
+        LIST_FAILED: "Imeshindikana kupakia orodha ya viongozi.",
+        NOT_SUPER_ADMIN: "Unapaswa kuwa Super Admin ili kufanya kitendo hiki.",
+        UNKNOWN_ACTION: "Kitendo hakijulikani."
+      };
 
       throw new Error(
-        errorText ||
+        (code && MESSAGES[code]) ||
+        code ||
         "Kitendo kimeshindwa. Tafadhali jaribu tena."
       );
     }
@@ -637,22 +653,31 @@
     });
   }
 
+  // Label for a position key. Served by the database with the row from
+  // public_leaders (position_label); this is only the fallback for a key the
+  // hierarchy does not know, e.g. a leader filed with a free-text position
+  // before the post existed.
+  const POSITION_FALLBACK_LABELS = {
+    president: "Rais",
+    vice_president: "Makamu wa Rais",
+    secretary_general: "Katibu Mkuu",
+    prime_minister: "Waziri Kuu",
+    prime_minister_secretary: "Katibu wa Ofisi ya Waziri Mkuu",
+    deputy_secretary_general: "Naibu Katibu Mkuu",
+    minister: "Waziri",
+    deputy_minister: "Naibu Waziri",
+    representative: "Mwakilishi",
+    officer: "Afisa"
+  };
+
   function positionLabel(position) {
+    return position || "—";
+  }
 
-    const labels = {
-      president: "Rais",
-      vice_president: "Makamu wa Rais",
-      secretary_general: "Katibu Mkuu",
-      prime_minister: "Waziri Mkuu",
-      prime_minister_secretary: "Katibu wa Ofisi ya Waziri Mkuu",
-      deputy_secretary_general: "Naibu Katibu Mkuu",
-      minister: "Waziri",
-      deputy_minister: "Naibu Waziri",
-      representative: "Mwakilishi",
-      officer: "Afisa"
-    };
-
-    return labels[position] || position || "—";
+  // The table cell: prefer the label the row carried, fall back to the local map.
+  function positionCell(leader) {
+    if (leader.position_label) return leader.position_label;
+    return POSITION_FALLBACK_LABELS[leader.position] || positionLabel(leader.position);
   }
 
   function renderLeaders(leaders) {
@@ -663,7 +688,7 @@
     if (!leaders || !leaders.length) {
 
       body.innerHTML =
-        '<tr><td colspan="7" class="empty">' +
+        '<tr><td colspan="8" class="empty">' +
         "Hakuna viongozi waliopatikana." +
         "</td></tr>";
 
@@ -725,8 +750,20 @@
           escapeHtml(leader.username || "—") +
           "</td>" +
 
+          // Tier from leadership_tiers, so the table shows where this post sits
+          // in the structure instead of the admin having to remember it.
           "<td>" +
-          escapeHtml(positionLabel(leader.position)) +
+          escapeHtml(leader.tier_label || "—") +
+          "</td>" +
+
+          "<td>" +
+          escapeHtml(positionCell(leader)) +
+          // A post that needs a ministry but has none is a data problem the
+          // trigger in migration 013 would reject on the next save, so it is
+          // called out here rather than left to fail silently later.
+          (leader.ministry_required && !leader.ministry_name
+            ? ' <span class="badge" style="color:#b54708;background:#fffaeb;">Wizara inahitajika</span>'
+            : "") +
           "</td>" +
 
           "<td>" +
@@ -757,7 +794,7 @@
       document.getElementById("leadersBody");
 
     body.innerHTML =
-      '<tr><td colspan="7" class="empty">' +
+      '<tr><td colspan="8" class="empty">' +
       "Inapakia viongozi..." +
       "</td></tr>";
 
@@ -773,7 +810,7 @@
     } catch (error) {
 
       body.innerHTML =
-        '<tr><td colspan="7" class="empty" style="color:#b42318;">' +
+        '<tr><td colspan="8" class="empty" style="color:#b42318;">' +
         escapeHtml(error.message) +
         "</td></tr>";
 
@@ -792,14 +829,79 @@
       .focus();
   }
 
-  const standalonePositions = new Set([
-    "president", "vice_president", "secretary_general", "prime_minister",
-    "prime_minister_secretary", "deputy_secretary_general",
-  ]);
+  // Which posts need a ministry, and what the tiers are, comes from
+  // leadership_positions / leadership_tiers (migration 013) - not from a list
+  // typed in here. That list had already drifted: it omitted
+  // deputy_secretary_general from standalone, and it had no way to represent a
+  // post the admin adds later.
+  //
+  // Load the hierarchy before this runs so updateMinistryField() has something to
+  // read. Failure is non-fatal: the select keeps its server-rendered options and
+  // the ministry field simply stays visible.
+  let POSITIONS_BY_TIER = [];
+  let POSITION_KEYS = new Set();
+  let MINISTRY_REQUIRED = new Set();
+
+  async function loadHierarchy() {
+    try {
+      const rows = await window.RucusoAPI.leadershipHierarchy();
+      const tiers = new Map();
+      for (const r of rows || []) {
+        if (!tiers.has(r.tier_key)) {
+          tiers.set(r.tier_key, { key: r.tier_key, label: r.tier_label, rank: Number(r.tier_rank), positions: [] });
+        }
+        tiers.get(r.tier_key).positions.push({ key: r.position_key, label: r.position_label, rank: Number(r.position_rank), ministryRequired: r.ministry_required });
+        POSITION_KEYS.add(r.position_key);
+        if (r.ministry_required) MINISTRY_REQUIRED.add(r.position_key);
+      }
+      POSITIONS_BY_TIER = [...tiers.values()].sort((a, b) => a.rank - b.rank);
+      for (const t of POSITIONS_BY_TIER) t.positions.sort((a, b) => a.rank - b.rank);
+    } catch (e) {
+      POSITIONS_BY_TIER = [];
+    }
+  }
+
+  // Rebuild the position select as optgroups, one per tier, so the form shows
+  // the structure rather than a flat run of ten options.
+  function renderPositionOptions(selected) {
+    const sel = document.getElementById("position");
+    if (!POSITIONS_BY_TIER.length) return false; // keep the server-rendered list
+    const current = selected !== undefined ? selected : sel.value;
+    sel.innerHTML = "";
+    const placeholder = new Option("Chagua nafasi", "");
+    sel.add(placeholder);
+    for (const t of POSITIONS_BY_TIER) {
+      const group = document.createElement("optgroup");
+      group.label = t.label;
+      for (const p of t.positions) {
+        const opt = new Option(p.label + (p.ministryRequired ? " (inahitaji wizara)" : ""), p.key);
+        group.appendChild(opt);
+      }
+      sel.appendChild(group);
+    }
+    if (current) sel.value = current;
+    return true;
+  }
+
   function updateMinistryField() {
-    const standalone = standalonePositions.has(document.getElementById("position").value);
-    document.getElementById("ministryGroup").hidden = standalone;
-    if (standalone) document.getElementById("ministry_id").value = "";
+    const value = document.getElementById("position").value;
+    const needsMinistry = MINISTRY_REQUIRED.has(value);
+    const group = document.getElementById("ministryGroup");
+    const input = document.getElementById("ministry_id");
+    group.hidden = !needsMinistry;
+    // Marked required rather than merely shown: the database trigger in
+    // migration 013 rejects a ministry post with no ministry, so the form
+    // should say so before the save is attempted.
+    if (needsMinistry) {
+      input.setAttribute("required", "required");
+      const lbl = group.querySelector("label");
+      if (lbl) lbl.textContent = "Wizara *";
+    } else {
+      input.removeAttribute("required");
+      input.value = "";
+      const lbl = group.querySelector("label");
+      if (lbl) lbl.textContent = "Wizara";
+    }
   }
   document.getElementById("position").addEventListener("change", updateMinistryField);
 
@@ -1186,6 +1288,12 @@
       }
     });
 
+  // Hierarchy first: the position select is rebuilt as tier optgroups and the
+  // ministry field's required-ness depends on the chosen post, so both need the
+  // data before the first render.
+  await loadHierarchy();
+  renderPositionOptions();
+  updateMinistryField();
   await loadMinistries();
   await loadLeaders();
 

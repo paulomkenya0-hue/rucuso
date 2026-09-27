@@ -206,16 +206,30 @@
     },
 
     // ---------------- Students ----------------
-    // Public lookups go through the lookup_student() RPC; the students table
-    // itself has no public read policy, so the registry stays private.
+    // The public does NOT read the students table and does NOT get identity
+    // back from a registration number. It asks one yes/no question through the
+    // lookup-student Edge Function, which is rate-limited per registration
+    // number and per client IP and returns only { found: boolean }.
+    //
+    // The name, programme and year arrive later, from verify-otp, and only
+    // after the student has proved they hold the phone number on file. The
+    // lookup_student() RPC is service_role only as of migration 012, so this
+    // path cannot be reopened from the browser.
     async lookupStudent(regNumber) {
-      const rows = await ok(await client.rpc("lookup_student", { p_reg: regNumber }));
-      return rows && rows.length ? rows[0] : null;
+      const { data, error } = await client.functions.invoke("lookup-student", {
+        body: { reg: String(regNumber == null ? "" : regNumber).trim() },
+      });
+      if (error) throw friendlyError(error);
+      return !!(data && data.found === true);
     },
     // Temporary OTP-bypass path (see migration 006): confirms the phone
     // number on file matches, without ever exposing that phone number.
     // Returns null on any mismatch — caller cannot tell whether the
     // registration number or the phone number was the problem.
+    // Unreachable while REQUIRE_SMS_OTP is true, and its anon grant was
+    // revoked in migration 012, so this now only resolves for a service-role
+    // caller. Kept so a deliberate rollback does not need a rewrite, but note
+    // that re-exposing it means re-granting it and adding a rate limit to it.
     async verifyStudentIdentity(regNumber, phone) {
       const rows = await ok(await client.rpc("verify_student_identity", { p_reg: regNumber, p_phone: phone }));
       return rows && rows.length ? rows[0] : null;
@@ -305,8 +319,10 @@
     },
 
     // ---------------- OTP (server-side Edge Functions) ----------------
-    // sendOtp() and verifyOtp() only ever receive a status back. The code, the
-    // hash and the SMS provider's key never leave the server.
+    // The code, its hash and the SMS provider's key never leave the server.
+    // sendOtp() returns only a status. verifyOtp() returns the student's
+    // identity, but only once the code has been proved correct — that is the
+    // first and only point in the flow where a name or programme is disclosed.
     async sendOtp(phoneNumber, studentRegNumber) {
       return ok(await client.functions.invoke("send-otp", {
         body: { phone: phoneNumber, reg: studentRegNumber },
@@ -450,9 +466,15 @@
     // registration_number and phone_private) — they read public_leaders.
     // Public directory. Always the view, never the base table: the table has
     // private columns (registration_number, phone_private) and RLS cannot
-    // hide columns, only rows.
+    // hide columns, only rows. The view also carries the hierarchy columns
+    // (tier_key, tier_label, tier_rank, position_label, position_rank) added in
+    // migration 013, so the directory can group and order without hardcoding
+    // the structure in JS.
     async listLeaders() {
-      return ok(await client.from("public_leaders").select("*").order("created_at"));
+      return ok(await client.from("public_leaders").select("*")
+        .order("tier_rank", { ascending: true, nullsFirst: false })
+        .order("position_rank", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: true }));
     },
     // Admin screens only - the base table, including inactive rows and the
     // private fields the edit form needs. RLS allows this for staff only.
@@ -472,6 +494,39 @@
     },
     async deleteLeader(id) {
       return ok(await client.from("leaders").delete().eq("id", id));
+    },
+
+    // ---------------- Leadership hierarchy ----------------
+    // Tiers and the posts inside them, as data rather than as a hardcoded array
+    // in the browser (migration 013). The RPC returns the tiers already joined
+    // to their positions, in display order.
+    async leadershipHierarchy() {
+      return ok(await client.rpc("leadership_hierarchy"));
+    },
+    async listTiers() {
+      return ok(await client.from("leadership_tiers").select("*").order("rank"));
+    },
+    async listPositions() {
+      return ok(await client.from("leadership_positions").select("*")
+        .order("tier_key").order("rank"));
+    },
+    async saveTier(id, payload) {
+      return id
+        ? ok(await client.from("leadership_tiers").update(payload).eq("key", id).select())
+        : ok(await client.from("leadership_tiers").insert(payload).select());
+    },
+    async savePosition(id, payload) {
+      return id
+        ? ok(await client.from("leadership_positions").update(payload).eq("key", id).select())
+        : ok(await client.from("leadership_positions").insert(payload).select());
+    },
+    // Keys are referenced by profiles.position and leaders.position, so they are
+    // left alone once rows exist. Everything else is editable.
+    async deleteTier(key) {
+      return ok(await client.from("leadership_tiers").delete().eq("key", key));
+    },
+    async deletePosition(key) {
+      return ok(await client.from("leadership_positions").delete().eq("key", key));
     },
 
     // ---------------- Student services ----------------

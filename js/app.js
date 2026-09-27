@@ -32,6 +32,9 @@ const OTP_MESSAGES = {
   CODE_EXPIRED: "Namba ya uthibitisho imeisha muda wake. Tuma namba mpya.",
   TOO_MANY_ATTEMPTS: "Umejaribu mara nyingi mno. Tuma namba ya uthibitisho mpya.",
   INVALID_CODE_FORMAT: "Namba ya uthibitisho lazima iwe tarakimu 6.",
+  // lookup-student (registration-number check)
+  NOT_CONFIGURED: "Huduma ya kuangalia namba ya usajili haijawekwa bado. Tafadhali wasiliana na msimamizi wa mfumo.",
+  LOOKUP_FAILED: "Imeshindikana kuangalia namba ya usajili. Tafadhali jaribu tena baadaye.",
 };
 
 // ---------- small helpers ----------
@@ -1019,40 +1022,43 @@ function populateCategories() {
 }
 
 let regLookupTimer = null;
+// The registration number on the feedback form never reveals a name.
+//
+// This used to autofill the student's name and print it on screen ("jina
+// limepatikana: …"). The field is not restricted to a verified session's
+// student: typing any registration number into it was enough to read that
+// person's name out of the database, with no OTP, no session and no rate limit
+// beyond the browser's debounce. It is also redundant now — the name and the
+// number are both filled in read-only from the verified session, and the OTP in
+// verifyOtp() is what proves the session.
+//
+// So this no longer calls the registry at all. It only checks the shape of the
+// number and explains where the name comes from.
 function lookupReg() {
   const reg = document.getElementById("f_reg").value.trim();
   const msg = document.getElementById("regLookupMsg");
-  const nameInput = document.getElementById("f_name");
   clearTimeout(regLookupTimer);
-  if (!reg) { msg.textContent = ""; nameInput.readOnly = false; return; }
-  regLookupTimer = setTimeout(async () => {
-    msg.textContent = "Inatafuta…";
-    try {
-      const match = await API.lookupStudent(reg);
-      if (match && match.full_name) {
-        nameInput.value = match.full_name;
-        nameInput.readOnly = true;
-        msg.innerHTML = `<span class="ok-msg">✓ Namba hii ipo kwenye database — jina limepatikana: ${esc(match.full_name)}</span>`;
-      } else {
-        nameInput.readOnly = false;
-        msg.innerHTML = '<span class="err">Namba hii haipatikani kwenye database ya wanafunzi waliosajiliwa. Unaweza kuendelea kujaza jina mwenyewe.</span>';
-      }
-    } catch (e) {
-      nameInput.readOnly = false;
-      msg.innerHTML = `<span class="err">${esc(D.errText(e))}</span>`;
+  if (!reg) { msg.textContent = ""; return; }
+  regLookupTimer = setTimeout(() => {
+    if (reg.length < 3) {
+      msg.innerHTML = '<span class="muted">Namba ya usajili inapaswa kuwa na tarakimu 3 au zaidi.</span>';
+    } else {
+      msg.innerHTML = '<span class="muted">Jina na namba ya usajili hujulikana kutoka kwenye'
+        + ' uthibitisho wako wa OTP.</span>';
     }
   }, 350);
 }
 
 // ---------- Student verification: reg number -> phone -> OTP ----------
 //
-// REQUIRE_SMS_OTP: SMS delivery isn't wired to a live provider yet, so real
-// OTP codes can't reach students right now. While this is false, step 2
-// verifies the phone number already on file (via verify_student_identity,
-// migration 006) instead of sending/checking an SMS code, and step 3 is
-// skipped entirely. Flip this back to true the moment SMS is live — nothing
-// else needs to change, sendOtp()/verifyOtp() below are untouched.
-const REQUIRE_SMS_OTP = false;
+// REQUIRE_SMS_OTP: true means a real SMS code is mandatory. The provider
+// (Beem or Africa's Talking) lives only in the send-otp Edge Function, so the
+// code, its hash and the API key never reach the browser — and if the provider
+// is not configured, or the student is out of SMS credit, the request fails
+// loudly with an error instead of quietly falling through to a weaker check.
+// The phone-on-file path below is kept for reference and for a deliberate
+// rollback, but it is not reachable while this is true.
+const REQUIRE_SMS_OTP = true;
 
 let verifyMatch = null;
 async function verifyStep1(ev) {
@@ -1068,8 +1074,14 @@ async function verifyStep1(ev) {
   msg.innerHTML = '<p class="muted">Inathibitisha…</p>';
   busy(btn, true, "Inathibitisha...");
   try {
-    const match = await API.lookupStudent(reg);
-    if (!match) {
+    // Deliberately boolean. This used to be lookup_student(), an RPC open to
+    // anon that returned full_name, programme and year — so anyone could read
+    // a student's identity out of it by guessing a registration number, and
+    // the next screen showed that identity on screen before any OTP was sent.
+    // The registry is no longer reachable from the browser; this only answers
+    // "does this number exist?", rate-limited per number and per client IP.
+    const found = await API.lookupStudent(reg);
+    if (!found) {
       setVerMark("err");
       msg.innerHTML = '<p class="err">Samahani, namba hii ya usajili haijapatikana kwenye mfumo.</p>'
         + '<div class="btnrow" style="margin-top:var(--sp-3);justify-content:flex-start">'
@@ -1077,14 +1089,11 @@ async function verifyStep1(ev) {
         + '<button class="btn btn--ghost btn--sm" onclick="openAI()">Wasiliana na RUCUSO</button></div>';
       return;
     }
-    verifyMatch = {
-      reg, name: match.full_name,
-      programme: match.programme || "", year: match.year_of_study || "",
-    };
+    // No name, no programme, no year is held here. Nothing about the student is
+    // known to this page yet — only that the number is in the registry. The
+    // identity arrives from verifyOtp(), after the code is proved.
+    verifyMatch = { reg };
     setVerMark("ok");
-    document.getElementById("ver_name").textContent = verifyMatch.name;
-    document.getElementById("ver_prog").textContent = verifyMatch.programme || "—";
-    document.getElementById("ver_year").textContent = verifyMatch.year ? "Mwaka wa " + verifyMatch.year : "—";
     document.getElementById("ver-step1").classList.add("hidden");
     document.getElementById("ver-step2").classList.remove("hidden");
     document.getElementById("ver2_msg").textContent = "";
@@ -1097,17 +1106,24 @@ async function verifyStep1(ev) {
     btn2.textContent = REQUIRE_SMS_OTP ? "TUMA OTP" : "THIBITISHA";
     btn2.onclick = REQUIRE_SMS_OTP ? sendOtp : confirmPhoneOnFile;
   } catch (e) {
+    // functionErrorText, not errText: the lookup answers 429 with
+    // { error: "TOO_MANY_REQUESTS" }, and a raw HTTP error would leave the
+    // student guessing whether they mistyped the number or hit a limit.
     setVerMark("err");
-    msg.innerHTML = `<p class="err">${esc(D.errText(e))}</p>`;
+    msg.innerHTML = `<p class="err">${esc(await functionErrorText(e))}</p>`;
   } finally {
     busy(btn, false);
   }
 }
 
 // Bypass path: reg number (step 1) + phone-on-file (step 2), no SMS involved.
-// Session is marked otp_verified:false so the UI can show the disclosure
-// banner, and so a future step can require real OTP before, say, letting a
-// bypass session do something higher-stakes.
+// Not reachable while REQUIRE_SMS_OTP is true (see the note above) — step 2's
+// button is wired to sendOtp() instead. Kept intact so the narrower path can be
+// switched back on without rewriting anything, but note it still discloses the
+// student's identity from verify_student_identity() *before* any OTP, which is
+// exactly what step 1 no longer does. If this is ever re-enabled, the
+// disclosure on the submit screen has to stay, because that is where it is
+// confirmed to be the person who holds the phone.
 async function confirmPhoneOnFile(ev) {
   const btn = ev && ev.currentTarget;
   const norm = normalizeTzPhone(document.getElementById("ver_phone").value);
@@ -1129,8 +1145,8 @@ async function confirmPhoneOnFile(ev) {
     }
     setVerMark("ok");
     DB.studentSession = {
-      reg: verifyMatch.reg, name: match.full_name || verifyMatch.name,
-      programme: match.programme || verifyMatch.programme, year: match.year_of_study || verifyMatch.year,
+      reg: verifyMatch.reg, name: match.full_name || "",
+      programme: match.programme || "", year: match.year_of_study || "",
       phone: norm, verifiedAt: new Date().toISOString(), otp_verified: false,
     };
     D.saveStudentSession(DB.studentSession);
@@ -1213,10 +1229,13 @@ async function verifyOtp(ev) {
     const res = await API.verifyOtp(phone, code);
     if (!res || !res.verified) { msg.textContent = "Namba ya uthibitisho si sahihi."; setVerMark("err"); return; }
     setVerMark("ok");
+    // First disclosure of the student's identity in the whole flow, and it is
+    // earned: the code was just proved. programme/year come from the same
+    // response rather than from the step-1 lookup, which no longer has them.
     DB.studentSession = {
-      reg: verifyMatch.reg, name: res.full_name || verifyMatch.name,
-      programme: verifyMatch.programme, year: verifyMatch.year,
-      phone, verifiedAt: new Date().toISOString(),
+      reg: verifyMatch.reg, name: res.full_name || "",
+      programme: res.programme || "", year: res.year_of_study || "",
+      phone, verifiedAt: new Date().toISOString(), otp_verified: true,
     };
     D.saveStudentSession(DB.studentSession);
     await API.logPublicAction("Student Verification (OTP)", verifyMatch.reg + " — " + phone);
@@ -1287,8 +1306,10 @@ async function submitFeedback(ev) {
       p_satisfaction_rating: rating ? Number(rating) : null,
       p_priority: document.getElementById("f_priority").value,
       p_is_anonymous: anon,
-      // lookup_student() intentionally returns no id, so student_id stays null
-      // and the identifying details are carried by the snapshot columns.
+      // p_student_id stays null on purpose. The browser is not given a students.id
+      // by anything it can see — lookup-student returns a boolean and verify-otp
+      // returns the name, programme and year, never an id — so the identifying
+      // details are carried by the snapshot columns instead.
       p_student_id: null,
       p_student_name: anon ? null : name,
       p_student_reg: anon ? null : reg,
@@ -1797,6 +1818,10 @@ function closeModal(bgId) {
   restoreOpener(bg);
 }
 
+// Fallback label map, used only when a leader's position is not one of the
+// known posts — the normal path is the label that ships with the row from
+// public_leaders (position_label), so this is what you see if a key was renamed
+// or a leader was added with a free-text position.
 function publicLeaderPosition(position) {
   const labels = {
     president: "Rais",
@@ -1813,6 +1838,15 @@ function publicLeaderPosition(position) {
   return labels[position] || position;
 }
 
+// The label to show for a leader, wherever it is being displayed. Prefers the
+// label that ships with the row from public_leaders, so renaming a post in
+// leadership_positions updates the site without a code change. The hardcoded map
+// is only reached if the label is missing (an old row, or free text).
+function leaderPositionLabel(leader) {
+  if (!leader) return "";
+  return leader.position_label || publicLeaderPosition(leader.position);
+}
+
 function openLeader(i) {
   const l = visibleLeaders[i];
   if (!l) return;
@@ -1823,7 +1857,7 @@ function openLeader(i) {
     '<span class="avatar" style="width:84px;height:84px;margin:0 0 var(--sp-4)">' + (l.photo
       ? '<img src="' + esc(l.photo) + '" alt="" width="84" height="84">'
       : navIcon("M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2")) + "</span>"
-    + '<p class="leadercard__role" style="margin:0 0 var(--sp-3)">' + esc(publicLeaderPosition(l.position)) + "</p>"
+    + '<p class="leadercard__role" style="margin:0 0 var(--sp-3)">' + esc(leaderPositionLabel(l)) + "</p>"
     + (l.ministry ? '<p class="muted" style="margin:0 0 var(--sp-3)">' + esc(l.ministry) + "</p>" : "")
     + '<p style="color:var(--muted);line-height:1.75">' + (l.bio ? esc(l.bio) : "Maelezo ya majukumu ya kiongozi huyu bado hayajawekwa.") + "</p>"
     + '<div class="btnrow" style="margin-top:var(--sp-4);justify-content:flex-start">' + contact + "</div>",
@@ -2073,6 +2107,7 @@ async function renderLeadership() {
   grid.innerHTML = skeleton(4);
   try {
     await D.refreshLeaders();
+    await D.refreshHierarchy();
   } catch (e) {
     if (!DB.leaders.length) { fail(grid, e); return; }
   }
@@ -2080,40 +2115,156 @@ async function renderLeadership() {
   visibleLeaders = active;
   const notif = document.getElementById("leaderCount");
   if (notif) notif.textContent = String(active.length);
-  grid.innerHTML = active.length ? active.map((l, i) => `
-    <button type="button" class="leadercard" onclick="openLeader(${i})">
-      <span class="avatar">${l.photo ? '<img src="' + esc(l.photo) + '" alt="" loading="lazy" width="92" height="92">' : navIcon("M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2")}</span>
-      <span class="leadercard__name">${esc(l.name)}</span>
-      <span class="leadercard__role">${esc(publicLeaderPosition(l.position))}</span>
-      ${l.ministry ? '<span class="leadercard__ministry">' + esc(l.ministry) + "</span>" : ""}
-      <span class="leadercard__more">${l.phone ? "Wasiliana" : "Maelezo"} ${navIcon("M5 12h14M13 6l6 6-6 6")}</span>
-    </button>`).join("")
+  grid.innerHTML = active.length ? renderLeaderGrid(active)
     : '<p class="muted" style="grid-column:1/-1">Taarifa za uongozi zitasanidiwa na msimamizi wa mfumo.</p>';
 }
 
+// Renders the directory grouped by tier, highest tier first.
+//
+// The grouping, the order inside each tier and the position labels all come
+// from leadership_tiers / leadership_positions (migration 013) rather than from
+// an array in this file, so an admin can reorder the structure without a deploy.
+// Leaders whose position is not one of the known posts are still listed, under a
+// trailing group, rather than being hidden — dropping someone from the public
+// directory because a key was renamed would be worse than showing them oddly.
+function renderLeaderGrid(leaders) {
+  const order = DB.hierarchy.length
+    ? [...DB.hierarchy].sort((a, b) => a.tier_rank - b.tier_rank)
+    : [];
+  const rankOf = new Map(order.map((t) => [t.tier_key, t.tier_rank]));
+  const labelOf = new Map(order.map((t) => [t.tier_key, t.tier_label]));
+
+  const card = (l, i) => `
+    <button type="button" class="leadercard" onclick="openLeader(${i})">
+      <span class="avatar">${l.photo ? '<img src="' + esc(l.photo) + '" alt="" loading="lazy" width="92" height="92">' : navIcon("M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2")}</span>
+      <span class="leadercard__name">${esc(l.name)}</span>
+      <span class="leadercard__role">${esc(leaderPositionLabel(l))}</span>
+      ${l.ministry ? '<span class="leadercard__ministry">' + esc(l.ministry) + "</span>" : ""}
+      <span class="leadercard__more">${l.phone ? "Wasiliana" : "Maelezo"} ${navIcon("M5 12h14M13 6l6 6-6 6")}</span>
+    </button>`;
+
+  // Sort by tier rank, then position rank, then keep the server's order.
+  const sorted = leaders.map((l, i) => ({ l, i })).sort((a, b) => {
+    const ra = rankOf.has(a.l.tier_key) ? rankOf.get(a.l.tier_key) : 999;
+    const rb = rankOf.has(b.l.tier_key) ? rankOf.get(b.l.tier_key) : 999;
+    if (ra !== rb) return ra - rb;
+    const pa = a.l.position_rank || 999;
+    const pb = b.l.position_rank || 999;
+    if (pa !== pb) return pa - pb;
+    return a.i - b.i;
+  });
+
+  const groups = new Map();
+  for (const { l, i } of sorted) {
+    const key = l.tier_key || "__other__";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(card(l, i));
+  }
+
+  const section = (key, heading) => {
+    const cards = groups.get(key);
+    if (!cards || !cards.length) return "";
+    return `
+      <div class="leadertier">
+        <h3 class="leadertier__title">${esc(heading)}</h3>
+        <div class="leadgrid">${cards.join("")}</div>
+      </div>`;
+  };
+
+  let html = "";
+  // Declared tiers first, in rank order, even when a tier has nobody in it yet
+  // as long as some leader belongs to it.
+  for (const t of order) {
+    if (groups.has(t.tier_key)) html += section(t.tier_key, t.tier_label);
+  }
+  if (groups.has("__other__")) {
+    html += section("__other__", "Viongozi wengine");
+  }
+  return html || '<p class="muted">Hakuna viongozi waliomo kwenye mfumo.</p>';
+}
+
+// Rebuilds the two dropdowns in the leadership form from the database.
+//
+// These were free-text inputs, which is what let a leader be filed under a
+// position that is not in leadership_positions at all: the text was stored
+// verbatim, the hierarchy could not label it, and the leader sorted to the
+// bottom of the directory. Both are selects now, so the only values that can be
+// chosen are ones the database knows about.
+function populateLeaderFormSelects() {
+  const pos = document.getElementById("ld_position");
+  if (pos) {
+    const previous = pos.value;
+    pos.innerHTML = '<option value="">Chagua nafasi…</option>';
+    DB.positionsByTier().forEach(function (tier) {
+      if (!tier.positions.length) return;
+      const group = document.createElement("optgroup");
+      group.label = tier.label;
+      tier.positions.forEach(function (p) {
+        const opt = document.createElement("option");
+        opt.value = p.key;
+        // Posts that need a ministry say so on the option, so it is clear
+        // before the ministry field is touched.
+        opt.textContent = p.label_sw + (p.ministry_required ? " (inahitaji wizara)" : "");
+        group.appendChild(opt);
+      });
+      pos.appendChild(group);
+    });
+    if (previous) pos.value = previous;
+  }
+
+  const min = document.getElementById("ld_ministry");
+  if (min) {
+    const previous = min.value;
+    min.innerHTML = '<option value="">Bila wizara</option>';
+    DB.ministries
+      .filter(function (m) { return m.active; })
+      .forEach(function (m) {
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        opt.textContent = m.name;
+        min.appendChild(opt);
+      });
+    if (previous) min.value = previous;
+  }
+}
+
+// Marks the ministry field as required when the chosen post needs one, and
+// clears it when the post does not, so the value stored always matches the post.
+function syncLegacyMinistryField() {
+  const pos = document.getElementById("ld_position");
+  const min = document.getElementById("ld_ministry");
+  if (!pos || !min) return;
+  const p = DB.positions.find(function (x) { return x.key === pos.value; });
+  const required = !!(p && p.ministry_required);
+  min.required = required;
+  min.disabled = false;
+  if (!required) min.value = "";
+}
+
 function renderLeaderAdmin() {
+  populateLeaderFormSelects();
   const el = document.getElementById("leaderAdminList");
   const vacancies = D.vacantSlots();
   const real = DB.leaders.map((l) => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
-      <span>${esc(l.position)}${l.ministry ? " (" + esc(l.ministry) + ")" : ""} — ${esc(l.name)}${l.active ? "" : " (imezimwa)"}</span>
+      <span>${esc(l.position_label || l.position)}${l.ministry ? " (" + esc(l.ministry) + ")" : ""} — ${esc(l.name)}${l.active ? "" : " (imezimwa)"}</span>
       <span><a class="link" onclick="editLeader('${l.id}', event)">Jaza/Hariri</a> &nbsp;<a class="link" onclick="toggleLeaderActive('${l.id}', event)">${l.active ? "Zima" : "Washa"}</a> &nbsp;<a class="link" onclick="removeLeader('${l.id}', event)">Ondoa</a></span>
     </div>`).join("");
   const empty = vacancies.map((v) => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
-      <span>${esc(v.position)}${v.ministry ? " (" + esc(v.ministry) + ")" : ""} — <span class="tag">NAFASI WAZI</span></span>
+      <span>${esc(v.position_label || v.position)}${v.ministry ? " (" + esc(v.ministry) + ")" : ""} — <span class="tag">NAFASI WAZI</span></span>
       <span><a class="link" onclick="fillVacancy('${esc(v.position)}','${v.ministry_id || ""}')">Jaza</a></span>
     </div>`).join("");
   el.innerHTML = (real + empty) || '<p class="muted">Hakuna kiongozi bado.</p>';
+  syncLegacyMinistryField();
 }
 
 function fillVacancy(position, ministryId) {
   document.getElementById("ld_position").value = position;
-  const sel = document.getElementById("ld_ministry");
-  if (ministryId) {
-    const m = DB.ministries.find((x) => x.id === ministryId);
-    if (m) sel.value = m.name;
-  }
+  // The ministry control is a select of ids now, so the id goes in directly
+  // rather than being looked up by name.
+  document.getElementById("ld_ministry").value = ministryId || "";
+  syncLegacyMinistryField();
   document.getElementById("ld_name").focus();
   document.getElementById("ld_name").scrollIntoView({ behavior: "smooth", block: "center" });
 }
@@ -2123,9 +2274,16 @@ async function addLeader(ev) {
   const name = document.getElementById("ld_name").value.trim();
   const position = document.getElementById("ld_position").value.trim();
   if (!name || !position) { D.toast("Weka jina na nafasi ya kiongozi.", "err"); return; }
-  const ministryName = document.getElementById("ld_ministry").value.trim();
-  const ministry = ministryName ? DB.ministries.find((m) => m.name.toLowerCase() === ministryName.toLowerCase()) : null;
-  if (ministryName && !ministry) { D.toast("Wizara uliyoweka haipo. Ongeza wizara kwanza kwenye Mipangilio.", "err"); return; }
+  const ministryId = document.getElementById("ld_ministry").value;
+  const ministry = ministryId ? DB.ministries.find((m) => m.id === ministryId) : null;
+  if (ministryId && !ministry) { D.toast("Wizara uliyoweka haipo. Ongeza wizara kwanza kwenye Mipangilio.", "err"); return; }
+  // Checked here as well as by the trigger in migration 013, so the reason is
+  // shown next to the form instead of arriving as a database error.
+  const pos = DB.positions.find((p) => p.key === position);
+  if (pos && pos.ministry_required && !ministry) {
+    D.toast(`Nafasi "${pos.label_sw}" inahitaji kuteuliwa kwenye wizara.`, "err");
+    return;
+  }
   busy(btn, true, "Inahifadhi...");
   try {
     let photo = null;
@@ -2151,7 +2309,9 @@ async function addLeader(ev) {
 async function editLeader(id) {
   const l = DB.leaders.find((x) => x.id === id);
   if (!l) return;
-  const name = prompt("Jina la kiongozi kwa nafasi '" + l.position + "':", l.name);
+  // The label is shown in the prompt, but the key is what gets saved — the
+  // position is not editable here because it is the identity of the row.
+  const name = prompt("Jina la kiongozi kwa nafasi '" + (l.position_label || l.position) + "':", l.name);
   if (name === null) return;
   const phone = prompt("Namba ya simu (mfano +255...):", l.phone || "");
   if (phone === null) return;
@@ -2553,7 +2713,16 @@ function answerAI(q) {
 async function boot() {
   const startupNavigationVersion = navigationVersion;
   D.purgePrototypeStorage();
+  // A session stored before OTP became mandatory carries otp_verified:false —
+  // it was created by the phone-on-file path, which never sent a code. Those
+  // are dropped on load rather than honoured, so turning OTP on actually
+  // revokes the weaker sessions that already exist in students' browsers
+  // instead of letting them live until their browser storage is cleared.
   DB.studentSession = D.loadStudentSession();
+  if (DB.studentSession && REQUIRE_SMS_OTP && DB.studentSession.otp_verified !== true) {
+    DB.studentSession = null;
+    D.saveStudentSession(null);
+  }
   const ui = D.readUI();
   if (ui.theme) document.documentElement.setAttribute("data-theme", ui.theme);
   else document.documentElement.removeAttribute("data-theme");
