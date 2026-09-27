@@ -7,7 +7,7 @@
 // can call supabase.auth.admin.* which the browser's anon/authenticated
 // clients cannot.
 //
-// POST body: { action: "list" | "create" | "reset_password" | "deactivate" | "activate" | "delete", ...fields }
+// POST body: { action: "list" | "create" | "update" | "reset_password" | "deactivate" | "activate" | "delete", ...fields }
 //
 // Secrets required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (both are
 // provided automatically to every Supabase Edge Function).
@@ -60,12 +60,13 @@ async function handle(req: Request): Promise<Response> {
 
   switch (action) {
     case "list":           return await listLeaders(req, supabase);
-    case "create":       return await createLeader(req, supabase, caller, body);
+    case "create":         return await createLeader(req, supabase, caller, body);
+    case "update":         return await updateLeader(req, supabase, caller, body);
     case "reset_password": return await resetPassword(req, supabase, caller, body);
-    case "deactivate":   return await setActive(req, supabase, caller, body, false);
-    case "activate":     return await setActive(req, supabase, caller, body, true);
-    case "delete":       return await deleteLeader(req, supabase, caller, body);
-    default:             return json(req, { error: "UNKNOWN_ACTION" }, 400);
+    case "deactivate":     return await setActive(req, supabase, caller, body, false);
+    case "activate":       return await setActive(req, supabase, caller, body, true);
+    case "delete":         return await deleteLeader(req, supabase, caller, body);
+    default:               return json(req, { error: "UNKNOWN_ACTION" }, 400);
   }
 }
 
@@ -248,6 +249,127 @@ const { data: created, error: createErr } =
     profile_id: newUserId,
     username,
   });
+}
+
+async function updateLeader(req: Request, supabase: any, caller: { id: string; full_name: string }, body: Record<string, unknown>) {
+  const profile_id = String(body.profile_id ?? "").trim();
+  if (!profile_id) return json(req, { error: "PROFILE_ID_REQUIRED" }, 400);
+
+  const { data: profile, error: profileErr } = await supabase
+    .from("profiles")
+    .select("id, full_name, username, position, ministry_id, active, leader_id, must_change_password")
+    .eq("id", profile_id)
+    .maybeSingle();
+  if (profileErr || !profile) return json(req, { error: "PROFILE_NOT_FOUND" }, 404);
+
+  const full_name = String(body.full_name ?? profile.full_name ?? "").trim();
+  const position = String(body.position ?? profile.position ?? "").trim();
+  let ministry_id = body.ministry_id === undefined || body.ministry_id === null || body.ministry_id === ""
+    ? (profile.ministry_id ?? null)
+    : String(body.ministry_id);
+  const username = String(body.username ?? profile.username ?? "").trim();
+  const phone_number = body.phone_number ? String(body.phone_number).trim() : null;
+  const email = body.email ? String(body.email).trim().toLowerCase() : null;
+  const programme = body.programme ? String(body.programme).trim() : null;
+  const year_of_study = body.year_of_study ? String(body.year_of_study).trim() : null;
+  const bio = body.biography ? String(body.biography).trim() : null;
+  const photo_url = body.photo_url ? String(body.photo_url).trim() : null;
+  const public_visible = body.public_visibility !== false;
+  const active = body.active_status !== false;
+
+  if (!full_name) return json(req, { error: "FULL_NAME_REQUIRED" }, 400);
+  if (!(await isKnownPosition(supabase, position))) return json(req, { error: "INVALID_POSITION" }, 400);
+  if (await ministryRequiredFor(supabase, position)) {
+    if (!ministry_id) return json(req, { error: "MINISTRY_REQUIRED" }, 400);
+  } else {
+    ministry_id = null;
+  }
+  if (!/^[a-z0-9._-]{3,32}$/i.test(username)) {
+    return json(req, { error: "INVALID_USERNAME" }, 400);
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return json(req, { error: "VALID_EMAIL_REQUIRED" }, 400);
+  }
+
+  if (username !== profile.username) {
+    const { data: conflict } = await supabase
+      .from("profiles")
+      .select("id")
+      .ilike("username", username)
+      .neq("id", profile_id)
+      .maybeSingle();
+    if (conflict) return json(req, { error: "USERNAME_TAKEN" }, 409);
+  }
+
+  if (email) {
+    const { error: authErr } = await supabase.auth.admin.updateUserById(profile_id, { email });
+    if (authErr) return json(req, { error: "AUTH_UPDATE_FAILED", detail: authErr.message }, 500);
+  }
+
+  const leaderUpdate = {
+    full_name,
+    position,
+    ministry_id,
+    phone_public: public_visible ? phone_number : null,
+    phone_private: phone_number,
+    email: email || null,
+    photo_url,
+    bio,
+    programme,
+    year_of_study,
+    office_location: body.office_location ? String(body.office_location).trim() : null,
+    public_visible,
+    active,
+  };
+
+  let leader_id = profile.leader_id;
+  if (!leader_id) {
+    const { data: inserted, error: insertErr } = await supabase
+      .from("leaders")
+      .insert({
+        full_name,
+        position,
+        ministry_id,
+        phone_public: public_visible ? phone_number : null,
+        phone_private: phone_number,
+        email: email || null,
+        photo_url,
+        bio,
+        programme,
+        year_of_study,
+        office_location: body.office_location ? String(body.office_location).trim() : null,
+        public_visible,
+        active,
+      })
+      .select("id")
+      .single();
+    if (insertErr || !inserted) return json(req, { error: "LEADER_INSERT_FAILED", detail: insertErr?.message }, 500);
+    leader_id = inserted.id;
+  } else {
+    const { error: leaderErr } = await supabase
+      .from("leaders")
+      .update(leaderUpdate)
+      .eq("id", leader_id);
+    if (leaderErr) return json(req, { error: "LEADER_UPDATE_FAILED", detail: leaderErr.message }, 500);
+  }
+
+  const { error: profileUpdateErr } = await supabase
+    .from("profiles")
+    .update({
+      full_name,
+      username,
+      position,
+      ministry_id,
+      active,
+      leader_id,
+    })
+    .eq("id", profile_id);
+  if (profileUpdateErr) return json(req, { error: "PROFILE_UPDATE_FAILED", detail: profileUpdateErr.message }, 500);
+
+  await logAudit(supabase, caller.id, caller.full_name, "Leader Update",
+    `Alihariri akaunti ya kiongozi: ${full_name} (${position})`);
+
+  return json(req, { ok: true, profile_id, leader_id, username });
 }
 
 async function resetPassword(req: Request, supabase: any, caller: { id: string; full_name: string }, body: Record<string, unknown>) {

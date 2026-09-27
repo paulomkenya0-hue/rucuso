@@ -245,12 +245,20 @@
         },
       });
       if (error) throw friendlyError(error);
-      if (!data || data.verified !== true) {
-        const err = new Error("Uthibitisho wa namba ya usajili na jina la mwisho haukufaulu.");
+      if (data && data.success === false) {
+        const message = data.error && data.error.message
+          ? data.error.message
+          : "Hatukuweza kuthibitisha taarifa zako kwa sasa. Tafadhali hakikisha umeingiza taarifa sahihi au jaribu tena baadae.";
+        const err = new Error(message);
+        err.code = data.error && data.error.code ? data.error.code : "VERIFY_FAILED";
+        throw err;
+      }
+      if (!data || (data.success !== true && data.verified !== true) || !data.data) {
+        const err = new Error("Hatukuweza kuthibitisha taarifa zako kwa sasa. Tafadhali hakikisha umeingiza taarifa sahihi au jaribu tena baadae.");
         err.code = "INVALID_CREDENTIALS";
         throw err;
       }
-      return data;
+      return data.data || data;
     },
     // student_count() returns a scalar, so PostgREST replies with a bare number.
     async studentCount() {

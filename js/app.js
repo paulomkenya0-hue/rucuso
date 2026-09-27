@@ -1281,9 +1281,13 @@ async function verifyStudentLastName(ev) {
     await new Promise((r) => setTimeout(r, VERIFIED_HOLD_MS));
     go("submit", verifyTarget.preset);
   } catch (e) {
-    const detail = D.errText(e);
-    msg.textContent = /INVALID_CREDENTIALS|INVALID/iu.test(detail) ? VERIFY_FAIL_TEXT : detail;
+    // The student cannot be told which of the underlying reasons caused the
+    // rejection, because those differences are exactly the same oracle the
+    // verification flow is trying to hide. Use the single shared sentence for
+    // every failed last-name check; the real reason stays in the console log.
+    msg.textContent = VERIFY_FAIL_TEXT;
     setVerMark("err");
+    console.error("verify: last-name verification failed.", e);
   } finally {
     busy(btn, false);
   }

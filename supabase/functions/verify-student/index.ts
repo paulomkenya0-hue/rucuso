@@ -4,7 +4,6 @@ import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
 import {
   clientAddress,
   consumeRateLimit,
-  countStudentsMatching,
   isRegistrationShaped,
   json,
   preflight,
@@ -12,35 +11,68 @@ import {
   getSupabase,
 } from "../_shared/otp.ts";
 
-const ACCEPTED = { verified: false } as const;
-
 function normalizeLastName(raw: unknown): string {
   return typeof raw === "string" ? raw.trim().toLowerCase() : "";
 }
 
+function errorResponse(req: Request, code: string, message: string, status: number) {
+  return json(req, {
+    success: false,
+    verified: false,
+    error: { code, message },
+  }, status);
+}
+
+function successResponse(req: Request, data: Record<string, unknown>) {
+  return json(req, {
+    success: true,
+    verified: true,
+    data,
+  }, 200);
+}
+
 serve(async (req: Request) => {
-  const early = preflight(req);
-  if (early) return early;
-
-  const supabase = getSupabase();
-  const secret = Deno.env.get("STUDENT_LOOKUP_RATE_LIMIT_SECRET");
-  if (!secret || secret.length < 32) return json(req, { error: "NOT_CONFIGURED" }, 503);
-
-  const body = await readJson(req);
-  const reg = typeof body.reg === "string" ? body.reg.trim() : "";
-  const lastName = normalizeLastName(body.last_name);
-  const remoteIp = clientAddress(req);
-
-  if (!reg || !lastName || reg.length > 80) return json(req, ACCEPTED);
-  if (!isRegistrationShaped(reg)) return json(req, ACCEPTED);
-
-  const allowed = await consumeRateLimit(supabase, secret, [
-    { scope: "student_verify_reg", value: reg },
-    { scope: "student_verify_ip", value: remoteIp },
-  ]);
-  if (!allowed) return json(req, { error: "TOO_MANY_REQUESTS" }, 429);
-
   try {
+    const early = preflight(req);
+    if (early) return early;
+
+    let supabase: any;
+    try {
+      supabase = getSupabase();
+    } catch (e) {
+      console.error("verify-student: missing Supabase configuration", { message: e instanceof Error ? e.message : String(e) });
+      return errorResponse(req, "INTERNAL_ERROR", "Unable to complete verification at this time.", 500);
+    }
+
+    const secret = Deno.env.get("STUDENT_LOOKUP_RATE_LIMIT_SECRET");
+    if (!secret || secret.length < 32) {
+      console.error("verify-student: STUDENT_LOOKUP_RATE_LIMIT_SECRET missing or too short");
+      return errorResponse(req, "INTERNAL_ERROR", "Unable to complete verification at this time.", 500);
+    }
+
+    const body = await readJson(req);
+    const reg = typeof body.reg === "string" ? body.reg.trim() : "";
+    const lastName = normalizeLastName(body.last_name);
+    const remoteIp = clientAddress(req);
+
+    if (!reg || !lastName) {
+      return errorResponse(req, "INVALID_INPUT", "Registration number and last name are required.", 400);
+    }
+    if (reg.length > 80) {
+      return errorResponse(req, "INVALID_INPUT", "Registration number is too long.", 400);
+    }
+    if (!isRegistrationShaped(reg)) {
+      return errorResponse(req, "INVALID_INPUT", "Registration number format is invalid.", 400);
+    }
+
+    const allowed = await consumeRateLimit(supabase, secret, [
+      { scope: "student_verify_reg", value: reg },
+      { scope: "student_verify_ip", value: remoteIp },
+    ]);
+    if (!allowed) {
+      return errorResponse(req, "RATE_LIMITED", "Too many attempts. Please wait a moment and try again.", 429);
+    }
+
     const { data, error } = await supabase
       .from("students")
       .select("id, registration_number, full_name, programme, year_of_study, last_name")
@@ -48,21 +80,39 @@ serve(async (req: Request) => {
       .limit(1)
       .maybeSingle();
 
-    if (error) return json(req, { verified: false }, 503);
-    if (!data) return json(req, ACCEPTED);
+    if (error) {
+      console.error("verify-student: table lookup failed", {
+        code: error?.code || "UNKNOWN",
+        message: error?.message || "database lookup failed",
+      });
+      return errorResponse(req, "INTERNAL_ERROR", "Unable to complete verification at this time.", 500);
+    }
+
+    if (!data) {
+      console.warn("verify-student: no registration match found", {
+        reg_prefix: reg.slice(0, 4),
+      });
+      return errorResponse(req, "NOT_FOUND", "The student details could not be verified.", 404);
+    }
 
     const stored = normalizeLastName(data.last_name);
-    const ok = stored.length > 0 && stored === lastName;
-    if (!ok) return json(req, ACCEPTED);
+    if (!stored || stored !== lastName) {
+      console.info("verify-student: last-name mismatch", {
+        registration_prefix: reg.slice(0, 4),
+      });
+      return errorResponse(req, "INVALID_CREDENTIALS", "The registration number and last name do not match our records.", 401);
+    }
 
-    return json(req, {
-      verified: true,
+    return successResponse(req, {
+      id: data.id,
       full_name: data.full_name,
       programme: data.programme,
       year_of_study: data.year_of_study,
     });
   } catch (e) {
-    console.error("verify-student: lookup failed", e);
-    return json(req, { verified: false }, 503);
+    console.error("verify-student: unhandled exception", {
+      message: e instanceof Error ? e.message : String(e),
+    });
+    return errorResponse(req, "INTERNAL_ERROR", "Unable to complete verification at this time.", 500);
   }
 });
