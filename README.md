@@ -57,9 +57,13 @@ An `admin` additionally sees only the sidebar entries its `profiles.permissions`
 | --- | --- |
 | `index.html` | All public markup and in-app view structure |
 | `css/portal.css` | The single shared stylesheet for public, admin and leader pages |
+| `css/motion.css` | Animations, tilt, map frame, verification helpers. Every effect collapses under `prefers-reduced-motion` |
 | `js/app.js` | Public screen logic and every call into the data layer |
 | `js/data.js` | The app's data layer: Supabase loaders/mutators + in-memory cache |
 | `js/auth-guard.js` | `window.RucusoGuard.requireRole()` — the shared route guard |
+| `js/verify-ux.js` | `window.RucusoVerify` — registration-number rules, attempt budget, CAPTCHA mount |
+| `js/tilt.js` | `window.RucusoTilt` — pointer-tracking 3D tilt; no-ops on touch and under reduced motion |
+| `js/map.js` | `window.RucusoMap` — lazy-loaded Leaflet map of the RUCU campus |
 | `supabase/config.js` | Public Supabase URL + anon key (safe to publish; RLS is the boundary) |
 | `supabase/supabase-client.js` | `window.RucusoAPI` — the only file that talks to Supabase |
 | `supabase/schema.sql` | Migration 001 — tables, RLS policies, first RPCs |
@@ -68,8 +72,53 @@ An `admin` additionally sees only the sidebar entries its `profiles.permissions`
 | `supabase/migrations/004_roles_permissions.sql` | Role/title split, `profiles.permissions`, per-permission RLS |
 | `supabase/migrations/005_leader_visibility_and_password_flow.sql` | `leaders.public_visible`, `must_change_password` |
 | `supabase/migrations/006_student_phone_verification.sql` | `verify_student_identity()` RPC |
+| `supabase/migrations/013_leadership_hierarchy.sql` | Tiers, positions, assignment trigger, executive access scope |
 | `supabase/functions/send-otp`, `verify-otp`, `rucuso-ai`, `leader-admin` | Edge Functions |
+| `supabase/functions/lookup-student` | Boolean-only registration check. Rate limited per number and per client; optional Turnstile |
 | `robots.txt`, `sitemap.xml`, `CNAME` | SEO / custom domain |
+
+### The enhancement layer is optional by construction
+
+`css/motion.css`, `js/tilt.js`, `js/map.js` and `js/verify-ux.js` are the only new
+files, and none of them is required for the site to function. Delete all four and
+every screen still works — the page just stops moving. That is deliberate: the
+previous work here was all about a verification flow that must not break, so the
+animation work is built so it cannot take the flow down with it.
+
+Two things about them are load-bearing rather than cosmetic:
+
+- **No bundler, no modules.** The site is plain `<script>` tags and `window.*`
+  globals. These files match that (IIFE + global) rather than using `export`,
+  which would fail to resolve at runtime.
+- **`js/verify-ux.js` owns the registration-number rule and `js/app.js` defers
+  to it.** Two copies of a validation rule will drift, and the copy that drifts
+  is the one that quietly starts rejecting registered students.
+  `tests/verify-rules.test.js` fails if that ever happens.
+
+### CAPTCHA
+
+Off by default, and the default is not a stub. `supabase/config.js` ships with
+`TURNSTILE_SITE_KEY: ""`, and while it is empty the identity check runs on the
+server-side rate limits alone — 20 attempts per registration number and 60 per
+client per 10 minutes. Those limits are the actual control; the CAPTCHA only
+raises the cost of an automated run.
+
+To enable it:
+
+1. Create a Turnstile widget for `rucuso.online` in the Cloudflare dashboard.
+2. Put the **site** key in `supabase/config.js`. Site keys are meant to be public.
+3. Set the secret on the server — this is the one that must never be in a file:
+
+   ```bash
+   supabase secrets set TURNSTILE_SECRET_KEY=<secret>
+   supabase functions deploy lookup-student
+   ```
+
+`lookup-student` then requires a token and verifies it against Cloudflare's
+`siteverify` endpoint **on the server**, before spending any rate-limit budget.
+A token checked in the browser is a checkbox, not a CAPTCHA. A site key and
+secret that are both empty is a working site; a site key without the matching
+secret would reject every student, which is why the key ships blank.
 
 ## What still lives in the browser
 
@@ -243,6 +292,15 @@ toast. Nothing is ever written to `localStorage`.
       then as **staff** (must answer). Ask it for a student's registration number (must refuse).
 - [ ] Rename `AI_API_KEY`, reload, ask a question, and confirm you get the Kiswahili
       "not configured yet" message plus the built-in fallback — not a broken chat.
+- [ ] Open the home page with the network throttled or the CDN blocked, and confirm the map
+      section still shows the address, the coordinates and working "Open in maps" links rather
+      than an empty grey box.
+- [ ] Turn on "reduce motion" in the OS (Windows: Settings → Accessibility → Visual effects) and
+      reload. Cards must sit flat, reveal animations must not run, and the map must still work.
+- [ ] On a touch device, confirm the cards do not tilt when swiped — a tilt driven by a finger
+      fights with scrolling.
+- [ ] Submit the verification form five times with a bad number and confirm the sixth attempt is
+      refused with a countdown, and that the limit clears after a minute.
 
 ## Not built yet
 
@@ -252,8 +310,12 @@ toast. Nothing is ever written to `localStorage`.
 - Election-ready schema (candidates, positions, voting periods) — intentionally not built, per
   the original spec, until explicitly activated.
 - Excel (`.xlsx`) student import; CSV/paste import is implemented.
-- Full ministry-scoped RLS for leaders — `has_permission()` and `is_staff()` are in place, but
-  portfolio-level scoping of minister/deputy/representative views is not.
+- Full ministry-scoped RLS for leaders — `has_permission()` and `is_staff()` are in place, and
+  migration 013 adds tier- and ministry-scoped access to feedback, but the executive tier's scope
+  is still an open decision: `013_leadership_hierarchy.sql` currently sets `sees_all_ministries`
+  to true for all six executive posts, where the original intent was `president` and
+  `secretary_general` only. **Read that policy before applying the migration** — it is the one
+  place in the schema that widens access rather than narrowing it.
 - A full Kiswahili/English language switcher (Kiswahili-first; some admin screens are English).
 - Real per-section URLs for SEO — all public views share one `index.html`.
 

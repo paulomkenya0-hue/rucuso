@@ -1,0 +1,642 @@
+/* RUCUSO — motion, depth and map styling
+   ---------------------------------------------------------------------------
+   Separate from portal.css on purpose: everything here is additive and
+   decorative. If this file fails to load the site still works, it just looks
+   flatter. That is why none of the JS in js/tilt.js or js/map.js is required for
+   any feature to function — they enhance, they never gate.
+
+   Contents
+     1. 3D tilt
+     2. Glowing / neon button borders
+     3. Scroll reveal (enhances the existing .reveal)
+     4. Animated counters
+     5. Verification form: spinner, rate limit, support links
+     6. Map
+     7. Reduced motion
+
+   Everything animated here is transform / opacity / filter only, which is what
+   keeps it on the compositor and at 60fps. Nothing here animates width, height,
+   top or left — those force layout on every frame.
+   --------------------------------------------------------------------------- */
+
+/* ===========================================================================
+   1. 3D TILT
+   ---------------------------------------------------------------------------
+   The rotation is set from JS as --tilt-x / --tilt-y custom properties, and a
+   single transition smooths the follow. Putting the transform here rather than
+   in JS means the browser owns the interpolation.
+
+   The perspective lives on .tilt-wrap so several tilted children share one
+   perspective and read as one plane. */
+.tilt-wrap {
+  perspective: 1000px;
+}
+
+/* ===========================================================================
+   1. TILT
+   ---------------------------------------------------------------------------
+   The transform is written once, here, and driven by four custom properties
+   that js/tilt.js updates. Nothing in JS ever builds a transform string, so the
+   browser keeps ownership of the interpolation and JS runs once per animation
+   frame rather than once per pointermove event.
+
+   position: relative is load-bearing. The highlight below is
+   position:absolute; inset:0, and neither .card nor .servicecard — the two
+   classes this is actually applied to — set a position, so without this the
+   pseudo-element would resolve against some distant ancestor and the wash would
+   cover the whole viewport instead of the card.
+
+   The hover lift is folded into --tilt-lift rather than being a separate
+   translateY. portal.css already has .servicecard:hover { transform:
+   translateY(-3px) }, and a plain .tilt rule loses to it on specificity, so the
+   tilt would silently stop working on the one card it looks best on. The
+   override is further down, spelled .servicecard.tilt:hover to win. */
+.tilt {
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  --tilt-lift: 0px;
+  --tilt-glow-x: 50%;
+  --tilt-glow-y: 50%;
+  position: relative;
+  transform:
+    perspective(1000px)
+    rotateX(var(--tilt-x))
+    rotateY(var(--tilt-y))
+    translate3d(0, var(--tilt-lift), 0);
+  transform-style: preserve-3d;
+  transition:
+    transform 220ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    box-shadow 220ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* will-change is applied on hover, not permanently. Left on, it keeps a
+   compositor layer alive for every tilted card for the whole session, which on
+   a phone is real memory for no benefit on the cards nobody is touching. The
+   hover delay is set to 0 so it is in place for the first frame of the
+   interaction, and dropped afterwards so the layer can be reclaimed. */
+.tilt:hover,
+.tilt:focus-within {
+  will-change: transform;
+}
+
+/* Beats .servicecard:hover from portal.css so the tilt owns the transform.
+   The lift it replaces is not lost — js/tilt.js sets --tilt-lift to -5px on
+   pointerenter, so the card still rises. */
+.servicecard.tilt:hover,
+.card.tilt:hover {
+  transform:
+    perspective(1000px)
+    rotateX(var(--tilt-x))
+    rotateY(var(--tilt-y))
+    translate3d(0, var(--tilt-lift), 0);
+}
+
+/* A highlight that follows the pointer, sold as depth. Two soft radial washes
+   whose positions are driven from JS. opacity only, so it stays cheap. */
+.tilt::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 220ms ease-out;
+  background:
+    radial-gradient(
+      220px circle at var(--tilt-glow-x) var(--tilt-glow-y),
+      rgba(255, 255, 255, 0.5),
+      transparent 65%
+    ),
+    radial-gradient(
+      320px circle at var(--tilt-glow-x) var(--tilt-glow-y),
+      rgba(214, 177, 97, 0.16),
+      transparent 70%
+    );
+}
+
+.tilt:hover::after,
+.tilt:focus-within::after {
+  opacity: 1;
+}
+
+/* Cards that carry a tilt must not hide the overflow of anything inside them,
+   and must not clip the lift. */
+.tilt-host {
+  position: relative;
+}
+
+/* ===========================================================================
+   2. GLOWING BUTTON BORDERS
+   ---------------------------------------------------------------------------
+   A conic gradient rotated by an animated angle, clipped to a 2px ring with a
+   double pseudo-element mask. The button's real background sits underneath, so
+   this works on any button, link or chip without changing its own colours.
+
+   @property lets the angle be a real animatable custom property. Where that is
+   unsupported the ring is simply still — the fallback below — rather than
+   invisible, because the mask-based ring does not depend on the animation. */
+@property --glow-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.glow {
+  position: relative;
+  isolation: isolate;
+}
+
+/* The ring. Two layers: the gradient at z-index -1, and a solid background on
+   top of it, with the top layer's padding making the difference between them
+   read as a border. */
+.glow::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: -2;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--glow-angle),
+    var(--gold) 0deg,
+    #7ea2ff 60deg,
+    var(--gold) 130deg,
+    transparent 200deg,
+    var(--gold) 300deg,
+    var(--gold) 360deg
+  );
+  opacity: 0.75;
+  transition: opacity var(--dur) var(--ease);
+  animation: glow-spin 4.5s linear infinite;
+}
+
+.glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: inherit;
+}
+
+.glow:hover::before,
+.glow:focus-visible::before {
+  opacity: 1;
+}
+
+@keyframes glow-spin {
+  to { --glow-angle: 360deg; }
+}
+
+/* A softer outer bloom for the two primary calls to action. Kept off the ring
+   so the text stays crisp. */
+.glow--bloom {
+  box-shadow:
+    0 0 0 0 rgba(214, 177, 97, 0),
+    var(--shadow-sm);
+  transition:
+    box-shadow 260ms var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+.glow--bloom:hover,
+.glow--bloom:focus-visible {
+  box-shadow:
+    0 0 0 4px rgba(214, 177, 97, 0.18),
+    0 8px 28px -6px rgba(21, 45, 122, 0.45),
+    0 0 22px -4px rgba(214, 177, 97, 0.55);
+  transform: translateY(-2px);
+}
+
+/* When @property is unavailable the ring is visible but static. This is the
+   fallback and it looks intentional, not broken. */
+@supports not (background: conic-gradient(from var(--glow-angle), red, blue))) {
+  .glow::before {
+    background: linear-gradient(
+      120deg,
+      var(--gold),
+      #7ea2ff,
+      var(--gold)
+    );
+    animation: none;
+  }
+}
+
+/* ===========================================================================
+   3. SCROLL REVEAL
+   ---------------------------------------------------------------------------
+   portal.css owns the base .reveal rule. This adds a directional variant used
+   for the leadership tier headers and the summary tiles, where sliding in from
+   the side reads better than rising from below. */
+.reveal--left { transform: translate3d(-14px, 0, 0); }
+.reveal--right { transform: translate3d(14px, 0, 0); }
+.reveal--scale { transform: scale(0.96); }
+
+.reveal--left.is-revealed,
+.reveal--right.is-revealed,
+.reveal--scale.is-revealed {
+  transform: none;
+}
+
+/* ===========================================================================
+   4. ANIMATED COUNTERS
+   ---------------------------------------------------------------------------
+   app.js already counts up; this styles the digit so a number changing does not
+   reflow the card around it. tabular-nums is the important part: without it the
+   width jitters on every frame. */
+[data-countup] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  display: inline-block;
+  min-width: 1ch;
+}
+
+/* ===========================================================================
+   5. VERIFICATION FORM
+   --------------------------------------------------------------------------- */
+
+/* The button holds a label and a spinner. The spinner is always in the DOM and
+   only scaled in when busy, so the button does not change width mid-request and
+   the text does not shift under the spinner. */
+.btn__spin {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 160ms ease-out,
+    transform 160ms var(--ease);
+  animation: btn-spin 720ms linear infinite;
+  animation-play-state: paused;
+}
+
+/* portal.css styles these buttons as `button.pri`, not `.btn`, so both the flex
+   row and the busy state have to be spelled against that selector. Without the
+   row the label and the spinner would sit on top of each other, and without
+   `flex: none` on the label the button would resize as the text changes. */
+button.pri,
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn__label {
+  flex: none;
+  line-height: 1.2;
+}
+
+.btn.is-busy .btn__spin,
+button.pri.is-busy .btn__spin {
+  opacity: 1;
+  transform: scale(1);
+  animation-play-state: running;
+}
+
+.btn.is-busy,
+button.pri.is-busy { cursor: progress; }
+
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* A disabled primary button should look unavailable, not broken. */
+.btn:disabled,
+button.pri:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Live character counter under the registration input. */
+.fcounter {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  margin-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fcounter--ok { color: var(--ok); }
+.fcounter--bad { color: var(--err); }
+
+/* Support links inside an error banner. Tucked under the message so the reason
+   for the failure stays the first thing read. */
+.support {
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px dashed var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.support__label {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.support a,
+.support button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--navy);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 6px 12px;
+  background: var(--surface);
+  cursor: pointer;
+  transition:
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+.support a:hover,
+.support button:hover {
+  border-color: var(--gold);
+  background: var(--gold-tint, #fdf8ec);
+  transform: translateY(-1px);
+}
+
+.support svg { width: 14px; height: 14px; flex: none; }
+
+/* Rate limit countdown. */
+.ratelimit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--sp-3);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--warn-bg);
+  color: var(--warn);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.ratelimit__count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+/* ===========================================================================
+   6. MAP
+   --------------------------------------------------------------------------- */
+
+/* The map sits inside a card so it picks up the section rhythm. The frame is a
+   fixed aspect on phones and a wide banner on desktop. */
+.mapcard {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+}
+
+.mapcard__frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  min-height: 260px;
+  background:
+    linear-gradient(135deg, rgba(21, 45, 122, 0.06), rgba(214, 177, 97, 0.08)),
+    var(--surface-2, #f6f4ef);
+}
+
+@media (min-width: 760px) {
+  .mapcard__frame { aspect-ratio: 21 / 9; min-height: 320px; }
+}
+
+.mapcard__frame iframe,
+.mapcard__frame .leaflet-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Shown until the map library resolves, and left in place if it never does.
+   Without this the section is an empty grey box on a slow or blocked network,
+   which is the worst outcome for the one section a student opens to find a
+   place. */
+.mapcard__fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: var(--sp-2);
+  text-align: center;
+  padding: var(--sp-5);
+  color: var(--muted);
+  transition: opacity 320ms ease-out;
+}
+
+.mapcard__frame.is-ready .mapcard__fallback {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Leaflet did not load — blocked CDN, offline, whatever. The fallback stays put
+   and becomes the whole content of the frame, so the section still answers the
+   question it exists to answer (where is RUCUSO) instead of being an empty box
+   the visitor cannot tell apart from a broken page. */
+.mapcard__frame.is-fallback .mapcard__fallback {
+  background:
+    linear-gradient(135deg, rgba(21, 45, 122, 0.06), rgba(214, 177, 97, 0.08)),
+    var(--surface-2, #f6f4ef);
+}
+
+.mapcard__frame.is-fallback {
+  border: 1px dashed var(--border);
+}
+
+/* The styled basemap failed and the standard OSM tiles took over. Nothing to
+   show the student — the map still works, it just looks plainer — so this only
+   exists to stop the styled layer's attribution styling being applied twice. */
+.mapcard__frame.is-fallback-tiles .leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.86) !important;
+}
+
+/* Leaflet injects its own panes and controls; stop the site's global button
+   rules from restyling the zoom control and the attribution links. */
+.mapcard__frame .leaflet-container a,
+.mapcard__frame .leaflet-container .leaflet-control {
+  font: inherit;
+}
+
+/* Custom pin. A gold teardrop with a navy core, so it reads as RUCUSO rather
+   than as whatever pin the tile style happens to ship. */
+.rucu-pin {
+  width: 34px;
+  height: 44px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));
+}
+
+.rucu-pin__body {
+  fill: var(--gold);
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.rucu-pin__core { fill: var(--navy); }
+
+/* Popup styled to match the site instead of the default white box. */
+.leaflet-popup-content-wrapper {
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-md) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  width: auto !important;
+  line-height: 1.55 !important;
+}
+
+.leaflet-popup-tip { background: var(--surface) !important; }
+
+.rucu-popup { padding: 14px 16px; min-width: 200px; }
+
+.rucu-popup__kicker {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold-text);
+  margin: 0 0 4px;
+}
+
+.rucu-popup__title {
+  font-weight: 800;
+  font-size: 15px;
+  margin: 0 0 6px;
+  color: var(--navy);
+}
+
+.rucu-popup__meta {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+
+.rucu-popup__actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rucu-popup__actions a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 11px;
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+  color: #fff;
+  background: var(--navy);
+  transition: background var(--dur) var(--ease);
+}
+
+.rucu-popup__actions a:hover { background: var(--navy2); }
+
+.rucu-popup__actions a.is-alt {
+  background: transparent;
+  color: var(--navy);
+  border: 1px solid var(--border);
+}
+
+.rucu-popup__actions a.is-alt:hover { border-color: var(--gold); }
+
+/* Leaflet control buttons, restyled to match. */
+.leaflet-bar a {
+  color: var(--navy) !important;
+  background: var(--surface) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+.leaflet-bar a:hover { background: var(--gold-tint, #fdf8ec) !important; }
+
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.86) !important;
+  font-size: 10px !important;
+  color: var(--muted) !important;
+}
+
+.leaflet-control-attribution a { color: var(--navy) !important; }
+
+/* Attribution is a licence requirement for OpenStreetMap tiles, so it is never
+   hidden. It is only made legible. */
+
+/* A11y: the keyboard-reachable link out of the map. Leaflet's own controls are
+   buttons, but a sighted keyboard user still needs a way to get directions
+   without a mouse. */
+.mapcard__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+/* ===========================================================================
+   7. REDUCED MOTION
+   ---------------------------------------------------------------------------
+   One place that switches everything off. The tilt JS also reads this and
+   removes its listeners, so nothing is even being computed.
+   ============================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .glow::before { animation: none; }
+
+  /* Kills the transform outright, not just the transition. Dropping only the
+     transition would leave a card frozen at whatever angle the pointer last
+     reached, which looks worse than no tilt at all. */
+  .tilt,
+  .card.tilt:hover,
+  .servicecard.tilt:hover {
+    transform: none;
+    will-change: auto;
+  }
+  .tilt::after { display: none; }
+
+  /* A spinner is not decorative motion — it is the only signal that the request
+     is still running — so it keeps turning, just slowly. */
+  .btn__spin { animation-duration: 1.6s; }
+
+  .reveal,
+  .reveal--left,
+  .reveal--right,
+  .reveal--scale {
+    transition: none;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* print: a leaflet map is just a grey rectangle, and the glow ring is noise */
+@media print {
+  .glow::before,
+  .tilt::after { display: none; }
+  .mapcard__frame { min-height: 0; }
+}

@@ -30,6 +30,11 @@
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
 <link rel="stylesheet" href="css/portal.css">
+<!-- Animations, tilt, the map frame and the verification helpers. Kept separate
+     from portal.css so the base theme stays readable; nothing in here is needed
+     for the page to work, and every effect in it collapses under
+     prefers-reduced-motion. -->
+<link rel="stylesheet" href="css/motion.css">
 </head>
 <body>
 <a class="skip-link" href="#main">Rukia hadi maudhui makuu</a>
@@ -293,15 +298,17 @@
           </p>
         </div>
         <div class="grid grid-3" style="margin-top:var(--sp-5);">
-          <div class="card">
+          <!-- Purely decorative cards, so they are safe to tilt — there is no
+               click target inside to fight with the hover. -->
+          <div class="card tilt" data-tilt>
             <h3>Uwazi</h3>
             <p class="muted muted--lg">Tunapokea maoni na malalamiko wakati wote wa mwaka kutoka kwa wanafunzi wote.</p>
           </div>
-          <div class="card">
+          <div class="card tilt" data-tilt>
             <h3>Usiri</h3>
             <p class="muted muted--lg">Unaweza kuwasilisha maoni kwa jina lako au bila jina. Ukiwasilisha bila jina, utambulisho wako hautaonekana kwa wasimamizi wa kawaida.</p>
           </div>
-          <div class="card">
+          <div class="card tilt" data-tilt>
             <h3>Ufuatiliaji</h3>
             <p class="muted muted--lg">Kila ripoti hupewa namba ya kumbukumbu ili uweze kufuatilia hatua iliyofikiwa wakati wowote.</p>
           </div>
@@ -420,6 +427,44 @@
     </div>
   </section>
 
+  <!-- ---------- location / map ----------
+       Placed between the links and the contact card: both of those are about
+       getting in touch, and a map is the same question answered spatially. -->
+  <section class="section" id="sec-location" aria-labelledby="locationTitle">
+    <div class="container">
+      <div class="sectionhead-row">
+        <div class="sechead">
+          <span class="eyebrow">Tupo Yetu</span>
+          <h2 class="sectitle" id="locationTitle">Tupo ya RUCUSO</h2>
+          <p class="secsub">
+            Makao makuu ya RUCUSO yapo ndani ya Ruaha Catholic University, Iringa.
+            Tumia ramani hapa chini kupata njia, au fungua mapato ya RUCU.
+          </p>
+        </div>
+      </div>
+
+      <div class="mapcard tilt-host">
+        <div class="mapcard__frame" id="mapHost">
+          <!-- Stays put if Leaflet is blocked on the campus network. The
+               address and coordinates are in here, so a student on a restricted
+               network is never left with a blank grey box. -->
+          <div class="mapcard__fallback">
+            <strong style="color:var(--navy);font-size:15px;">Ruaha Catholic University (RUCU)</strong>
+            <span>Iringa, Tanzania &middot; 7&deg;46&prime;34&Prime;S 35&deg;41&prime;47&Prime;E</span>
+            <span class="muted" style="font-size:var(--fs-xs);" data-map-note>Ramani inapakia&hellip;</span>
+          </div>
+        </div>
+        <div class="mapcard__actions">
+          <a class="btn btn--ghost btn--sm" href="https://www.google.com/maps/dir/?api=1&amp;destination=-7.7760,35.6963"
+             target="_blank" rel="noopener noreferrer">Fungua njia kwenye Google Maps</a>
+          <a class="btn btn--ghost btn--sm" href="https://www.openstreetmap.org/?mlat=-7.7760&amp;mlon=35.6963#map=17/-7.7760/35.6963"
+             target="_blank" rel="noopener noreferrer">Fungua kwenye OpenStreetMap</a>
+          <a class="btn btn--ghost btn--sm" href="https://rucuso.online/leader/" target="_blank" rel="noopener noreferrer">Tazama uongozi</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ---------- contact ---------- -->
   <section class="section section--tint" id="sec-contact" aria-labelledby="contactTitle">
     <div class="container">
@@ -430,7 +475,7 @@
           <p class="secsub">Kwa msaada wa moja kwa moja, wasiliana nasi kupitia njia zilizo hapa chini.</p>
         </div>
         <div class="grid grid-2" style="margin-top:var(--sp-4);">
-          <div class="card">
+          <div class="card tilt" data-tilt>
             <h3>Mawasiliano rasmi</h3>
             <div class="footercontact" style="margin-top:var(--sp-3);">
               <div class="footercontact__row">
@@ -563,9 +608,19 @@
           <h3 style="margin-top:0;">Namba ya Usajili</h3>
           <p class="muted muted--lg">Andika namba yako ya usajili ya RUCU. Tutatafuta taarifa zako kwenye kumbukumbu zetu.</p>
           <label for="ver_reg">Namba ya usajili</label>
-          <input id="ver_reg" placeholder="RUCU/2024/01" autocomplete="off" autocapitalize="characters" spellcheck="false">
+          <input id="ver_reg" placeholder="RUCU/2024/0456" autocomplete="off" autocapitalize="characters" spellcheck="false"
+                 aria-describedby="ver1_counter ver1_limit">
+          <div class="fcounter" id="ver1_counter"></div>
+          <div id="ver1_limit" class="ratelimit" role="status" aria-live="polite" hidden></div>
           <div id="ver1_msg" role="status" aria-live="polite" style="margin-top:var(--sp-3);"></div>
-          <button class="pri" onclick="verifyStep1(event)">Endelea</button>
+          <!-- Turnstile mounts here only if a site key is configured; see
+               js/verify-ux.js. Empty and hidden otherwise, so nothing shows by
+               default. -->
+          <div id="verCaptcha" style="margin-top:var(--sp-3);"></div>
+          <button class="pri" id="ver1_btn" onclick="verifyStep1(event)">
+            <span class="btn__spin" aria-hidden="true"></span>
+            <span class="btn__label">Endelea</span>
+          </button>
         </div>
 
         <div id="ver-step2" class="hidden">
@@ -1178,5 +1233,20 @@
 <script src="supabase/supabase-client.js"></script>
 <script src="js/data.js"></script>
 <script src="js/app.js"></script>
+<!-- Enhancement layer. Each of these is optional: without them the page is
+     still complete, they just stop moving. Tilt binds to whatever carries
+     .tilt[data-tilt] and skips itself on touch and under reduced motion.
+     map.js waits until the location section is nearly on screen before pulling
+     Leaflet, so a visitor who never scrolls there never downloads it. -->
+<script src="js/verify-ux.js"></script>
+<script src="js/tilt.js"></script>
+<script src="js/map.js"></script>
+<script>
+  // Tilt is bound after initSectionScroll(), which injects the leadership cards
+  // into the DOM. Binding earlier would find nothing to bind to.
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.RucusoTilt) window.RucusoTilt.bind(document);
+  });
+</script>
 </body>
 </html>

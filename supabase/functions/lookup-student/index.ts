@@ -19,8 +19,17 @@
 //   * per client address     — 60 per 10 minutes
 // Neither limit says which one tripped.
 //
+// Optional CAPTCHA (spec item 3.2). If TURNSTILE_SECRET_KEY is set, a
+// captchaToken is required and is verified here against Cloudflare's siteverify
+// endpoint. It is verified HERE, on the server, holding the secret. A token
+// checked in the browser is a checkbox anyone can tick, so the client-side
+// widget is never the thing that decides. If the key is absent the site keeps
+// working on the rate limits alone, which is the honest default: the limits are
+// the actual control, and the CAPTCHA only raises the cost of an automated run.
+//
 // Secrets required:
-//   STUDENT_LOOKUP_RATE_LIMIT_SECRET   >= 32 random characters
+//   STUDENT_LOOKUP_RATE_LIMIT_SECRET   >= 32 random characters  (required)
+//   TURNSTILE_SECRET_KEY               (optional, enables CAPTCHA)
 //
 //   supabase secrets set STUDENT_LOOKUP_RATE_LIMIT_SECRET=<openssl rand -base64 32>
 //   supabase functions deploy lookup-student
@@ -48,6 +57,50 @@ async function hmac(value: string, secret: string): Promise<string> {
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// Verifies a Turnstile token against Cloudflare. Returns a reason on failure so
+// the server log says why, while the response to the caller stays identical —
+// the same 403 either way, so this is not an oracle for whether a token merely
+// expired versus was forged.
+async function verifyTurnstile(token: string, remoteIp: string): Promise<{ ok: boolean; reason?: string }> {
+  const secret = Deno.env.get("TURNSTILE_SECRET_KEY");
+  if (!secret) return { ok: true, reason: "not-configured" };
+
+  // remoteip is how Cloudflare cross-checks the token against the address that
+  // solved it. The hostname binding is not posted here: it is implied by the
+  // secret, which is tied to one sitekey, and therefore to the hostnames that
+  // widget is registered for. A token solved on an attacker's domain cannot
+  // verify against this secret.
+  const form = new FormData();
+  form.append("secret", secret);
+  form.append("response", token);
+  if (remoteIp && remoteIp !== "unknown-client") form.append("remoteip", remoteIp);
+
+  try {
+    const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      body: form,
+    });
+    if (!res.ok) return { ok: false, reason: "siteverify-http-" + res.status };
+
+    // Typed explicitly because res.json() is `unknown` in current Deno, and
+    // reading .success off that would be a type error rather than a runtime one.
+    const result = await res.json() as { success?: boolean; [k: string]: unknown };
+    if (result?.success !== true) {
+      // result["error-codes"] is deliberately not echoed to the client, and not
+      // logged here either: it would say more about our configuration to anyone
+      // reading the logs than it is worth.
+      return { ok: false, reason: "siteverify-rejected" };
+    }
+    return { ok: true };
+  } catch (_e) {
+    // A network fault must not silently pass a forged token, and locking out
+    // every real student is the lesser evil for an endpoint that gates identity.
+    // Fail-closed: a Cloudflare outage blocks verification until it clears,
+    // rather than opening the gate.
+    return { ok: false, reason: "siteverify-unreachable" };
+  }
+}
+
 serve(async (req: Request) => {
   const early = preflight(req);
   if (early) return early;
@@ -62,9 +115,29 @@ serve(async (req: Request) => {
   // becomes a rate-limit key.
   if (!reg || reg.length > 80) return json(req, { found: false });
 
+  const remoteIp = clientAddress(req);
+
+  // CAPTCHA gate, ahead of the rate limits on purpose. A solved widget costs
+  // money and a network round-trip, so the cheaper counters should not be spent
+  // on requests that are about to be rejected anyway.
+  //
+  // The ordering also means an unauthenticated flood never reaches Postgres at
+  // all once a CAPTCHA is configured.
+  if (Deno.env.get("TURNSTILE_SECRET_KEY")) {
+    const token = typeof body.captchaToken === "string" ? body.captchaToken : "";
+    if (!token) return json(req, { error: "CAPTCHA_REQUIRED" }, 403);
+    const verdict = await verifyTurnstile(token, remoteIp);
+    if (!verdict.ok) {
+      // Logged server-side, never returned: the reason would tell an attacker
+      // whether their forged token was rejected as forged or merely stale.
+      console.warn("turnstile rejected:", verdict.reason);
+      return json(req, { error: "CAPTCHA_FAILED" }, 403);
+    }
+  }
+
   const [regHash, ipHash] = await Promise.all([
     hmac("reg:" + reg.toLowerCase(), secret),
-    hmac("ip:" + clientAddress(req), secret),
+    hmac("ip:" + remoteIp, secret),
   ]);
 
   for (const [scope, keyHash] of [["reg", regHash], ["ip", ipHash]] as const) {

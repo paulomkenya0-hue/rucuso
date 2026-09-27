@@ -215,10 +215,13 @@
     // after the student has proved they hold the phone number on file. The
     // lookup_student() RPC is service_role only as of migration 012, so this
     // path cannot be reopened from the browser.
-    async lookupStudent(regNumber) {
-      const { data, error } = await client.functions.invoke("lookup-student", {
-        body: { reg: String(regNumber == null ? "" : regNumber).trim() },
-      });
+    async lookupStudent(regNumber, captchaToken) {
+      const body = { reg: String(regNumber == null ? "" : regNumber).trim() };
+      // Only sent when the page actually solved a CAPTCHA. Absent when
+      // Turnstile is not configured, and the function treats it the same way
+      // either way, so this is not something the caller can skip past.
+      if (captchaToken) body.captchaToken = String(captchaToken);
+      const { data, error } = await client.functions.invoke("lookup-student", { body });
       if (error) throw friendlyError(error);
       return !!(data && data.found === true);
     },

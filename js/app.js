@@ -43,15 +43,39 @@ function esc(v) {
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
+// Swaps a button into and out of a busy state.
+//
+// Structure-preserving on purpose: it writes into .btn__label when one is
+// present rather than assigning textContent, because assigning textContent
+// would delete the .btn__spin element and the button's other children, and
+// then the next busy() call would have no label node left to restore into.
+// Buttons without those spans fall back to plain text, so this still works on
+// every existing call site unchanged.
 function busy(btn, on, label) {
   if (!btn) return;
+  const lab = btn.querySelector(".btn__label");
   if (on) {
-    if (!btn.dataset.label) btn.dataset.label = btn.textContent;
-    btn.textContent = label || "Inahifadhi...";
+    if (!btn.dataset.label) btn.dataset.label = lab ? lab.textContent : btn.textContent;
+    const text = label || "Inahifadhi...";
+    if (lab) lab.textContent = text;
+    else btn.textContent = text;
+    btn.classList.add("is-busy");
+    btn.setAttribute("aria-busy", "true");
     btn.disabled = true;
   } else {
-    if (btn.dataset.label) { btn.textContent = btn.dataset.label; delete btn.dataset.label; }
+    if (lab && btn.dataset.label) lab.textContent = btn.dataset.label;
+    else if (!lab && btn.dataset.label) btn.textContent = btn.dataset.label;
+    if (btn.dataset.label) delete btn.dataset.label;
+    btn.classList.remove("is-busy");
+    btn.removeAttribute("aria-busy");
     btn.disabled = false;
+    // A button that was disabled only because the form was invalid should go
+    // back to its own state, not force itself on.
+    if (btn.id === "ver1_btn" && window.RucusoVerify) {
+      btn.disabled = window.RucusoVerify.validate(
+        document.getElementById("ver_reg") ? document.getElementById("ver_reg").value : ""
+      ).ok === false || window.RucusoVerify.attemptsLeft() === 0;
+    }
   }
 }
 function fail(el, e) {
@@ -1063,6 +1087,28 @@ const REQUIRE_SMS_OTP = true;
 let verifyMatch = null;
 async function verifyStep1(ev) {
   const btn = ev && ev.currentTarget;
+  // js/verify-ux.js owns the rules for what a valid registration number looks
+  // like and how many attempts are left, so the same validation is not kept
+  // twice in two files. It has already run the guard on click; this is the
+  // backstop for a programmatic call or a paste that landed between renders.
+  if (window.RucusoVerify) {
+    const check = window.RucusoVerify.validate(document.getElementById("ver_reg").value);
+    if (!check.ok) {
+      setVerMark("err");
+      const m = document.getElementById("ver1_msg");
+      m.innerHTML = '<p class="err">' + esc(check.message) + "</p>" + window.RucusoVerify.supportHtml();
+      document.getElementById("ver_reg").focus();
+      return;
+    }
+    if (window.RucusoVerify.attemptsLeft() === 0) {
+      setVerMark("err");
+      const m = document.getElementById("ver1_msg");
+      m.innerHTML = '<p class="err">Umefanya majaribio mengi. Subiri sekunda <strong>'
+        + window.RucusoVerify.secondsUntilReset() + "</strong> kisha jaribu tena.</p>"
+        + window.RucusoVerify.supportHtml();
+      return;
+    }
+  }
   const reg = document.getElementById("ver_reg").value.trim();
   const msg = document.getElementById("ver1_msg");
   if (!reg) {
@@ -1071,22 +1117,27 @@ async function verifyStep1(ev) {
     return;
   }
   setVerMark("wait");
-  msg.innerHTML = '<p class="muted">Inathibitisha…</p>';
+  msg.innerHTML = '<p class="muted">Inathibitisha.</p>';
   busy(btn, true, "Inathibitisha...");
+  // When a CAPTCHA is configured, verify-ux.js stashed the token on the button
+  // after the student solved it. It goes to the server for verification there —
+  // never trusted on this side. Cleared either way, because a token is
+  // single-use and leaving one attached would let the next attempt reuse it.
+  const captchaToken = (btn && btn.dataset.captchaToken) || null;
+  if (btn) delete btn.dataset.captchaToken;
   try {
     // Deliberately boolean. This used to be lookup_student(), an RPC open to
-    // anon that returned full_name, programme and year — so anyone could read
+    // anon that returned full_name, programme and year - so anyone could read
     // a student's identity out of it by guessing a registration number, and
     // the next screen showed that identity on screen before any OTP was sent.
     // The registry is no longer reachable from the browser; this only answers
     // "does this number exist?", rate-limited per number and per client IP.
-    const found = await API.lookupStudent(reg);
+    const found = await API.lookupStudent(reg, captchaToken);
+    if (window.RucusoVerify) window.RucusoVerify.resetCaptcha();
     if (!found) {
       setVerMark("err");
       msg.innerHTML = '<p class="err">Samahani, namba hii ya usajili haijapatikana kwenye mfumo.</p>'
-        + '<div class="btnrow" style="margin-top:var(--sp-3);justify-content:flex-start">'
-        + '<button class="btn btn--ghost btn--sm" onclick="verifyStep1(event)">Jaribu tena</button>'
-        + '<button class="btn btn--ghost btn--sm" onclick="openAI()">Wasiliana na RUCUSO</button></div>';
+        + window.RucusoVerify.supportHtml();
       return;
     }
     // No name, no programme, no year is held here. Nothing about the student is
@@ -1912,7 +1963,7 @@ async function renderServices() {
   const active = DB.services.filter((s) => s.active);
   visibleServices = active;
   grid.innerHTML = active.length ? active.map((s, i) => `
-    <button type="button" class="servicecard" onclick="openService(${i})">
+    <button type="button" class="servicecard tilt" data-tilt onclick="openService(${i})">
       <span class="servicecard__top">
         <span class="servicecard__icon">${navIcon(serviceIcon(s.name))}</span>
         <span class="servicecard__name">${esc(publicServiceName(s.name))}</span>

@@ -9,7 +9,7 @@ const { spawnSync } = require("child_process");
 const DIR = __dirname;
 
 const suites = fs.readdirSync(DIR)
-  .filter((f) => f.endsWith(".test.js"))
+  .filter((f) => f.endsWith(".test.js") || f.endsWith(".check.js"))
   .sort();
 
 let failed = 0;
@@ -34,7 +34,11 @@ console.log("\n" + "=".repeat(60));
 console.log("  syntax");
 console.log("=".repeat(60));
 
-const standalone = ["js/app.js", "js/data.js", "supabase/supabase-client.js", "js/auth-guard.js", "js/config.js"];
+// js/verify-ux.js, js/tilt.js and js/map.js are loaded as plain scripts on
+// index.html, so they have to parse as scripts. They are NOT ES modules and
+// must not be added to a module list if one is ever introduced — the site has
+// no bundler and no import map, so `export` would fail to resolve at runtime.
+const standalone = ["js/app.js", "js/data.js", "supabase/supabase-client.js", "js/auth-guard.js", "js/config.js", "js/verify-ux.js", "js/tilt.js", "js/map.js"];
 const os = require("os");
 let syntaxFailures = 0;
 
