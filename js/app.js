@@ -1847,6 +1847,11 @@ function publicLeaderPosition(position) {
     prime_minister: "Waziri Mkuu",
     prime_minister_secretary: "Katibu wa Ofisi ya Waziri Mkuu",
     deputy_secretary_general: "Naibu Katibu Mkuu",
+    speaker: "Spika",
+    deputy_speaker: "Naibu Spika",
+    attorney_general: "Mwanasheria Mkuu",
+    deputy_attorney_general: "Naibu Mwanasheria Mkuu",
+    presidential_advisor: "Mshauri wa Rais",
     minister: "Waziri",
     deputy_minister: "Naibu Waziri",
     ministry_secretary: "Katibu wa Wizara",
@@ -2156,12 +2161,12 @@ function renderLeaderGrid(leaders) {
   const rankOf = new Map(order.map((t) => [t.tier_key, t.tier_rank]));
   const labelOf = new Map(order.map((t) => [t.tier_key, t.tier_label]));
 
-  const card = (l, i) => `
+  const card = (l, i, showMinistry = true) => `
     <button type="button" class="leadercard" onclick="openLeader(${i})">
       <span class="avatar">${l.photo ? '<img src="' + esc(l.photo) + '" alt="" loading="lazy" width="92" height="92">' : navIcon("M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2")}</span>
       <span class="leadercard__name">${esc(l.name)}</span>
       <span class="leadercard__role">${esc(leaderPositionLabel(l))}</span>
-      ${l.ministry ? '<span class="leadercard__ministry">' + esc(l.ministry) + "</span>" : ""}
+      ${showMinistry && l.ministry ? '<span class="leadercard__ministry">' + esc(l.ministry) + "</span>" : ""}
       <span class="leadercard__more">${l.phone ? "Wasiliana" : "Maelezo"} ${navIcon("M5 12h14M13 6l6 6-6 6")}</span>
     </button>`;
 
@@ -2177,17 +2182,37 @@ function renderLeaderGrid(leaders) {
   });
 
   const groups = new Map();
+  const byMinistry = new Map();
+
+  // The three ministry bands (migration 016) are not shown as three separate
+  // lines. Each ministry is one column with its team stacked top-to-bottom in
+  // command order — Waziri, then Naibu Wizara, then Katibu wa Wizara — so the
+  // whole leadership of a ministry reads as a single unit.
+  const MINISTRY_POST_ORDER = { minister: 1, deputy_minister: 2, ministry_secretary: 3 };
+  const MINISTRY_TIERS = new Set(["ministers", "deputy_ministers", "secretaries"]);
+  const isMinistryPost = (l) =>
+    Object.prototype.hasOwnProperty.call(MINISTRY_POST_ORDER, l.position)
+    || MINISTRY_TIERS.has(l.tier_key);
+
   for (const { l, i } of sorted) {
+    if (isMinistryPost(l)) {
+      // A ministry post always belongs to a ministry, but fall back to a named
+      // bucket rather than dropping the leader if the name is missing.
+      const name = l.ministry || "Bila wizara";
+      if (!byMinistry.has(name)) byMinistry.set(name, []);
+      byMinistry.get(name).push({ l, i });
+      continue;
+    }
     const key = l.tier_key || "__other__";
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(card(l, i));
   }
 
-  // One row per tier, highest tier at the top (#leaderGrid stacks the rows
-  // vertically). Inside a row the cards run left to right in one line — the
-  // president first, then the rest of that band — and the row scrolls
-  // horizontally when it is wider than the screen, so the whole band stays on a
-  // single line instead of wrapping into a second one.
+  // One horizontal row per non-ministry tier, highest tier at the top
+  // (#leaderGrid stacks the rows vertically). Inside a row the cards run left
+  // to right in one line — the president first, then the rest of that band —
+  // and the row scrolls horizontally when it is wider than the screen, so the
+  // whole band stays on a single line instead of wrapping into a second one.
   const section = (key, heading) => {
     const cards = groups.get(key);
     if (!cards || !cards.length) return "";
@@ -2198,12 +2223,49 @@ function renderLeaderGrid(leaders) {
       </div>`;
   };
 
+  // One column per ministry, members ordered Waziri -> Naibu -> Katibu. The
+  // columns sit side by side and wrap onto new lines instead of scrolling, so
+  // every ministry's team stays visible together.
+  const ministrySection = () => {
+    if (!byMinistry.size) return "";
+    const columns = [...byMinistry.entries()]
+      .map(([name, members]) => ({
+        name,
+        members: members.slice().sort((a, b) =>
+          (MINISTRY_POST_ORDER[a.l.position] || 9) - (MINISTRY_POST_ORDER[b.l.position] || 9)
+          || a.i - b.i),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, "sw"));
+    return `
+      <div class="leadertier">
+        <h3 class="leadertier__title">Mawaziri, Manaibu na Makatibu wa Wizara</h3>
+        <div class="ministrygrid">
+          ${columns.map((c) => `
+            <div class="ministrycol">
+              <h4 class="ministrycol__name">${esc(c.name)}</h4>
+              <div class="ministrycol__team">${c.members.map(({ l, i }) => card(l, i, false)).join("")}</div>
+            </div>`).join("")}
+        </div>
+      </div>`;
+  };
+
   let html = "";
   // Declared tiers first, in rank order, even when a tier has nobody in it yet
-  // as long as some leader belongs to it.
+  // as long as some leader belongs to it. The ministry bands collapse into the
+  // single grouped section, rendered once where the first of them would sit.
+  let ministryDone = false;
+  const renderMinistries = () => {
+    if (ministryDone) return;
+    ministryDone = true;
+    html += ministrySection();
+  };
   for (const t of order) {
+    if (MINISTRY_TIERS.has(t.tier_key)) { renderMinistries(); continue; }
     if (groups.has(t.tier_key)) html += section(t.tier_key, t.tier_label);
   }
+  // No hierarchy loaded, or the ministry tiers are absent from it: still show
+  // the grouped ministries, before any trailing "other" bucket.
+  renderMinistries();
   if (groups.has("__other__")) {
     html += section("__other__", "Viongozi wengine");
   }

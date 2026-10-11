@@ -1424,13 +1424,14 @@ input[type="checkbox"] {
    15. Leadership
    -------------------------------------------------------------------------- */
 
-/* The public directory stacks the leadership bands top to bottom (migration
-   013, split into five bands by migration 016), highest band first, so the
-   reading order matches the chain of command: executive row, then ministers,
-   deputy ministers, ministry secretaries, then representatives and officers.
-   #leaderGrid is the vertical stack; each .leadertier is one band with its
-   heading, and .leadgrid holds that band's cards in a single horizontal line
-   that scrolls sideways rather than wrapping onto a second line. */
+/* The public directory stacks its sections top to bottom, highest first, so the
+   reading order matches the chain of command. The non-ministry bands (executive,
+   section) are one horizontal row each, defined by migration 016. The ministry
+   posts (migration 016 split them into ministers / deputy_ministers /
+   secretaries) are instead grouped per ministry into columns — see
+   .ministrygrid below — so each ministry's Waziri, Naibu and Katibu sit
+   together. #leaderGrid is the vertical stack; .leadertier is one section with
+   its heading, and .leadgrid holds a band's cards in a single scrolling line. */
 .leaderrows { display: block; }
 .leadertier { margin-top: var(--sp-6); }
 .leadertier:first-child { margin-top: 0; }
@@ -1465,6 +1466,51 @@ input[type="checkbox"] {
 .leadgrid > .leadercard {
   flex: 0 0 clamp(190px, 62vw, 250px);
   scroll-snap-align: start;
+}
+
+/* Ministries are grouped, not banded: one column per ministry holding its
+   Waziri (top), Naibu Wizara (middle) and Katibu wa Wizara (bottom), so a
+   whole ministry's leadership is read as one unit. Columns wrap onto new
+   lines rather than scrolling sideways. */
+.ministrygrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: var(--sp-4);
+}
+.ministrycol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.ministrycol__name {
+  margin: 0;
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text-strong);
+  text-align: center;
+}
+.ministrycol__team {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.ministrycol__team > .leadercard {
+  width: 100%;
+  padding: var(--sp-4) var(--sp-3);
+}
+.ministrycol__team > .leadercard .avatar {
+  width: 72px;
+  height: 72px;
+}
+.ministrycol__team > .leadercard .avatar svg {
+  width: 32px;
+  height: 32px;
 }
 
 .leadercard {

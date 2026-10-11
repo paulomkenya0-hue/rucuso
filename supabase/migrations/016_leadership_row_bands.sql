@@ -13,13 +13,17 @@
 --   5. section           Waawakilishi na Maofisa
 --
 -- No profile or leader row changes: the two existing ministry posts are moved
--- into the new bands, and one new post (ministry_secretary) is added. The key
--- matches the option the admin leaders form already offers, so creating that
--- leader stops failing the profiles -> leadership_positions foreign key.
+-- into the new bands, and the missing posts are added: ministry_secretary
+-- (Katibu wa Wizara), deputy_speaker (Naibu Spika) and the three executive
+-- posts (attorney_general, deputy_attorney_general, presidential_advisor) that
+-- the admin leaders form could already choose but 013 never created. Every key
+-- matches an option the form already offers, so creating those leaders stops
+-- failing the profiles -> leadership_positions foreign key.
 --
--- is_executive_leader() is deliberately untouched. It reads
--- leadership_positions.sees_all_ministries, and nothing here changes that
--- column, so who may read across ministries is unaffected.
+-- is_executive_leader() reads leadership_positions.sees_all_ministries. The new
+-- executive posts are seeded with that column false and it is deliberately left
+-- out of their `on conflict do update`, so adding a post neither widens who may
+-- read across ministries nor undoes a later manual decision.
 -- ============================================================
 
 -- 1. Make room on the unique rank ladder. 'section' stays last; the old
@@ -69,19 +73,43 @@ delete from public.leadership_tiers
  where key = 'ministry'
    and not exists (select 1 from public.leadership_positions p where p.tier_key = 'ministry');
 
--- 6. Seed the executive posts the admin leaders form can already choose but
---    migration 013 never created. Without these rows a super admin picking one
---    hits the profiles -> leadership_positions foreign key and the leader is not
---    created at all. ('speaker' is already seeded by 013; these three are not.)
+-- 6. Executive posts the admin leaders form can choose but migration 013 never
+--    created. Without these rows a super admin picking one hits the
+--    profiles -> leadership_positions foreign key and the leader is not created
+--    at all. ('speaker' is already seeded by 013.)
+--
+--    a. Seat the Deputy Speaker (Naibu Spika) beside the Speaker. 013 puts
+--       'speaker' at executive rank 6, so 'prime_minister_secretary' is nudged
+--       down one slot to make room and deputy_speaker is inserted at rank 7.
+--       The index on (tier_key, rank) is not unique (see migration 013), so the
+--       renumber is safe.
+update public.leadership_positions
+   set rank = 8
+ where key = 'prime_minister_secretary' and tier_key = 'executive' and rank <> 8;
+
+insert into public.leadership_positions
+  (key, label_sw, label_en, tier_key, rank, sees_all_ministries, ministry_required) values
+  ('deputy_speaker', 'Naibu Spika', 'Deputy Speaker', 'executive', 7, false, false)
+on conflict (key) do update set
+  label_sw = excluded.label_sw,
+  label_en = excluded.label_en,
+  tier_key = excluded.tier_key,
+  rank = excluded.rank,
+  ministry_required = excluded.ministry_required,
+  active = true;
+
+--    b. The three remaining executive posts (Attorney General etc.).
 --
 --    sees_all_ministries stays false and is deliberately NOT in the update set:
 --    adding a post must not silently widen who may read across ministries, and
 --    re-running this seed must not undo a manual decision made afterwards.
+--    (As with the Deputy Speaker: executive row for display, no cross-ministry
+--    read access until an admin flips the column on purpose.)
 insert into public.leadership_positions
   (key, label_sw, label_en, tier_key, rank, sees_all_ministries, ministry_required) values
-  ('attorney_general',        'Mwanasheria Mkuu',       'Attorney General',        'executive', 8,  false, false),
-  ('deputy_attorney_general', 'Naibu Mwanasheria Mkuu', 'Deputy Attorney General', 'executive', 9,  false, false),
-  ('presidential_advisor',    'Mshauri wa Rais',        'Presidential Advisor',    'executive', 10, false, false)
+  ('attorney_general',        'Mwanasheria Mkuu',       'Attorney General',        'executive', 9,  false, false),
+  ('deputy_attorney_general', 'Naibu Mwanasheria Mkuu', 'Deputy Attorney General', 'executive', 10, false, false),
+  ('presidential_advisor',    'Mshauri wa Rais',        'Presidential Advisor',    'executive', 11, false, false)
 on conflict (key) do update set
   label_sw = excluded.label_sw,
   label_en = excluded.label_en,

@@ -88,12 +88,19 @@ test("the composer page is gated to the HESLB managers and sends in batches", ()
   assert.match(page, /rel="icon"/);
 });
 
-test("leadership directory stacks bands as rows, highest rank on top", () => {
+test("leadership directory: banded rows for non-ministry tiers, ministries grouped in columns", () => {
   const app = read("js/app.js");
   assert.doesNotMatch(app, /leadcolumns|leadcol__/);
   assert.match(app, /class="leadertier"/);
   assert.match(app, /class="leadertier__title"/);
   assert.match(app, /class="leadgrid"/);
+  // Ministry posts collapse into one column per ministry, ordered
+  // Waziri -> Naibu Wizara -> Katibu wa Wizara.
+  assert.match(app, /class="ministrygrid"/);
+  assert.match(app, /class="ministrycol"/);
+  assert.match(app, /class="ministrycol__name"/);
+  assert.match(app, /minister: 1, deputy_minister: 2, ministry_secretary: 3/);
+  assert.match(app, /Mawaziri, Manaibu na Makatibu wa Wizara/);
 
   const html = read("index.html");
   assert.match(html, /class="leaderrows" id="leaderGrid"/);
@@ -103,6 +110,8 @@ test("leadership directory stacks bands as rows, highest rank on top", () => {
   assert.match(css, /\.leadgrid\s*\{[^}]*display:\s*flex/s);
   assert.match(css, /\.leadgrid\s*\{[^}]*overflow-x:\s*auto/s);
   assert.match(css, /\.leadertier\b/);
+  assert.match(css, /\.ministrygrid\s*\{[^}]*display:\s*grid/s);
+  assert.match(css, /\.ministrycol\b/);
   assert.doesNotMatch(css, /\.leadcolumns|\.leadcol__/);
 });
 
@@ -118,6 +127,11 @@ test("migration 016 splits the bands and seeds the ministry secretary post", () 
   assert.match(sql, /set tier_key = 'deputy_ministers'/);
   assert.match(sql, /delete from public\.leadership_tiers/);
 
+  // Deputy Speaker sits in the top band, right after the Speaker.
+  assert.match(sql, /'deputy_speaker'/);
+  assert.match(sql, /Naibu Spika/);
+  assert.match(sql, /set rank = 8\s+where key = 'prime_minister_secretary'/);
+
   // The other posts the admin form can choose but 013 never seeded.
   for (const key of ["attorney_general", "deputy_attorney_general", "presidential_advisor"]) {
     assert.match(sql, new RegExp(`'${key}'`), `${key} not seeded`);
@@ -127,6 +141,7 @@ test("migration 016 splits the bands and seeds the ministry secretary post", () 
   // super admin choosing "Katibu wa Wizara" would still fail the foreign key.
   const page = read("admin/leaders/index.html");
   assert.match(page, /value="ministry_secretary"/);
-  // 'speaker' is seeded by 013; the form just has to offer it.
+  // 'speaker' is seeded by 013; the form just has to offer it, plus Naibu Spika.
   assert.match(page, /value="speaker"/);
+  assert.match(page, /value="deputy_speaker"/);
 });
