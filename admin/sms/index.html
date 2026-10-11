@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SMS kwa Wanufaika wa HESLB | RUCUSO</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="/css/portal.css">
+<link rel="icon" type="image/png" sizes="32x32" href="../../assets/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="../../assets/apple-touch-icon.png">
+<style>
+  .sms-filters { display:grid; grid-template-columns:repeat(3,minmax(140px,1fr)); gap:8px; }
+  .sms-compose { display:grid; gap:10px; }
+  .sms-meta { display:flex; justify-content:space-between; gap:12px; font-size:var(--fs-sm); color:var(--muted); }
+  .sms-preview { border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg-alt); padding:12px 14px; }
+  .sms-preview__bubble { max-width:420px; margin:0 auto; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:10px 12px; box-shadow:var(--shadow-sm); white-space:pre-wrap; word-break:break-word; }
+  .sms-preview__bubble.is-empty { color:var(--muted); font-style:italic; }
+  .sms-recipients { max-height:240px; overflow:auto; }
+  .sms-progress { height:12px; overflow:hidden; background:var(--bg-alt); border-radius:99px; }
+  .sms-progress__fill { height:100%; width:0; background:var(--gold); border-radius:inherit; transition:width .2s ease; }
+  .sms-actions { display:flex; gap:8px; flex-wrap:wrap; }
+  .sms-actions button { width:auto; margin:0; }
+  @media (max-width:640px) { .sms-filters { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="crest">R</span><b>RUCUSO</b><span>SMS kwa Wanufaika wa HESLB</span></div>
+  <div><span id="whoami" class="muted" style="color:#cdd9ee;font-size:12px;margin-right:10px;"></span><button class="sec" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Toka</button></div>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar" aria-label="Menyu ya usimamizi">
+    <a href="/admin/dashboard/">Dashibodi</a>
+    <a href="/admin/students/" data-perm="manage_students">Wanafunzi</a>
+    <a href="/admin/heslb/" id="heslbNav">Wanufaika wa HESLB</a>
+    <a href="/admin/sms/" class="active" id="smsNav">SMS kwa Wanufaika</a>
+    <a href="/admin/leaders/" data-perm="__super_admin_only">Viongozi</a>
+    <a href="/admin/ministries/" data-perm="manage_ministries">Wizara</a>
+    <a href="/admin/feedback/" data-perm="view_feedback">Maoni na Malalamiko</a>
+    <a href="/admin/services/" data-perm="manage_services">Huduma</a>
+    <a href="/admin/announcements/" data-perm="manage_announcements">Matangazo</a>
+    <a href="/admin/documents/" data-perm="manage_documents">Nyaraka</a>
+    <a href="/admin/reports/" data-perm="manage_reports">Ripoti</a>
+    <a href="/admin/audit-logs/" data-perm="view_audit_logs">Kumbukumbu za ukaguzi</a>
+  </nav>
+  <main class="content">
+    <div id="gate" class="card"><p class="muted">Inathibitisha akaunti...</p></div>
+    <div id="denied" class="card hidden"><p class="err">Huna ruhusa ya kutuma SMS kwa wanufaika wa HESLB.</p></div>
+    <div id="body" class="hidden">
+      <div class="pagehead"><div class="accent"></div><h2>SMS kwa Wanufaika wa HESLB</h2><p>Andika ujumbe mmoja na utume kwa wanufaika uliochagua. Kila SMS inagharimu salio la akaunti ya mtoa huduma.</p></div>
+
+      <section class="card" aria-labelledby="recHeading">
+        <h3 id="recHeading" style="margin-top:0">1. Chagua wapokeaji</h3>
+        <div class="sms-filters">
+          <div><label for="filterFaculty">Kitivo</label><select id="filterFaculty"><option value="">Vitivo vyote</option></select></div>
+          <div><label for="filterYear">Mwaka wa masomo</label><select id="filterYear"><option value="">Miaka yote</option></select></div>
+          <div><label for="filterStatus">Hali</label><select id="filterStatus"><option value="active" selected>Wamilifu pekee</option><option value="">Hali zote</option><option value="inactive">Wasio amilifu</option><option value="graduated">Wahitimu</option></select></div>
+        </div>
+        <div class="btnrow" style="margin-top:12px;justify-content:flex-start;">
+          <button class="sec" id="countButton" type="button">Hesabu wapokeaji</button>
+        </div>
+        <p id="recipientMessage" class="muted" role="status" aria-live="polite">Bado hujahesabu wapokeaji.</p>
+        <div class="sms-recipients" id="recipientList" hidden></div>
+      </section>
+
+      <section class="card" aria-labelledby="composeHeading">
+        <h3 id="composeHeading" style="margin-top:0">2. Andika ujumbe</h3>
+        <div class="sms-compose">
+          <textarea id="messageInput" rows="5" maxlength="480" placeholder="Mfano: Wapendwa wanufaika wa HESLB, bodi ya mikopo imetoa tangazo jipya. Tembelea ofisi ya RUCUSO kwa maelezo zaidi."></textarea>
+          <div class="sms-meta">
+            <span id="charCount">0 / 480</span>
+            <span id="segmentCount">Sehemu: 1</span>
+          </div>
+          <div class="sms-preview" aria-live="polite">
+            <div class="sms-preview__bubble is-empty" id="previewBubble">Ujumbe wako utaonekana hapa.</div>
+          </div>
+          <p class="muted" style="margin:0">Ujumbe hautaruhusiwa kubadilika kwa kila mpokeaji; ujumbe huu ule ule utatumwa kwa wote. Kikomo ni herufi 480 (sehemu tatu za SMS).</p>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="sendHeading">
+        <h3 id="sendHeading" style="margin-top:0">3. Tuma</h3>
+        <div class="sms-actions">
+          <button class="pri" id="sendButton" type="button" disabled>Tuma SMS</button>
+          <button class="sec" id="cancelButton" type="button" hidden>Simamisha</button>
+        </div>
+        <div class="sms-progress" style="margin-top:12px" role="progressbar" aria-label="Maendeleo ya kutuma" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progressBar"><div class="sms-progress__fill" id="progressFill"></div></div>
+        <p id="sendMessage" role="status" aria-live="polite"></p>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase/config.js"></script>
+<script src="/supabase/supabase-client.js"></script>
+<script src="/js/auth-guard.js"></script>
+<script src="/js/heslb-import.js"></script>
+<script>
+(async function () {
+  const session = await window.RucusoGuard.requireRole(["super_admin", "admin", "leader"], { loginUrl: "/admin/login/" });
+  if (!session) return;
+  const API = window.RucusoAPI;
+  const profile = session.profile;
+  const { data: allowed, error: permissionError } = await API.client.rpc("is_heslb_manager");
+  document.getElementById("gate").classList.add("hidden");
+  if (permissionError || allowed !== true) { document.getElementById("denied").classList.remove("hidden"); return; }
+
+  const body = document.getElementById("body");
+  const byId = (id) => document.getElementById(id);
+  const esc = (value) => String(value == null ? "" : value).replace(/[&<>"']/g, (char) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;", "'":"&#39;" })[char]);
+  const maskPhone = (value) => String(value || "").replace(/.(?=.{4})/g, "•");
+  const BATCH_SIZE = 100;
+  const MAX_MESSAGE = 480;
+
+  body.classList.remove("hidden");
+  byId("whoami").textContent = `${profile.full_name} (${profile.role})`;
+  byId("logoutBtn").addEventListener("click", () => window.RucusoGuard.logout("/"));
+  document.querySelectorAll("#sidebar a[data-perm]").forEach((link) => {
+    const permission = link.dataset.perm;
+    const allowedLink = permission === "__super_admin_only"
+      ? profile.role === "super_admin"
+      : window.RucusoGuard.hasPermission(profile, permission);
+    if (!allowedLink) link.remove();
+  });
+  if (profile.role === "leader") byId("smsNav").setAttribute("aria-current", "page");
+
+  const ERROR_TEXT = {
+    SMS_PROVIDER_NOT_CONFIGURED: "Huduma ya SMS haijasanidiwa kwenye mfumo. Wasiliana na msimamizi mkuu.",
+    FORBIDDEN_NOT_HESLB_MANAGER: "Huna ruhusa ya kutuma SMS kwa wanufaika wa HESLB.",
+    NOT_AUTHENTICATED: "Muda wa kuingia umeisha. Tafadhali ingia tena.",
+    NO_PROFILE: "Akaunti hii haina profili ya msimamizi.",
+    INVALID_MESSAGE: "Ujumbe haukubaliki. Hakikisha hauna herufi maalum na haupiti kikomo cha herufi.",
+    INVALID_RECIPIENTS: "Orodha ya wapokeaji haikubaliki. Hesabu wapokeaji kisha ujaribu tena.",
+    INTERNAL_ERROR: "Hitilafu ya mfumo. Tafadhali jaribu tena baadae.",
+  };
+  const errText = (error) => ERROR_TEXT[error && error.code] || (error && error.message) || "Hitilafu isiyotarajiwa.";
+
+  HESLBImport.FACULTIES.forEach((faculty) => byId("filterFaculty").add(new Option(faculty, faculty)));
+  for (let year = 1; year <= 7; year++) byId("filterYear").add(new Option(`Mwaka ${year}`, String(year)));
+
+  const filters = () => ({ faculty: byId("filterFaculty").value, year: byId("filterYear").value, status: byId("filterStatus").value });
+
+  let recipients = null;
+  let sending = false;
+  let stopRequested = false;
+
+  function setRecipientState(state) {
+    recipients = state;
+    if (state) {
+      const unique = [...new Set(state.rows.map((row) => row.phone))];
+      byId("recipientMessage").textContent = `Wapokeaji ${state.rows.length.toLocaleString()} (namba tofauti ${unique.length.toLocaleString()}).`;
+      const preview = state.rows.slice(0, 12);
+      byId("recipientList").hidden = false;
+      byId("recipientList").innerHTML = `<table><thead><tr><th>Jina</th><th>Simu</th><th>Kitivo</th><th>Mwaka</th></tr></thead><tbody>${preview.map((row) => `<tr><td>${esc(row.full_name)}</td><td>${esc(maskPhone(row.phone))}</td><td>${esc(row.faculty)}</td><td>${esc(row.year_of_study)}</td></tr>`).join("")}</tbody></table>` + (state.rows.length > preview.length ? `<p class="muted">Na wengine ${(state.rows.length - preview.length).toLocaleString()}.</p>` : "");
+    } else {
+      byId("recipientList").hidden = true;
+      byId("recipientList").innerHTML = "";
+    }
+    updateSendButton();
+  }
+
+  function updateSendButton() {
+    const message = byId("messageInput").value.trim();
+    byId("sendButton").disabled = sending || !recipients || recipients.rows.length === 0 || !message || message.length > MAX_MESSAGE;
+  }
+
+  function renderComposer() {
+    const message = byId("messageInput").value;
+    byId("charCount").textContent = `${message.length} / ${MAX_MESSAGE}`;
+    byId("segmentCount").textContent = `Sehemu: ${Math.max(1, Math.ceil(message.trim().length / 160) || 1)}`;
+    const bubble = byId("previewBubble");
+    if (message.trim()) {
+      bubble.textContent = message.trim();
+      bubble.classList.remove("is-empty");
+    } else {
+      bubble.textContent = "Ujumbe wako utaonekana hapa.";
+      bubble.classList.add("is-empty");
+    }
+    updateSendButton();
+  }
+
+  async function collectRecipients() {
+    const rows = [];
+    for (let from = 0; ; from += 1000) {
+      const result = await API.listHeslbBeneficiaries({ ...filters(), from, to: from + 999 });
+      rows.push(...result.data);
+      if (result.data.length < 1000) break;
+    }
+    return rows.filter((row) => row.phone);
+  }
+
+  byId("countButton").addEventListener("click", async () => {
+    const button = byId("countButton");
+    button.disabled = true;
+    byId("recipientMessage").textContent = "Inahesabu...";
+    setRecipientState(null);
+    try {
+      const rows = await collectRecipients();
+      setRecipientState({ rows, signature: JSON.stringify(filters()) });
+      if (!rows.length) byId("recipientMessage").textContent = "Hakuna wanufaika wanaolingana na vichujio.";
+    } catch (error) {
+      byId("recipientMessage").classList.add("err");
+      byId("recipientMessage").textContent = errText(error);
+    } finally { button.disabled = false; }
+  });
+
+  ["filterFaculty", "filterYear", "filterStatus"].forEach((id) => byId(id).addEventListener("change", () => {
+    setRecipientState(null);
+    byId("recipientMessage").classList.remove("err");
+    byId("recipientMessage").textContent = "Vichujio vimebadilika. Hesabu wapokeaji tena.";
+  }));
+
+  byId("messageInput").addEventListener("input", renderComposer);
+
+  function setProgress(done, total) {
+    const percent = total ? Math.round((done / total) * 100) : 0;
+    byId("progressFill").style.width = percent + "%";
+    byId("progressBar").setAttribute("aria-valuenow", String(percent));
+  }
+
+  byId("cancelButton").addEventListener("click", () => { stopRequested = true; byId("cancelButton").disabled = true; });
+
+  async function runSend() {
+    const message = byId("messageInput").value.trim();
+    const phones = [...new Set(recipients.rows.map((row) => row.phone))];
+    const batches = [];
+    for (let i = 0; i < phones.length; i += BATCH_SIZE) batches.push(phones.slice(i, i + BATCH_SIZE));
+
+    sending = true;
+    stopRequested = false;
+    byId("sendButton").disabled = true;
+    byId("cancelButton").hidden = false;
+    byId("cancelButton").disabled = false;
+    byId("sendMessage").className = "";
+    byId("sendMessage").textContent = "Inatuma...";
+    setProgress(0, phones.length);
+
+    let sent = 0, failed = 0, skipped = 0, done = 0;
+    try {
+      for (const batch of batches) {
+        if (stopRequested) break;
+        const result = await API.sendBulkSms(message, batch);
+        sent += Number(result.sent) || 0;
+        failed += Number(result.failed) || 0;
+        skipped += Number(result.skipped) || 0;
+        done += batch.length;
+        setProgress(done, phones.length);
+        byId("sendMessage").textContent = `Zilizotumwa: ${sent.toLocaleString()}. Zilizoshindikana: ${failed.toLocaleString()}. Zilizorukwa: ${skipped.toLocaleString()}.`;
+      }
+      const stopped = stopRequested && done < phones.length;
+      byId("sendMessage").className = (failed || stopped) ? "" : "ok-msg";
+      byId("sendMessage").textContent = (stopped ? "Umetuma kwa ujumbe uliofika hapa; zilizobaki hazikutumwa. " : "") +
+        `Jumla: wapokeaji ${phones.length.toLocaleString()}, zilizotumwa ${sent.toLocaleString()}, zilizoshindikana ${failed.toLocaleString()}, zilizorukwa ${skipped.toLocaleString()}.`;
+    } catch (error) {
+      byId("sendMessage").className = "err";
+      byId("sendMessage").textContent = `Ujumbe ulikatika baada ya ${done.toLocaleString()} kati ya ${phones.length.toLocaleString()}. ${errText(error)}`;
+    } finally {
+      sending = false;
+      byId("cancelButton").hidden = true;
+      byId("cancelButton").disabled = false;
+      setProgress(done, phones.length);
+      updateSendButton();
+    }
+  }
+
+  byId("sendButton").addEventListener("click", () => {
+    if (!recipients || !recipients.rows.length) return;
+    const message = byId("messageInput").value.trim();
+    if (!message) return;
+    if (recipients.signature !== JSON.stringify(filters())) {
+      byId("sendMessage").className = "err";
+      byId("sendMessage").textContent = "Vichujio vimebadilika tangu uhesabu wapokeaji. Hesabu wapokeaji tena kabla ya kutuma.";
+      return;
+    }
+    const unique = new Set(recipients.rows.map((row) => row.phone)).size;
+    if (!confirm(`Tuma SMS hii kwa wanufaika ${unique.toLocaleString()}? Kila SMS itagharimu salio la akaunti ya mtoa huduma.`)) return;
+    runSend();
+  });
+
+  renderComposer();
+  updateSendButton();
+})();
+</script>
+</body>
+</html>

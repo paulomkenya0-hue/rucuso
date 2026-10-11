@@ -2137,7 +2137,7 @@ async function renderLeadership() {
   const notif = document.getElementById("leaderCount");
   if (notif) notif.textContent = String(active.length);
   grid.innerHTML = active.length ? renderLeaderGrid(active)
-    : '<p class="muted" style="grid-column:1/-1">Taarifa za uongozi zitasanidiwa na msimamizi wa mfumo.</p>';
+    : '<p class="muted">Taarifa za uongozi zitasanidiwa na msimamizi wa mfumo.</p>';
 }
 
 // Renders the directory grouped by tier, highest tier first.
@@ -2182,13 +2182,19 @@ function renderLeaderGrid(leaders) {
     groups.get(key).push(card(l, i));
   }
 
+  // One column per tier, highest tier leftmost (#leaderGrid is a
+  // grid-auto-flow: column container), and the cards inside a column stack top
+  // to bottom by position rank. That puts the executive in the first column and
+  // the ministers — including the minister in charge of a ministry — in their
+  // own columns to the right, so the layout reads like the chain of command
+  // rather than a grid the eye has to re-sort.
   const section = (key, heading) => {
     const cards = groups.get(key);
     if (!cards || !cards.length) return "";
     return `
-      <div class="leadertier">
-        <h3 class="leadertier__title">${esc(heading)}</h3>
-        <div class="leadgrid">${cards.join("")}</div>
+      <div class="leadcol">
+        <h3 class="leadcol__title">${esc(heading)}</h3>
+        <div class="leadcol__stack">${cards.join("")}</div>
       </div>`;
   };
 

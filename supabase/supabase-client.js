@@ -204,6 +204,23 @@
       if (error) throw friendlyError(error);
       return !!(data && data.verified === true);
     },
+    // Sends one batch of a bulk SMS campaign to HESLB beneficiaries. The
+    // recipient list is the caller's (staff can already read the register), but
+    // send-bulk-sms re-checks every number against heslb_beneficiaries before
+    // spending any credit, so this cannot be used to text arbitrary numbers.
+    // Batches are small on purpose; walk the list and aggregate the counts.
+    async sendBulkSms(message, phones) {
+      const { data, error } = await client.functions.invoke("send-bulk-sms", {
+        body: { message, phones },
+      });
+      if (error) throw friendlyError(error);
+      if (data && data.error) {
+        const err = new Error(String(data.error));
+        err.code = data.error;
+        throw err;
+      }
+      return data || { requested: 0, sent: 0, failed: 0, skipped: 0 };
+    },
 
     // ---------------- Students ----------------
     // The public does NOT read the students table and does NOT get identity
