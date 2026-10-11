@@ -1849,6 +1849,7 @@ function publicLeaderPosition(position) {
     deputy_secretary_general: "Naibu Katibu Mkuu",
     minister: "Waziri",
     deputy_minister: "Naibu Waziri",
+    ministry_secretary: "Katibu wa Wizara",
     representative: "Mwakilishi",
     officer: "Afisa",
   };
@@ -2182,19 +2183,18 @@ function renderLeaderGrid(leaders) {
     groups.get(key).push(card(l, i));
   }
 
-  // One column per tier, highest tier leftmost (#leaderGrid is a
-  // grid-auto-flow: column container), and the cards inside a column stack top
-  // to bottom by position rank. That puts the executive in the first column and
-  // the ministers — including the minister in charge of a ministry — in their
-  // own columns to the right, so the layout reads like the chain of command
-  // rather than a grid the eye has to re-sort.
+  // One row per tier, highest tier at the top (#leaderGrid stacks the rows
+  // vertically). Inside a row the cards run left to right in one line — the
+  // president first, then the rest of that band — and the row scrolls
+  // horizontally when it is wider than the screen, so the whole band stays on a
+  // single line instead of wrapping into a second one.
   const section = (key, heading) => {
     const cards = groups.get(key);
     if (!cards || !cards.length) return "";
     return `
-      <div class="leadcol">
-        <h3 class="leadcol__title">${esc(heading)}</h3>
-        <div class="leadcol__stack">${cards.join("")}</div>
+      <div class="leadertier">
+        <h3 class="leadertier__title">${esc(heading)}</h3>
+        <div class="leadgrid">${cards.join("")}</div>
       </div>`;
   };
 

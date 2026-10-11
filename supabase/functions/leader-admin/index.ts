@@ -153,11 +153,11 @@ async function createLeader(req: Request, supabase: any, caller: { id: string; f
   let ministry_id = body.ministry_id ? String(body.ministry_id) : null;
   const username = String(body.username ?? "").trim();
   const phone_number = body.phone_number ? String(body.phone_number).trim() : null;
-  const email = body.email ? String(body.email).trim().toLowerCase() : "";
   const programme = body.programme ? String(body.programme).trim() : null;
   const year_of_study = body.year_of_study ? String(body.year_of_study).trim() : null;
   const bio = body.biography ? String(body.biography).trim() : null;
   const photo_url = body.photo_url ? String(body.photo_url).trim() : null;
+  const registration_number = body.registration_number ? String(body.registration_number).trim() : null;
   const public_visible = body.public_visibility !== false;
   const active = body.active_status !== false;
 
@@ -174,9 +174,13 @@ async function createLeader(req: Request, supabase: any, caller: { id: string; f
   if (!/^[a-z0-9._-]{3,32}$/i.test(username)) {
     return json(req, { error: "INVALID_USERNAME" }, 400);
   }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return json(req, { error: "VALID_EMAIL_REQUIRED" }, 400);
-  }
+
+  // The admin form no longer collects an email (leaders sign in with their
+  // username), but Supabase Auth still needs one. Derive a stable, never
+  // delivered address from the unique username and keep the username->email
+  // login resolution intact. LEADER_EMAIL_DOMAIN allows a real domain later.
+  const emailDomain = (Deno.env.get("LEADER_EMAIL_DOMAIN") || "rucuso.local").replace(/^@+/, "");
+  const email = `${username.toLowerCase()}@${emailDomain}`;
 
   const { data: existing } = await supabase
     .from("profiles")
@@ -212,6 +216,7 @@ const { data: created, error: createErr } =
       phone_public: public_visible ? phone_number : null,
       phone_private: phone_number,
       email, photo_url, bio, programme, year_of_study,
+      registration_number,
       active, public_visible,
     })
     .select("id")
@@ -306,13 +311,12 @@ async function updateLeader(req: Request, supabase: any, caller: { id: string; f
     if (authErr) return json(req, { error: "AUTH_UPDATE_FAILED", detail: authErr.message }, 500);
   }
 
-  const leaderUpdate = {
+  const leaderUpdate: Record<string, unknown> = {
     full_name,
     position,
     ministry_id,
     phone_public: public_visible ? phone_number : null,
     phone_private: phone_number,
-    email: email || null,
     photo_url,
     bio,
     programme,
@@ -321,6 +325,9 @@ async function updateLeader(req: Request, supabase: any, caller: { id: string; f
     public_visible,
     active,
   };
+  // Only touch the stored auth email when the caller actually supplied one.
+  // The admin form no longer sends it, and writing null would blank it out.
+  if (email) leaderUpdate.email = email;
 
   let leader_id = profile.leader_id;
   if (!leader_id) {

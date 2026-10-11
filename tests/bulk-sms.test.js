@@ -88,18 +88,45 @@ test("the composer page is gated to the HESLB managers and sends in batches", ()
   assert.match(page, /rel="icon"/);
 });
 
-test("leadership directory lays tiers out as columns, highest rank leftmost", () => {
+test("leadership directory stacks bands as rows, highest rank on top", () => {
   const app = read("js/app.js");
-  assert.doesNotMatch(app, /leadertier|leadgrid/);
-  assert.match(app, /class="leadcol"/);
-  assert.match(app, /class="leadcol__title"/);
-  assert.match(app, /class="leadcol__stack"/);
+  assert.doesNotMatch(app, /leadcolumns|leadcol__/);
+  assert.match(app, /class="leadertier"/);
+  assert.match(app, /class="leadertier__title"/);
+  assert.match(app, /class="leadgrid"/);
 
   const html = read("index.html");
-  assert.match(html, /class="leadcolumns" id="leaderGrid"/);
-  assert.doesNotMatch(html, /class="leadgrid"/);
+  assert.match(html, /class="leaderrows" id="leaderGrid"/);
+  assert.doesNotMatch(html, /class="leadcolumns"|class="leadgrid"/);
 
   const css = read("css/portal.css");
-  assert.match(css, /\.leadcolumns\s*\{[^}]*grid-auto-flow:\s*column/s);
-  assert.doesNotMatch(css, /\.leadertier|\.leadgrid/);
+  assert.match(css, /\.leadgrid\s*\{[^}]*display:\s*flex/s);
+  assert.match(css, /\.leadgrid\s*\{[^}]*overflow-x:\s*auto/s);
+  assert.match(css, /\.leadertier\b/);
+  assert.doesNotMatch(css, /\.leadcolumns|\.leadcol__/);
+});
+
+test("migration 016 splits the bands and seeds the ministry secretary post", () => {
+  const sql = read("supabase/migrations/016_leadership_row_bands.sql");
+  for (const tier of ["ministers", "deputy_ministers", "secretaries"]) {
+    assert.ok(sql.includes(`'${tier}'`), `${tier} band missing`);
+  }
+  assert.match(sql, /'ministry_secretary'/);
+  assert.match(sql, /Katibu wa Wizara/);
+  assert.match(sql, /ministry_required/);
+  assert.match(sql, /set tier_key = 'ministers'/);
+  assert.match(sql, /set tier_key = 'deputy_ministers'/);
+  assert.match(sql, /delete from public\.leadership_tiers/);
+
+  // The other posts the admin form can choose but 013 never seeded.
+  for (const key of ["attorney_general", "deputy_attorney_general", "presidential_advisor"]) {
+    assert.match(sql, new RegExp(`'${key}'`), `${key} not seeded`);
+  }
+
+  // The admin form's existing option key must match the one seeded here, or a
+  // super admin choosing "Katibu wa Wizara" would still fail the foreign key.
+  const page = read("admin/leaders/index.html");
+  assert.match(page, /value="ministry_secretary"/);
+  // 'speaker' is seeded by 013; the form just has to offer it.
+  assert.match(page, /value="speaker"/);
 });

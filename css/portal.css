@@ -1424,23 +1424,17 @@ input[type="checkbox"] {
    15. Leadership
    -------------------------------------------------------------------------- */
 
-/* The public directory lays leaders out in columns by tier (migration 013),
-   highest tier on the left, so the reading order matches the chain of command:
-   the executive first, then each ministry in its own column, then the
-   representative tiers. #leaderGrid is the column container and each .leadcol
-   is one tier, stacking its posts top to bottom by rank. Columns scroll
-   horizontally on narrow screens rather than squeezing the cards. */
-.leadcolumns {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(230px, 1fr);
-  gap: var(--sp-5);
-  align-items: start;
-  overflow-x: auto;
-  padding-bottom: var(--sp-2);
-}
-.leadcol { display: flex; flex-direction: column; min-width: 0; }
-.leadcol__title {
+/* The public directory stacks the leadership bands top to bottom (migration
+   013, split into five bands by migration 016), highest band first, so the
+   reading order matches the chain of command: executive row, then ministers,
+   deputy ministers, ministry secretaries, then representatives and officers.
+   #leaderGrid is the vertical stack; each .leadertier is one band with its
+   heading, and .leadgrid holds that band's cards in a single horizontal line
+   that scrolls sideways rather than wrapping onto a second line. */
+.leaderrows { display: block; }
+.leadertier { margin-top: var(--sp-6); }
+.leadertier:first-child { margin-top: 0; }
+.leadertier__title {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
@@ -1450,24 +1444,27 @@ input[type="checkbox"] {
   color: var(--text-strong);
   letter-spacing: .01em;
 }
-.leadcol__title::after {
+.leadertier__title::after {
   content: "";
   flex: 1;
   height: 1px;
   background: linear-gradient(90deg, var(--border), transparent);
 }
-:root[data-theme="dark"] .leadcol__title::after {
+:root[data-theme="dark"] .leadertier__title::after {
   background: linear-gradient(90deg, var(--border), transparent);
 }
-.leadcol__stack { display: grid; gap: var(--sp-4); }
-@media (max-width: 720px) {
-  /* Below this width the columns stop fitting; stack the tiers vertically and
-     let each one fall back to a responsive card grid. */
-  .leadcolumns { grid-auto-flow: row; grid-auto-columns: auto; overflow-x: visible; }
-  .leadcol__stack { grid-template-columns: repeat(2, 1fr); }
+
+.leadgrid {
+  display: flex;
+  gap: var(--sp-4);
+  overflow-x: auto;
+  padding-bottom: var(--sp-2);
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
 }
-@media (max-width: 460px) {
-  .leadcol__stack { grid-template-columns: 1fr; }
+.leadgrid > .leadercard {
+  flex: 0 0 clamp(190px, 62vw, 250px);
+  scroll-snap-align: start;
 }
 
 .leadercard {

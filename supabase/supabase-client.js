@@ -315,6 +315,20 @@
       if (result.error) throw friendlyError(result.error);
       return { data: result.data || [], count: result.count || 0, page, pageSize };
     },
+    // Lightweight, capped lookup for the leader-registration form: find a
+    // student by name or registration number so their details can be reused
+    // instead of retyped. Only active students are offered (student_status is
+    // null or 'active', the same definition used by the OTP/student lookups).
+    async searchActiveStudents(term, limit = 20) {
+      const t = String(term || "").replace(/[^\p{L}\p{N}\s/+\-]/gu, " ").trim();
+      let query = client.from("students")
+        .select("id, registration_number, full_name, programme, year_of_study, faculty, phone_number")
+        .or("student_status.is.null,student_status.eq.active")
+        .order("full_name")
+        .limit(Math.min(50, Math.max(1, Number(limit) || 20)));
+      if (t) query = query.or(`full_name.ilike.%${t}%,registration_number.ilike.%${t}%`);
+      return ok(await query);
+    },
     // Distinct Programme/Faculty/Year values for the filter dropdowns —
     // computed across the whole table server-side (see migration 011),
     // since a plain select for this would hit the same row cap above.

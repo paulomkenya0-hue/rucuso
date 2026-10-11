@@ -274,3 +274,56 @@ test('the leader dashboard exposes students and announcements to executives only
   // Students are read through the table RLS now admits.
   assert.match(page, /from\("students"\)/);
 });
+
+// ---------- leader registration reuses an existing student -------------------
+
+const createBody = edge.slice(
+  edge.indexOf('async function createLeader'),
+  edge.indexOf('async function updateLeader')
+);
+
+test('create-leader no longer needs an email: it derives one from the username', () => {
+  // The admin form dropped the email field (leaders sign in with their
+  // username), but Supabase Auth still needs an address, so the Edge Function
+  // must supply a stable, never-delivered one built from the unique username.
+  assert.doesNotMatch(createBody, /body\.email/);
+  assert.doesNotMatch(createBody, /VALID_EMAIL_REQUIRED/);
+  assert.match(createBody, /const emailDomain = \(Deno\.env\.get\("LEADER_EMAIL_DOMAIN"\) \|\| "rucuso\.local"\)/);
+  assert.match(createBody, /const email = `\$\{username\.toLowerCase\(\)\}@\$\{emailDomain\}`/);
+  // The derived address is still handed to the auth user creation.
+  assert.match(createBody, /createUser\(\{\s*\n\s*email,/);
+});
+
+test('create-leader stores the student registration number it is given', () => {
+  assert.match(createBody, /const registration_number = body\.registration_number/);
+  assert.match(createBody, /registration_number,\n\s+active, public_visible,/);
+});
+
+test('update-leader does not blank the stored email when none is sent', () => {
+  // The form no longer sends email; an unconditional `email: email || null`
+  // inside the update object would wipe the leader's stored address on edit.
+  const updStart = edge.indexOf('const leaderUpdate: Record<string, unknown> = {');
+  const updEnd = edge.indexOf('};', updStart);
+  assert.ok(updStart !== -1 && updEnd > updStart, 'leaderUpdate object not found');
+  assert.doesNotMatch(edge.slice(updStart, updEnd), /email/);
+  assert.match(edge, /if \(email\) leaderUpdate\.email = email;/);
+});
+
+test('the leader form searches existing students instead of asking for an email', () => {
+  assert.doesNotMatch(page, /id="email"/);
+  assert.match(page, /id="student_search"/);
+  assert.match(page, /id="student_registration"/);
+  assert.match(page, /async function runStudentSearch\(\)/);
+  assert.match(page, /searchActiveStudents\(/);
+  // The chosen student's registration number rides along in the create payload.
+  assert.match(page, /registration_number: document\.getElementById\("student_registration"\)\.value/);
+  // Editing an existing leader must not offer to re-link a different student.
+  assert.match(page, /setStudentSearchEnabled\(false\)/);
+});
+
+test('the student lookup only offers active students', () => {
+  const client = read('supabase/supabase-client.js');
+  assert.match(client, /async searchActiveStudents\(term, limit = 20\)/);
+  // Same "active" definition used by the OTP/student lookups.
+  assert.match(client, /student_status\.is\.null,student_status\.eq\.active/);
+});

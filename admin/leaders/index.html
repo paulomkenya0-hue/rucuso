@@ -167,6 +167,72 @@
     font-size:12px;
   }
 
+  .student-results {
+    margin-top:6px;
+    border:1px solid #d0d5dd;
+    border-radius:10px;
+    background:#fff;
+    max-height:220px;
+    overflow-y:auto;
+    box-shadow:0 6px 18px rgba(16,24,40,.08);
+  }
+
+  .student-result {
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    width:100%;
+    text-align:left;
+    padding:9px 11px;
+    border:0;
+    border-bottom:1px solid #f2f4f7;
+    background:#fff;
+    cursor:pointer;
+    font:inherit;
+  }
+
+  .student-result:last-child {
+    border-bottom:0;
+  }
+
+  .student-result:hover,
+  .student-result:focus {
+    background:#f5f8ff;
+    outline:none;
+  }
+
+  .student-result b {
+    font-size:13px;
+    color:#101828;
+  }
+
+  .student-result span {
+    font-size:12px;
+    color:#667085;
+  }
+
+  .student-selected {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-top:6px;
+    padding:9px 11px;
+    border:1px solid #abefc6;
+    background:#ecfdf3;
+    border-radius:10px;
+    font-size:13px;
+    color:#054f31;
+  }
+
+  .student-selected button {
+    border:0;
+    background:transparent;
+    color:#054f31;
+    cursor:pointer;
+    font-weight:700;
+  }
+
   .empty {
     text-align:center;
     color:#667085;
@@ -288,6 +354,21 @@
 
       <div class="form-grid">
 
+        <div class="form-group full" id="studentLookupGroup">
+          <label for="student_search">Tafuta mwanafunzi</label>
+          <input id="student_search"
+                 type="search"
+                 autocomplete="off"
+                 placeholder="Andika jina au namba ya usajili...">
+          <div id="studentResults" class="student-results" hidden></div>
+          <div id="studentSelected" class="student-selected" hidden>
+            <span id="studentSelectedText"></span>
+            <button type="button" id="studentClear">Badilisha</button>
+          </div>
+          <small class="muted-small">Chagua mwanafunzi; jina, programme na mwaka vitajazwa kiotomatiki.</small>
+          <input type="hidden" id="student_registration" value="">
+        </div>
+
         <div class="form-group">
           <label for="full_name">Jina kamili *</label>
           <input id="full_name" required>
@@ -312,14 +393,15 @@
             <option value="prime_minister">Waziri Mkuu</option>
             <option value="prime_minister_secretary">Katibu wa Ofisi ya Waziri Mkuu</option>
             <option value="deputy_secretary_general">Naibu Katibu Mkuu</option>
+            <option value="speaker">Spika</option>
             <option value="attorney_general">Mwanasheria Mkuu</option>
             <option value="deputy_attorney_general">Naibu Mwanasheria Mkuu</option>
             <option value="presidential_advisor">Mshauri wa Rais</option>
             <option value="minister">Waziri</option>
             <option value="deputy_minister">Naibu Waziri</option>
             <option value="ministry_secretary">Katibu wa Wizara</option>
-            <option value="representative">Representative</option>
-            <option value="officer">Officer</option>
+            <option value="representative">Mwakilishi</option>
+            <option value="officer">Afisa</option>
           </select>
         </div>
 
@@ -333,12 +415,6 @@
         <div class="form-group">
           <label for="phone_number">Simu</label>
           <input id="phone_number" type="tel">
-        </div>
-
-        <div class="form-group">
-          <label for="email">Barua pepe *</label>
-          <input id="email" type="email" required>
-          <small>Kiongozi atatakiwa kubadilisha password baada ya kuingia kwenye mfumo.</small>
         </div>
 
         <div class="form-group">
@@ -673,6 +749,7 @@
     presidential_advisor: "Mshauri wa Rais",
     minister: "Waziri",
     deputy_minister: "Naibu Waziri",
+    ministry_secretary: "Katibu wa Wizara",
     representative: "Mwakilishi",
     officer: "Afisa"
   };
@@ -832,6 +909,95 @@
 
   let editingProfileId = null;
 
+  // --- Student lookup for leader registration --------------------------------
+  // Leaders are drawn from the student body, so the form searches students by
+  // name or registration number and fills name, programme, year and the
+  // registration number itself, rather than asking the admin to retype them.
+  let studentSearchTimer = null;
+
+  function clearStudentSelection() {
+    document.getElementById("student_registration").value = "";
+    document.getElementById("studentSelected").hidden = true;
+    document.getElementById("studentSelectedText").textContent = "";
+    document.getElementById("studentResults").hidden = true;
+    document.getElementById("studentResults").innerHTML = "";
+  }
+
+  function setStudentSearchEnabled(enabled) {
+    document.getElementById("studentLookupGroup").hidden = !enabled;
+    if (enabled) return;
+    document.getElementById("student_search").value = "";
+    clearStudentSelection();
+  }
+
+  function applyStudent(student) {
+    document.getElementById("full_name").value = student.full_name || "";
+    document.getElementById("programme").value = student.programme || "";
+    document.getElementById("year_of_study").value = student.year_of_study || "";
+    document.getElementById("student_registration").value = student.registration_number || "";
+    const sub = [student.registration_number, student.programme, student.faculty].filter(Boolean).join(" \u00b7 ");
+    document.getElementById("studentSelectedText").textContent =
+      (student.full_name || "") + (sub ? " \u2014 " + sub : "");
+    document.getElementById("studentSelected").hidden = false;
+    document.getElementById("studentResults").hidden = true;
+    document.getElementById("studentResults").innerHTML = "";
+    document.getElementById("student_search").value = "";
+    document.getElementById("full_name").focus();
+  }
+
+  function renderStudentResults(students) {
+    const box = document.getElementById("studentResults");
+    box.innerHTML = "";
+    if (!students.length) {
+      const empty = document.createElement("div");
+      empty.className = "muted-small";
+      empty.style.padding = "10px 11px";
+      empty.textContent = "Hakuna mwanafunzi aliyepatikana.";
+      box.appendChild(empty);
+      box.hidden = false;
+      return;
+    }
+    for (const s of students) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "student-result";
+      const name = document.createElement("b");
+      name.textContent = s.full_name || "(bila jina)";
+      const meta = document.createElement("span");
+      meta.textContent = [s.registration_number, s.programme, s.year_of_study].filter(Boolean).join(" \u00b7 ");
+      btn.appendChild(name);
+      btn.appendChild(meta);
+      btn.addEventListener("click", () => applyStudent(s));
+      box.appendChild(btn);
+    }
+    box.hidden = false;
+  }
+
+  async function runStudentSearch() {
+    const term = document.getElementById("student_search").value.trim();
+    if (term.length < 2) {
+      document.getElementById("studentResults").hidden = true;
+      return;
+    }
+    try {
+      renderStudentResults((await window.RucusoAPI.searchActiveStudents(term, 20)) || []);
+    } catch (error) {
+      console.error("Student search failed:", error);
+      renderStudentResults([]);
+    }
+  }
+
+  document.getElementById("student_search").addEventListener("input", function () {
+    clearTimeout(studentSearchTimer);
+    studentSearchTimer = setTimeout(runStudentSearch, 250);
+  });
+
+  document.getElementById("studentClear").addEventListener("click", function () {
+    clearStudentSelection();
+    document.getElementById("student_search").value = "";
+    document.getElementById("student_search").focus();
+  });
+
   function openCreateModal() {
     editingProfileId = null;
     document.getElementById("leaderModal").classList.remove("hidden");
@@ -841,8 +1007,9 @@
     document.getElementById("leaderForm").reset();
     document.getElementById("public_visibility").checked = true;
     document.getElementById("active_status").checked = true;
+    setStudentSearchEnabled(true);
     updateMinistryField();
-    document.getElementById("full_name").focus();
+    document.getElementById("student_search").focus();
   }
 
   async function openEditModal(profileId) {
@@ -856,6 +1023,7 @@
     const row = details && details.data ? details.data : {};
     document.getElementById("leaderModal").classList.remove("hidden");
     document.getElementById("leaderModal").dataset.mode = "edit";
+    setStudentSearchEnabled(false);
     document.getElementById("saveBtn").textContent = "Hifadhi Mabadiliko";
     document.querySelector("#leaderModal h3").textContent = "Hariri Kiongozi";
     document.getElementById("full_name").value = leader.full_name || row.full_name || "";
@@ -863,7 +1031,7 @@
     document.getElementById("position").value = leader.position || row.position || "";
     document.getElementById("ministry_id").value = leader.ministry_name ? (await supabase.from("ministries").select("id").ilike("name", leader.ministry_name).maybeSingle())?.data?.id || row.ministry_id || "" : (row.ministry_id || "");
     document.getElementById("phone_number").value = row.phone_private || row.phone_public || "";
-    document.getElementById("email").value = row.email || "";
+    document.getElementById("student_registration").value = row.registration_number || "";
     document.getElementById("programme").value = row.programme || "";
     document.getElementById("year_of_study").value = row.year_of_study || "";
     document.getElementById("biography").value = row.bio || "";
@@ -966,6 +1134,7 @@
     document.getElementById("active_status").checked = true;
     document.getElementById("photoPreview").style.display = "none";
     document.getElementById("photoPreviewImg").removeAttribute("src");
+    setStudentSearchEnabled(true);
     document.getElementById("leaderModal").dataset.mode = "create";
     document.getElementById("saveBtn").textContent = "Unda Akaunti";
     document.querySelector("#leaderModal h3").textContent = "Ongeza Kiongozi";
@@ -1133,7 +1302,7 @@
           position: document.getElementById("position").value,
           ministry_id: document.getElementById("ministry_id").value || null,
           phone_number: document.getElementById("phone_number").value.trim() || null,
-          email: document.getElementById("email").value.trim() || null,
+          registration_number: document.getElementById("student_registration").value.trim() || null,
           programme: document.getElementById("programme").value.trim() || null,
           year_of_study: document.getElementById("year_of_study").value.trim() || null,
           biography: document.getElementById("biography").value.trim() || null,
