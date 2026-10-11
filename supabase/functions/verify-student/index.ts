@@ -104,13 +104,14 @@ serve(async (req: Request) => {
       return errorResponse(req, "INVALID_INPUT", "Registration number format is invalid.", 400);
     }
 
-    // Scopes are namespaced, not shared with lookup-student. Both endpoints are
-    // public and both count per registration number and per IP, but they are
-    // separate limits: the lookup step must not spend the verification step's
-    // budget, or one slow student would lock out the other for everybody.
+    // The consume_student_lookup_attempt RPC recognises only the "reg" and "ip"
+    // scopes; any other name is rejected and every request fails closed as
+    // RATE_LIMITED. These counters are therefore shared with lookup-student,
+    // whose public lookup step spends from the same per-number and per-IP
+    // budget.
     const allowed = await consumeRateLimit(supabase, secret, [
-      { scope: "student_verify_reg", value: reg },
-      { scope: "student_verify_ip", value: remoteIp },
+      { scope: "reg", value: reg },
+      { scope: "ip", value: remoteIp },
     ]);
     if (!allowed) {
       return errorResponse(req, "RATE_LIMITED", "Too many attempts. Please wait a moment and try again.", 429);

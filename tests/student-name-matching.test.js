@@ -193,5 +193,7 @@ test('the rate-limit bucket uses the same normalised registration as the query',
   // If the rate limit keyed on the raw input while the query keyed on the
   // normalised one, a student could get two budgets by varying the casing.
   assert.match(verifySrc, /const reg = normaliseReg\(rawReg\);/);
-  assert.match(verifySrc, /scope: "student_verify_reg", value: reg/);
+  // consume_student_lookup_attempt only accepts the "reg" and "ip" scopes, so
+  // the bucket must be keyed under "reg" for the RPC to count it at all.
+  assert.match(verifySrc, /scope: "reg", value: reg/);
 });
