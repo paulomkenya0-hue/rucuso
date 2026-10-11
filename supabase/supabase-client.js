@@ -228,12 +228,11 @@
     // service_role only as of migration 012, so this path cannot be reopened
     // from the browser.
     //
-    // This throws only on a transport, CAPTCHA or rate-limit failure. It never
+    // This throws only on a transport or rate-limit failure. It never
     // resolves differently for a real number than for a fake one, so a caller
     // cannot branch on existence — which is the property the whole flow rests on.
-    async lookupRegistrationNumber(regNumber, captchaToken) {
+    async lookupRegistrationNumber(regNumber) {
       const body = { reg: String(regNumber == null ? "" : regNumber).trim() };
-      if (captchaToken) body.captchaToken = String(captchaToken);
       const { error } = await client.functions.invoke("lookup-student", { body });
       if (error) throw friendlyError(error);
     },
@@ -245,12 +244,20 @@
         },
       });
       if (error) throw friendlyError(error);
-      if (!data || data.verified !== true) {
-        const err = new Error("Uthibitisho wa namba ya usajili na jina la mwisho haukufaulu.");
+      if (data && data.success === false) {
+        const message = data.error && data.error.message
+          ? data.error.message
+          : "Hatukuweza kuthibitisha taarifa zako kwa sasa. Tafadhali hakikisha umeingiza taarifa sahihi au jaribu tena baadae.";
+        const err = new Error(message);
+        err.code = data.error && data.error.code ? data.error.code : "VERIFY_FAILED";
+        throw err;
+      }
+      if (!data || (data.success !== true && data.verified !== true) || !data.data) {
+        const err = new Error("Hatukuweza kuthibitisha taarifa zako kwa sasa. Tafadhali hakikisha umeingiza taarifa sahihi au jaribu tena baadae.");
         err.code = "INVALID_CREDENTIALS";
         throw err;
       }
-      return data;
+      return data.data || data;
     },
     // student_count() returns a scalar, so PostgREST replies with a bare number.
     async studentCount() {
@@ -594,6 +601,39 @@
     },
     async updateAnnouncement(id, patch) {
       return ok(await client.from("announcements").update(patch).eq("id", id).select());
+    },
+    // Validated publish path (migration 015). The RPC checks every field
+    // server-side — title/description required and length-capped, expiry not
+    // before publish, image URL must be http(s) — and takes the author from
+    // auth.uid(), so a caller cannot publish attributed to someone else.
+    // RLS still applies: only super_admin, admins with manage_announcements,
+    // and executive leaders may publish.
+    async publishAnnouncement(payload) {
+      const row = ok(await client.rpc("publish_announcement", {
+        p_title: payload.title,
+        p_description: payload.description,
+        p_category: payload.category || null,
+        p_audience: payload.audience || "All Students",
+        p_publish_date: payload.publishDate || null,
+        p_expiry_date: payload.expiryDate || null,
+        p_image_url: payload.imageUrl || null,
+      }));
+      return row && row[0] ? row[0].id : null;
+    },
+    // Validated edit path (migration 015). Same server-side checks as
+    // publish_announcement(), for an existing announcement.
+    async updateAnnouncementValidated(id, payload) {
+      const row = ok(await client.rpc("update_announcement", {
+        p_id: id,
+        p_title: payload.title,
+        p_description: payload.description,
+        p_category: payload.category || null,
+        p_audience: payload.audience || "All Students",
+        p_publish_date: payload.publishDate || null,
+        p_expiry_date: payload.expiryDate || null,
+        p_image_url: payload.imageUrl || null,
+      }));
+      return row && row[0] ? row[0].id : null;
     },
     async deleteAnnouncement(id) {
       return ok(await client.from("announcements").delete().eq("id", id));

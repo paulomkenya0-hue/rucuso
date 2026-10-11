@@ -132,29 +132,12 @@ ok(
 ok("pasted text is normalised too", /"paste"/.test(src));
 
 // ---- the button gate -------------------------------------------------------
-// The requirement is regex AND captcha. A gate that ignores either one is a
-// regression against a stated requirement, so both are asserted.
-ok("button state consults the CAPTCHA gate", /captchaSatisfied\(\)/.test(src));
-ok(
-  "the gate is regex AND captcha, not either",
-  /var ready = result\.ok && left > 0 && captchaOk/.test(src)
-  || /disabled = !\(result\.ok && left > 0 && captchaOk\)/.test(src),
-  "setButtonState does not combine all three conditions",
-);
-// Inverted on purpose. The previous assertion here was the opposite of this —
-// it required a missing site key to count as a satisfied CAPTCHA, so that a
-// deployment which forgot to configure Turnstile would light the button up and
-// look exactly like one where a CAPTCHA had been solved. That is a control that
-// fails to the permissive side, so it is asserted in the strict direction now.
-ok(
-  "an unconfigured CAPTCHA does NOT count as satisfied",
-  /function captchaSatisfied\(\) \{\s*if \(!isCaptchaEnabled\(\)\) return false;/.test(src)
-  && !/if \(!isCaptchaEnabled\(\)\) return true/.test(src),
-  "a missing site key is being treated as a solved CAPTCHA",
-);
-ok("solving the CAPTCHA re-runs the gate", /callback: function \(token\) \{[\s\S]{0,400}setButtonState/.test(src));
-ok("an expired CAPTCHA re-closes the gate", /expired-callback[\s\S]{0,120}setButtonState/.test(src));
-ok("the guard re-checks the captcha, not just the button", /if \(!captchaSatisfied\(\)\)/.test(src));
+// The button stays off until the number is well-formed AND the attempt budget
+// is unspent. A gate that ignores either one is a regression against a stated
+// requirement, so both are asserted.
+ok("button state consults the gate",
+  /disabled = !\(result\.ok && left > 0\)/.test(src),
+  "setButtonState does not combine the number with the budget");
 
 // ---- the format must not appear in the visible UI at all -------------------
 // Not hidden, not behind a click: absent. A control that reveals the format on
@@ -245,51 +228,6 @@ ok("input is forced to upper case", /function forceUpper/.test(js));
 ok("the caret is saved and restored around the transform",
   /selectionStart/.test(js) && /selectionEnd/.test(js) && /setSelectionRange/.test(js));
 ok("a paste is normalised too", /addEventListener\("paste"/.test(js));
-
-// ---- CAPTCHA ---------------------------------------------------------------
-ok("the button gate combines the number, the budget and the CAPTCHA",
-  /disabled = !\(result\.ok && left > 0 && captchaOk\)/.test(js));
-ok("the CAPTCHA mount sits inside the form",
-  verifyView.indexOf('id="verCaptcha"') > -1
-  && verifyView.indexOf('id="verCaptcha"') < verifyView.indexOf('id="ver1_btn"'),
-  "Turnstile must mount immediately above the button");
-ok("a missing site key fails closed rather than passing",
-  /function captchaSatisfied\(\) \{\s*if \(!isCaptchaEnabled\(\)\) return false;/.test(js),
-  "a deployment with no Turnstile key is running with no CAPTCHA and no warning");
-ok("a Turnstile load failure also fails closed", /captchaFault = "load-failed"/.test(js));
-ok("the fault is reported to the operator", /TURNSTILE_SITE_KEY is not set/.test(js));
-ok("the fault message says nothing about configuration",
-  /function captchaFaultText\(\) \{\s*return CAPTCHA_FAULT_TEXT;/.test(js)
-  && !/haijasajiliwa|not configured/i.test(js.slice(
-    js.indexOf("var CAPTCHA_FAULT_TEXT"), js.indexOf("function captchaFaultText"))),
-  "the student-facing fault text is explaining the deployment");
-ok("the token is read only from the widget", /function captchaTokenValue/.test(js));
-ok("the secret is never referenced in the browser",
-  !/TURNSTILE_SECRET_KEY/.test(js) && !/TURNSTILE_SECRET_KEY/.test(appJs));
-ok("the token is sent with the lookup",
-  /lookupRegistrationNumber\(reg, captchaToken\)/.test(appJs));
-ok("the server verifies the token", /siteverify/.test(lookupFn));
-
-// The client fails closed on a blank site key, but the client cannot see the
-// secret — so a site key without a secret is a deployment where the widget
-// renders, the student solves it, and the server discards the token. The server
-// has to refuse that outright rather than treat the missing secret as "no
-// CAPTCHA configured".
-ok("the server requires the secret rather than skipping the check when it is absent",
-  /if \(!captchaSecret\)/.test(lookupFn)
-  && !/if \(Deno\.env\.get\("TURNSTILE_SECRET_KEY"\)\) \{/.test(lookupFn),
-  "an absent secret is being treated as no CAPTCHA configured");
-ok("an absent secret with no opt-in is a hard failure",
-  /return json\(req, \{ error: "NOT_CONFIGURED" \}, 503\)/.test(lookupFn));
-ok("running without the secret is an explicit, named opt-in",
-  /LOCAL_DEV_SKIP_CAPTCHA/.test(lookupFn));
-ok("the opt-in must be set to exactly 1, so a typo cannot enable it",
-  /Deno\.env\.get\("LOCAL_DEV_SKIP_CAPTCHA"\) === "1"/.test(lookupFn));
-ok("the opt-in warns on every request, so it cannot be silent in production",
-  /LOCAL_DEV_SKIP_CAPTCHA[\s\S]{0,200}console\.warn/.test(lookupFn));
-ok("the opt-in is not wired into the browser or the committed config",
-  !/LOCAL_DEV_SKIP_CAPTCHA/.test(js) && !/LOCAL_DEV_SKIP_CAPTCHA/.test(appJs)
-  && !/LOCAL_DEV_SKIP_CAPTCHA/.test(configJs));
 
 // ---- spinner + duplicate submits -------------------------------------------
 ok("the button has a spinner element", /id="ver1_btn"[\s\S]{0,200}btn__spin/.test(verifyView));
@@ -438,6 +376,30 @@ ok("the OTP step cannot be pointed at another destination",
   !/id="ver_phone"/.test(html) && !/sendOtp\s*\(\s*phone/i.test(clientCode));
 ok("the last-name verification is keyed on the registration number",
   /verifyStudent\(verifyMatch\.reg, lastName\)/.test(appCode));
+
+// ---- no CAPTCHA ------------------------------------------------------------
+// Turnstile was removed from the verification flow entirely. The widget, the
+// site key, the secret and the dev opt-in must all be gone: a leftover site key
+// with nothing verifying tokens would be a decorative gate that blocks nobody
+// while looking like one. Every identifier below existed in this file at some
+// point, so each reappearing means a half-removed widget.
+const turnstileIds =
+  "captchaSatisfied|isCaptchaEnabled|captchaOk|captchaToken|captchaFault" +
+  "|ensureCaptcha|TURNSTILE|verCaptcha|LOCAL_DEV_SKIP_CAPTCHA";
+ok("no CAPTCHA mount remains in the verify view",
+  !/verCaptcha/.test(verifyView) && !/verCaptcha/.test(html));
+ok("no CAPTCHA code remains in the verify script",
+  !new RegExp(turnstileIds).test(js), "a Turnstile identifier survives in verify-ux.js");
+ok("no CAPTCHA handling remains in app.js",
+  !new RegExp(turnstileIds).test(appCode), "a Turnstile identifier survives in app.js");
+ok("no CAPTCHA handling remains in the client API",
+  !new RegExp(turnstileIds).test(clientCode),
+  "a Turnstile identifier survives in supabase-client.js");
+ok("no CAPTCHA handling remains in the server",
+  !new RegExp(turnstileIds).test(lookupFn),
+  "a Turnstile identifier survives in lookup-student");
+ok("the server no longer calls Turnstile", !/siteverify/.test(lookupFn));
+ok("no site key remains in the committed config", !/TURNSTILE_SITE_KEY/.test(configJs));
 
 report();
 

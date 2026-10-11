@@ -125,20 +125,9 @@ function makeEnv(overrides) {
     SMS_PROVIDER: "beem",
     SMS_API_KEY: "k",
     SMS_SENDER_ID: "RUCUSO",
-    // The documented development configuration. TURNSTILE_SECRET_KEY is not set,
-    // and the skip is opted into by name rather than happening by accident —
-    // which is the whole point of the flag, so the tests exercise it the way a
-    // developer would actually set it up locally. The production configuration
-    // and the misconfigured one are exercised explicitly below.
-    LOCAL_DEV_SKIP_CAPTCHA: "1",
     ...overrides,
   };
 }
-// Production: real secret, no skip.
-const CAPTCHA_ON = { TURNSTILE_SECRET_KEY: "t".repeat(32), LOCAL_DEV_SKIP_CAPTCHA: null };
-// The dangerous deployment: the widget renders because config.js has a site
-// key, but the secret was never set on the function.
-const CAPTCHA_MISCONFIGURED = { TURNSTILE_SECRET_KEY: null, LOCAL_DEV_SKIP_CAPTCHA: null };
 
 // The stub PostgREST. queryFor() is how the students table is matched, and it
 // is the only place existence is modelled — the functions under test never see
@@ -653,66 +642,49 @@ test(async () => {
 // =====================================================================
 
 test(async () => {
-  // Turnstile, in both configurations.
+  // lookup-student has no CAPTCHA gate any more. What guards it is the format
+  // check and the rate limits, and both apply identically to every registration
+  // number, so nothing here distinguishes a real number from a fake one.
   //
-  // Production — the secret is set, so a request with no token is refused, and
-  // the refusal is identical for every registration number so it cannot be used
-  // as a probe.
-  const noToken = await run("lookup-student", {
-    registry: KNOWN, body: { reg: "RU/BAFIT/2024/0007" }, env: CAPTCHA_ON,
-  });
-  eq(noToken.status, 403, "lookup-student: a missing CAPTCHA token is refused");
-  const noTokenUnknown = await run("lookup-student", {
-    registry: KNOWN, body: { reg: "RU/BAFIT/2024/9999" }, env: CAPTCHA_ON,
-  });
-  eq(noTokenUnknown.body, noToken.body, "lookup-student: the CAPTCHA refusal is the same for every number");
-  eq(noTokenUnknown.status, noToken.status, "lookup-student: the CAPTCHA refusal has one status");
-
-  // Development — the secret is unset and the skip is opted into by name. It
-  // relaxes the CAPTCHA without loosening anything about existence: same body,
-  // same status, for both. It also says so, loudly, on every request.
-  const devKnown = await run("lookup-student", {
+  // A well-formed number is accepted, and the body carries nothing about the
+  // registry.
+  const known = await run("lookup-student", {
     registry: KNOWN, body: { reg: "RU/BAFIT/2024/0007" },
   });
-  const devUnknown = await run("lookup-student", {
-    registry: KNOWN, body: { reg: "RU/BAFIT/2024/9999" },
-  });
-  eq(devKnown.status, 200, "lookup-student: the dev opt-in accepts the request");
-  eq(devKnown.body, devUnknown.body, "lookup-student: the dev opt-in is still uniform");
-  eq(devKnown.body, { ok: true }, "lookup-student: the dev opt-in returns the same body");
-  ok(devKnown.logs.some((l) => /LOCAL_DEV_SKIP_CAPTCHA/.test(l)),
-    "lookup-student: the dev opt-in announces itself, so it cannot be silent in production");
-  ok(devKnown.logs.some((l) => /NOT being verified/.test(l)),
-    "lookup-student: the warning says what it means, not just what is set");
+  eq(known.status, 200, "lookup-student: a well-formed number is accepted");
+  eq(known.body, { ok: true }, "lookup-student: the accepted body is exactly { ok: true }");
 
-  // The misconfiguration that the old code failed open on. A site key in
-  // config.js means the widget renders and the student solves it; if the server
-  // secret is missing the token arrives and is thrown away. This must refuse
-  // rather than wave the request through.
-  const broken = await run("lookup-student", {
-    registry: KNOWN, body: { reg: "RU/BAFIT/2024/0007" }, env: CAPTCHA_MISCONFIGURED,
-  });
-  eq(broken.status, 503, "lookup-student: a missing server secret is a hard failure, not a free pass");
-  eq(broken.body, { error: "NOT_CONFIGURED" }, "lookup-student: the misconfiguration says nothing about the number");
-  // And it is refused the same way whatever the number, so a broken deployment
-  // still cannot be used to enumerate the registry.
-  const brokenUnknown = await run("lookup-student", {
-    registry: KNOWN, body: { reg: "RU/BAFIT/2024/9999" }, env: CAPTCHA_MISCONFIGURED,
-  });
-  eq(brokenUnknown.body, broken.body, "lookup-student: the misconfiguration response is the same for every number");
-  // The registry is never even touched in that state.
-  eq(broken.supabase.__queried.length, 0, "lookup-student: a misconfigured deployment does not query the registry");
-
-  // A dev opt-in is not a bypass for the rate limits, and not a bypass for the
-  // format check either.
-  const devCapped = await run("lookup-student", {
-    registry: KNOWN, body: { reg: "RU/BAFIT/2024/0007" }, rateLimited: true,
-  });
-  eq(devCapped.status, 429, "lookup-student: the dev opt-in does not disable rate limiting");
-  const devMalformed = await run("lookup-student", {
+  // Malformed input is still refused quietly, with the same body as a real
+  // number — it is not a distinct signal — and before the registry is read, so
+  // a fuzzer can neither consume another student's budget nor reach Postgres.
+  const malformed = await run("lookup-student", {
     registry: KNOWN, body: { reg: "not-a-number" },
   });
-  eq(devMalformed.body, { ok: true }, "lookup-student: the dev opt-in still refuses malformed input quietly");
+  eq(malformed.status, 200, "lookup-student: malformed input is not a distinct outcome");
+  eq(malformed.body, { ok: true }, "lookup-student: malformed input gets the same body");
+  eq(malformed.supabase.__queried.length, 0, "lookup-student: malformed input does not query the registry");
+
+  // A missing server secret is a hard failure, and it is refused before the
+  // registry is touched. It is deployment-wide, so it cannot distinguish
+  // numbers either.
+  const noSecret = await run("lookup-student", {
+    registry: KNOWN, body: { reg: "RU/BAFIT/2024/0007" },
+    env: { STUDENT_LOOKUP_RATE_LIMIT_SECRET: null },
+  });
+  eq(noSecret.status, 503, "lookup-student: a missing secret is a hard failure, not a free pass");
+  eq(noSecret.body, { error: "NOT_CONFIGURED" }, "lookup-student: the misconfiguration says nothing about the number");
+  const noSecretUnknown = await run("lookup-student", {
+    registry: KNOWN, body: { reg: "RU/BAFIT/2024/9999" },
+    env: { STUDENT_LOOKUP_RATE_LIMIT_SECRET: null },
+  });
+  eq(noSecretUnknown.body, noSecret.body, "lookup-student: the misconfiguration response is the same for every number");
+  eq(noSecret.supabase.__queried.length, 0, "lookup-student: a misconfigured deployment does not query the registry");
+
+  // Rate limiting is still in force, and is not bypassed by anything above.
+  const capped = await run("lookup-student", {
+    registry: KNOWN, body: { reg: "RU/BAFIT/2024/0007" }, rateLimited: true,
+  });
+  eq(capped.status, 429, "lookup-student: an exhausted rate limit returns 429");
 });
 
 test(async () => {
@@ -753,7 +725,7 @@ test(async () => {
   // not. So console calls are blanked out first and the names must not survive.
   const SECRETS = [
     "OTP_PEPPER", "SUPABASE_SERVICE_ROLE_KEY", "SMS_API_KEY", "SMS_API_SECRET",
-    "TURNSTILE_SECRET_KEY", "STUDENT_LOOKUP_RATE_LIMIT_SECRET",
+    "STUDENT_LOOKUP_RATE_LIMIT_SECRET",
   ];
   for (const f of ["js/app.js", "js/verify-ux.js", "supabase/supabase-client.js", "supabase/config.js"]) {
     let code = fs.readFileSync(path.join(ROOT, f), "utf8")

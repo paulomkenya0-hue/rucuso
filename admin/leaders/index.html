@@ -737,6 +737,11 @@
         }
 
         actions +=
+          '<button class="sec" data-action="edit" data-id="' +
+          escapeHtml(leader.profile_id) +
+          '">Hariri</button>';
+
+        actions +=
           '<button class="sec" data-action="reset_password" data-id="' +
           escapeHtml(leader.profile_id) +
           '">Reset Password</button>';
@@ -825,15 +830,56 @@
     }
   }
 
+  let editingProfileId = null;
+
   function openCreateModal() {
+    editingProfileId = null;
+    document.getElementById("leaderModal").classList.remove("hidden");
+    document.getElementById("leaderModal").dataset.mode = "create";
+    document.getElementById("saveBtn").textContent = "Unda Akaunti";
+    document.querySelector("#leaderModal h3").textContent = "Ongeza Kiongozi";
+    document.getElementById("leaderForm").reset();
+    document.getElementById("public_visibility").checked = true;
+    document.getElementById("active_status").checked = true;
+    updateMinistryField();
+    document.getElementById("full_name").focus();
+  }
 
-    document
-      .getElementById("leaderModal")
-      .classList.remove("hidden");
-
-    document
-      .getElementById("full_name")
-      .focus();
+  async function openEditModal(profileId) {
+    const leader = (await callFunction({ action: "list" })).leaders.find((item) => item.profile_id === profileId);
+    if (!leader) {
+      showMessage("Kiongozi huyu haipatikani kwa hariri.", "error");
+      return;
+    }
+    editingProfileId = profileId;
+    const details = await supabase.from("leaders").select("*").eq("id", (await supabase.from("profiles").select("leader_id").eq("id", profileId).maybeSingle())?.data?.leader_id || "").maybeSingle();
+    const row = details && details.data ? details.data : {};
+    document.getElementById("leaderModal").classList.remove("hidden");
+    document.getElementById("leaderModal").dataset.mode = "edit";
+    document.getElementById("saveBtn").textContent = "Hifadhi Mabadiliko";
+    document.querySelector("#leaderModal h3").textContent = "Hariri Kiongozi";
+    document.getElementById("full_name").value = leader.full_name || row.full_name || "";
+    document.getElementById("username").value = leader.username || "";
+    document.getElementById("position").value = leader.position || row.position || "";
+    document.getElementById("ministry_id").value = leader.ministry_name ? (await supabase.from("ministries").select("id").ilike("name", leader.ministry_name).maybeSingle())?.data?.id || row.ministry_id || "" : (row.ministry_id || "");
+    document.getElementById("phone_number").value = row.phone_private || row.phone_public || "";
+    document.getElementById("email").value = row.email || "";
+    document.getElementById("programme").value = row.programme || "";
+    document.getElementById("year_of_study").value = row.year_of_study || "";
+    document.getElementById("biography").value = row.bio || "";
+    document.getElementById("office_location").value = row.office_location || "";
+    document.getElementById("public_visibility").checked = row.public_visible !== false;
+    document.getElementById("active_status").checked = row.active !== false;
+    document.getElementById("photo_url").value = row.photo_url || "";
+    if (row.photo_url) {
+      document.getElementById("photoPreviewImg").src = row.photo_url;
+      document.getElementById("photoPreview").style.display = "block";
+    } else {
+      document.getElementById("photoPreview").style.display = "none";
+      document.getElementById("photoPreviewImg").removeAttribute("src");
+    }
+    updateMinistryField();
+    document.getElementById("full_name").focus();
   }
 
   // Which posts need a ministry, and what the tiers are, comes from
@@ -913,22 +959,16 @@
   document.getElementById("position").addEventListener("change", updateMinistryField);
 
   function closeCreateModal() {
-
-    document
-      .getElementById("leaderModal")
-      .classList.add("hidden");
-
-    document
-      .getElementById("leaderForm")
-      .reset();
-
-    document
-      .getElementById("public_visibility")
-      .checked = true;
-
-    document
-      .getElementById("active_status")
-      .checked = true;
+    editingProfileId = null;
+    document.getElementById("leaderModal").classList.add("hidden");
+    document.getElementById("leaderForm").reset();
+    document.getElementById("public_visibility").checked = true;
+    document.getElementById("active_status").checked = true;
+    document.getElementById("photoPreview").style.display = "none";
+    document.getElementById("photoPreviewImg").removeAttribute("src");
+    document.getElementById("leaderModal").dataset.mode = "create";
+    document.getElementById("saveBtn").textContent = "Unda Akaunti";
+    document.querySelector("#leaderModal h3").textContent = "Ongeza Kiongozi";
     updateMinistryField();
   }
 
@@ -1082,61 +1122,39 @@
 
       try {
 
+        const imageUrl = await uploadLeaderPhoto();
+        const photoValue = imageUrl || document.getElementById("photo_url").value.trim() || null;
+
         const payload = {
-
-          action: "create",
-
-          full_name:
-            document.getElementById("full_name").value.trim(),
-
-          username:
-            document.getElementById("username").value.trim(),
-
-          position:
-            document.getElementById("position").value,
-
-          ministry_id:
-            document.getElementById("ministry_id").value || null,
-
-          phone_number:
-            document.getElementById("phone_number").value.trim() || null,
-
-          email:
-            document.getElementById("email").value.trim() || null,
-
-          programme:
-            document.getElementById("programme").value.trim() || null,
-
-          year_of_study:
-            document.getElementById("year_of_study").value.trim() || null,
-
-          biography:
-            document.getElementById("biography").value.trim() || null,
-
-          photo_url:
-            await uploadLeaderPhoto(),
-
-          office_location:
-            document.getElementById("office_location").value.trim() || null,
-
-          public_visibility:
-            document.getElementById("public_visibility").checked,
-
-          active_status:
-            document.getElementById("active_status").checked
+          action: editingProfileId ? "update" : "create",
+          profile_id: editingProfileId || undefined,
+          full_name: document.getElementById("full_name").value.trim(),
+          username: document.getElementById("username").value.trim(),
+          position: document.getElementById("position").value,
+          ministry_id: document.getElementById("ministry_id").value || null,
+          phone_number: document.getElementById("phone_number").value.trim() || null,
+          email: document.getElementById("email").value.trim() || null,
+          programme: document.getElementById("programme").value.trim() || null,
+          year_of_study: document.getElementById("year_of_study").value.trim() || null,
+          biography: document.getElementById("biography").value.trim() || null,
+          photo_url: photoValue,
+          office_location: document.getElementById("office_location").value.trim() || null,
+          public_visibility: document.getElementById("public_visibility").checked,
+          active_status: document.getElementById("active_status").checked,
         };
 
-        const result =
-          await callFunction(payload);
+        const result = await callFunction(payload);
 
         closeCreateModal();
 
         showMessage(
-          "Akaunti imeundwa kikamilifu. Tumia Reset Password kupata password ya muda.",
+          editingProfileId
+            ? "Mabadiliko ya kiongozi yamehifadhiwa."
+            : "Akaunti imeundwa kikamilifu. Tumia Reset Password kupata password ya muda.",
           "success"
         );
 
-        if (result.temporary_password) {
+        if (result && result.temporary_password) {
           showPassword(result.temporary_password);
         }
 
@@ -1186,6 +1204,11 @@
       }
 
       try {
+
+        if (action === "edit") {
+          await openEditModal(profileId);
+          return;
+        }
 
         if (action === "deactivate") {
 

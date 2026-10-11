@@ -28,3 +28,11 @@ test('leader creation success message no longer promises email confirmation', ()
   const page = read('admin/leaders/index.html');
   assert.doesNotMatch(page, /kiungo cha kuthibitisha barua pepe|confirmation email/i);
 });
+
+test('super admin can edit an existing leader from the admin page', () => {
+  const edge = read('supabase/functions/leader-admin/index.ts');
+  const page = read('admin/leaders/index.html');
+  assert.match(edge, /case "update"/);
+  assert.match(edge, /async function updateLeader/);
+  assert.match(page, /data-action="edit"/);
+});

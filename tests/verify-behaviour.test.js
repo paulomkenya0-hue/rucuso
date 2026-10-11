@@ -81,18 +81,9 @@ function makeEl(id) {
   return el;
 }
 
-// Set by load() before the sandbox is built, read while the sandbox object
-// literal is being constructed. Declared up here for that reason.
-let sandboxTurnstile = null;
-
 // Builds a sandbox with verify-ux.js evaluated inside it. readyState is left as
 // "loading" so the module registers a DOMContentLoaded listener and does not run
 // init() on its own — the test decides when that happens.
-//
-// With `captcha: true` a fake window.turnstile is installed, so ensureCaptcha()
-// takes its real render path and the returned `solve()` fires the same callback
-// Cloudflare would. That is what makes "button enables only after a token
-// exists" testable without a network call.
 function load(overrides) {
   const elements = Object.assign({
     ver_reg: makeEl("ver_reg"),
@@ -100,17 +91,9 @@ function load(overrides) {
     ver1_limit: makeEl("ver1_limit"),
     ver1_hint: makeEl("ver1_hint"),
     ver1_msg: makeEl("ver1_msg"),
-    verCaptcha: makeEl("verCaptcha"),
   }, (overrides && overrides.elements) || {});
 
   const store = new Map();
-  let widget = null;
-  if (overrides && overrides.captcha) {
-    sandboxTurnstile = {
-      render(mount, opts) { widget = opts; return { id: "fake-widget" }; },
-      reset() { if (widget && widget.callback) widget.callback(""); },
-    };
-  }
   const sandbox = {
     console: { log() {}, warn() {}, error() {} },
     setTimeout,
@@ -128,7 +111,7 @@ function load(overrides) {
       createElement: () => makeEl("created"),
     },
     window: {
-      RUCUSO_CONFIG: (overrides && overrides.config) || {},
+      RUCUSO_CONFIG: {},
       sessionStorage: {
         getItem: (k) => (store.has(k) ? store.get(k) : null),
         setItem: (k, v) => store.set(k, String(v)),
@@ -136,18 +119,11 @@ function load(overrides) {
       },
     },
   };
-  if (sandboxTurnstile) sandbox.window.turnstile = sandboxTurnstile;
   sandbox.window.document = sandbox.document;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(SOURCE, sandbox, { filename: "verify-ux.js" });
-  return {
-    R: sandbox.window.RucusoVerify,
-    elements,
-    store,
-    // Simulates the student solving the widget.
-    solve(token) { if (widget) widget.callback(token || "fake-token"); },
-  };
+  return { R: sandbox.window.RucusoVerify, elements, store };
 }
 
 // ---- uppercase normalisation ----------------------------------------------
@@ -262,51 +238,39 @@ pending.push((async function upperCaseTests() {
 
 // ---- the button gate ------------------------------------------------------
 {
-  // Configured with a site key, so the CAPTCHA is in play.
-  const { R, elements } = load({ config: { TURNSTILE_SITE_KEY: "1x00000000000000000000AA" } });
+  const { R, elements } = load();
   R.init();
   const input = elements.ver_reg;
   const btn = elements.ver1_btn;
 
-  eq("captcha is reported as enabled", R.isCaptchaEnabled(), true);
-  eq("captcha is not satisfied before the widget solves", R.captchaSatisfied(), false);
+  eq("an empty field leaves the button disabled", btn.disabled, true);
 
   input.value = "RU/BAFIT/2024/007";
   input.fire("input");
-  eq("a valid number alone does not enable the button", btn.disabled, true);
+  eq("a valid number enables the button", btn.disabled, false);
 
-  // No site key at all: must fail closed, not pass.
-  const bare = load({ config: {} });
-  bare.R.init();
-  eq("captcha is reported as disabled with no key", bare.R.isCaptchaEnabled(), false);
-  eq("a missing site key is NOT treated as satisfied", bare.R.captchaSatisfied(), false);
-  ok("a missing site key is recorded as a fault", bare.R.captchaFault() !== "");
-  bare.elements.ver_reg.value = "RU/BAFIT/2024/007";
-  bare.elements.ver_reg.fire("input");
-  eq("a valid number still cannot enable the button with no CAPTCHA", bare.elements.ver1_btn.disabled, true);
+  input.value = "RU/BAFIT/2024/7";
+  input.fire("input");
+  eq("an invalid number closes the button again", btn.disabled, true);
+
+  // There is no CAPTCHA state any more: the number and the budget are the whole
+  // gate, so a leftover widget abstraction must not be part of the API.
+  ok("no CAPTCHA state is exposed by the module",
+    R.captchaSatisfied === undefined && R.isCaptchaEnabled === undefined);
 }
 
 // ---- duplicate submits and the guard --------------------------------------
 pending.push((async function guardTests() {
-  // A site key is configured and the widget is solved, so these exercises cover
-  // the guard in the state a real deployment is actually in.
-  const { R, elements, solve } = load({
-    captcha: true,
-    config: { TURNSTILE_SITE_KEY: "1x00000000000000000000AA" },
-  });
+  const { R, elements } = load();
   R.init();
-  // ensureCaptcha() resolves the widget on a promise, so there is nothing to
-  // solve until the microtask queue has been drained. A browser gets this for
-  // free between frames; the test has to ask.
-  await new Promise((r) => setTimeout(r, 1));
-  solve();
   const input = elements.ver_reg;
   const msg = elements.ver1_msg;
 
-  eq("the button is enabled once the number is valid and the CAPTCHA solved",
-    (input.value = "RU/BAFIT/2024/007", input.fire("input"), elements.ver1_btn.disabled), false);
+  input.value = "RU/BAFIT/2024/007";
+  input.fire("input");
+  eq("the button is enabled for a valid number", elements.ver1_btn.disabled, false);
 
-  eq("guard allows a valid number with a solved CAPTCHA", R.guard(), true);
+  eq("guard allows a valid number", R.guard(), true);
   eq("guard recorded an attempt", R.attemptsLeft(), 4);
 
   // Every refusal from here costs nothing.
@@ -334,27 +298,23 @@ pending.push((async function guardTests() {
     "rendered: " + msg.innerHTML);
 })());
 
-// ---- an unconfigured CAPTCHA is not an invitation to submit ----------------
+// ---- there is no CAPTCHA in this flow ---------------------------------------
+// Turnstile was removed from the verification form. The most useful regression
+// is the inverted one: a leftover gate that fires only when some widget "fails
+// closed" would lock every real student out of a flow that has no widget.
 {
-  // No site key, so the form is locked. The number is valid and the student is
-  // genuinely a real one — the point is that the form still refuses, and says
-  // the same thing it would say for a number that does not exist.
-  const { R, elements } = load({ config: {} });
+  const { R, elements } = load();
   R.init();
   const input = elements.ver_reg;
   const msg = elements.ver1_msg;
 
   input.value = "RU/BAFIT/2024/007";
   input.fire("input");
-  eq("guard refuses when there is no CAPTCHA at all", R.guard(), false);
-  eq("no attempt is spent on a refused submission", R.attemptsLeft(), 5);
-  eq("the button stays disabled", elements.ver1_btn.disabled, true);
-  ok("a generic message is rendered", msg.innerHTML.length > 0, "rendered: " + msg.innerHTML);
-  ok("the message does not mention configuration",
+  eq("a valid number enables the button with no widget present", elements.ver1_btn.disabled, false);
+  eq("guard allows when nothing is configured", R.guard(), true);
+  eq("a genuine attempt is spent", R.attemptsLeft(), 4);
+  ok("no infrastructure message is rendered",
     !/haijawek|configured|msimamizi/i.test(msg.innerHTML), "rendered: " + msg.innerHTML);
-  ok("the message does not claim the number is unknown",
-    msg.innerHTML.indexOf(R.FAIL_TEXT) === -1,
-    "an infrastructure fault must not be reported as a bad number");
 }
 
 // ---- no mock approval anywhere --------------------------------------------
@@ -375,7 +335,7 @@ pending.push((async function guardTests() {
   // The lookup must be a real call to the deployed function. It returns nothing:
   // the server will not say, so there is nothing for the page to branch on.
   ok("the lookup calls the Edge Function",
-    /await API\.lookupRegistrationNumber\(reg, captchaToken\)/.test(appJs));
+    /await API\.lookupRegistrationNumber\(reg\)/.test(appJs));
   ok("the client invokes lookup-student over the network",
     /client\.functions\.invoke\("lookup-student"/.test(client));
   ok("the lookup does not short-circuit to a local array",
@@ -386,8 +346,7 @@ pending.push((async function guardTests() {
   // The step is revealed by class, not by a showStep() helper, so assert the
   // actual transition. The result is not captured at all (checked above), so the
   // thing that could still make the reveal conditional is an early return sitting
-  // between the call and the reveal. The CAPTCHA reset in that window is fine —
-  // it is not conditioned on anything the lookup said.
+  // between the call and the reveal.
   const between = appJs.slice(
     appJs.indexOf("await API.lookupRegistrationNumber"),
     appJs.indexOf('ver-step2").classList.remove("hidden")'));
@@ -435,10 +394,9 @@ Promise.all(pending).then(() => {
   const bad = report();
   if (bad) {
     console.log("");
-    console.log("Two real defects were found by these tests and are fixed in the");
-    console.log("source: a mutual recursion between setButtonState() and");
-    console.log("renderLimit() that overflowed the stack on page load, and a");
-    console.log("gate that treated a missing Turnstile key as a solved CAPTCHA.");
+    console.log("A real defect was found by these tests and is fixed in the source:");
+    console.log("a mutual recursion between setButtonState() and renderLimit() that");
+    console.log("overflowed the stack on page load.");
   }
   process.exit(bad ? 1 : 0);
 });

@@ -314,7 +314,7 @@ button.pri:disabled {
 
 /* Live state of the Endelea button. This is the piece that answers the one
    question a greyed-out button cannot: is it grey because the number is wrong,
-   because the CAPTCHA is unsolved, or because too many attempts?
+   or because too many attempts?
 
    It deliberately never says "that looks right". A success confirmation is an
    oracle — it tells a script its guess satisfied the format before any request
@@ -329,11 +329,6 @@ button.pri:disabled {
 
 .fhint--ok { color: var(--ok); }
 .fhint--warn { color: var(--warn, #a8630a); }
-
-/* The Turnstile mount. Centred and given a little air, because Cloudflare
-   renders an iframe in here and the form should not reflow around it. */
-.vercaptcha:empty { display: none; }
-.vercaptcha { min-height: 0; }
 
 /* Rate limit countdown. */
 .ratelimit {

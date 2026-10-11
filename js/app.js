@@ -41,10 +41,9 @@ const VERIFICATION_MESSAGES = {
   TOO_MANY_REQUESTS: "Umetuma maombi mengi. Subiri muda mrefu kabla ya jaribu tena.",
   SMS_PROVIDER_NOT_CONFIGURED: "Huduma ya kutuma SMS haijawekwa bado. Tafadhali wasiliana na msimamizi wa mfumo.",
   LOOKUP_FAILED: "Imeshindikana kuangalia namba ya usajili. Tafadhali jaribu tena baadaye.",
-  // NOT_CONFIGURED is deliberately absent, and so is any CAPTCHA code. The
-  // lookup step renders one generic sentence and logs the real reason to the
-  // console, and a CAPTCHA fault is reported by verify-ux.js before a request
-  // is ever made. See the note in lookupFailureText() below.
+  // NOT_CONFIGURED is deliberately absent. The lookup step renders one generic
+  // sentence and logs the real reason to the console. See the note in
+  // lookupFailureText() below.
 };
 
 // ---------- small helpers ----------
@@ -81,8 +80,8 @@ function busy(btn, on, label) {
     btn.disabled = false;
     // A button that was disabled only because the form was invalid should go
     // back to its own state, not force itself on. RucusoVerify owns that
-    // decision now — it knows about the format rule, the attempt budget and the
-    // CAPTCHA gate all at once, and duplicating any of it here would drift.
+    // decision now — it knows about the format rule and the attempt budget at
+    // once, and duplicating any of it here would drift.
     if (btn.id === "ver1_btn" && window.RucusoVerify) {
       window.RucusoVerify.setButtonState();
     }
@@ -1131,15 +1130,6 @@ async function verifyStep1(ev) {
   // twice in two files. It has already run the guard on click; this is the
   // backstop for a programmatic call or a paste that landed between renders.
   if (window.RucusoVerify) {
-    // A broken or unconfigured CAPTCHA stops here, before the number is even
-    // looked at. The reason is already in the console; the student gets one
-    // generic sentence.
-    if (window.RucusoVerify.captchaFault && window.RucusoVerify.captchaFault()) {
-      setVerMark("err");
-      document.getElementById("ver1_msg").innerHTML =
-        '<p class="err">' + esc(window.RucusoVerify.captchaFaultText()) + "</p>";
-      return;
-    }
     const check = window.RucusoVerify.validate(reg);
     if (!check.ok) {
       setVerMark("err");
@@ -1154,21 +1144,6 @@ async function verifyStep1(ev) {
       return;
     }
     reg = check.value;
-
-    // Solved-CAPTCHA backstop. The click guard in verify-ux.js holds the button
-    // shut, but this function is also reachable by a queued click, an Enter
-    // keypress, or a console call — and without this, a script could skip the
-    // widget entirely and spend the server's rate-limit budget. The server would
-    // reject the missing token anyway; this stops the request being made.
-    //
-    // Note the order: the fault check above handles "unconfigured or broken",
-    // this handles "configured but not solved". Both fail closed.
-    if (window.RucusoVerify.captchaSatisfied && !window.RucusoVerify.captchaSatisfied()) {
-      setVerMark("err");
-      document.getElementById("ver1_msg").innerHTML =
-        '<p class="err">' + esc(window.RucusoVerify.hintText ? window.RucusoVerify.hintText() : window.RucusoVerify.FAIL_TEXT) + "</p>";
-      return;
-    }
 
     if (window.RucusoVerify.attemptsLeft() === 0) {
       setVerMark("err");
@@ -1191,11 +1166,8 @@ async function verifyStep1(ev) {
 
   const startedAt = Date.now();
   const MIN_SPIN_MS = 1500;
-  const captchaToken = (btn && btn.dataset.captchaToken) || null;
-  if (btn) delete btn.dataset.captchaToken;
   try {
-    await API.lookupRegistrationNumber(reg, captchaToken);
-    if (window.RucusoVerify) window.RucusoVerify.resetCaptcha();
+    await API.lookupRegistrationNumber(reg);
     verifyMatch = { reg };
     setVerMark("ok");
     document.getElementById("ver-step1").classList.add("hidden");
@@ -1281,9 +1253,13 @@ async function verifyStudentLastName(ev) {
     await new Promise((r) => setTimeout(r, VERIFIED_HOLD_MS));
     go("submit", verifyTarget.preset);
   } catch (e) {
-    const detail = D.errText(e);
-    msg.textContent = /INVALID_CREDENTIALS|INVALID/iu.test(detail) ? VERIFY_FAIL_TEXT : detail;
+    // The student cannot be told which of the underlying reasons caused the
+    // rejection, because those differences are exactly the same oracle the
+    // verification flow is trying to hide. Use the single shared sentence for
+    // every failed last-name check; the real reason stays in the console log.
+    msg.textContent = VERIFY_FAIL_TEXT;
     setVerMark("err");
+    console.error("verify: last-name verification failed.", e);
   } finally {
     busy(btn, false);
   }
@@ -1895,12 +1871,16 @@ function openLeader(i) {
     ? '<a class="btn btn--gold" href="tel:' + esc(l.phone.replace(/\s+/g, "")) + '">' + navIcon(ICON_PHONE) + " " + esc(l.phone) + "</a>"
     : '<p class="muted">Namba ya simu ya kiongozi huyu bado haijawekwa kwenye mfumo.</p>';
   modalShell("leaderModalBg", l.name,
-    '<span class="avatar" style="width:84px;height:84px;margin:0 0 var(--sp-4)">' + (l.photo
-      ? '<img src="' + esc(l.photo) + '" alt="" width="84" height="84">'
+    // Enlarged photo: the card shows a 92px avatar, the lightbox shows the
+    // same picture large enough to actually recognise a face.
+    '<span class="avatar" style="width:160px;height:160px;margin:0 0 var(--sp-4)">' + (l.photo
+      ? '<img src="' + esc(l.photo) + '" alt="" width="160" height="160">'
       : navIcon("M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2")) + "</span>"
     + '<p class="leadercard__role" style="margin:0 0 var(--sp-3)">' + esc(leaderPositionLabel(l)) + "</p>"
     + (l.ministry ? '<p class="muted" style="margin:0 0 var(--sp-3)">' + esc(l.ministry) + "</p>" : "")
+    + (l.office ? '<p class="muted" style="margin:0 0 var(--sp-3)">' + esc(l.office) + "</p>" : "")
     + '<p style="color:var(--muted);line-height:1.75">' + (l.bio ? esc(l.bio) : "Maelezo ya majukumu ya kiongozi huyu bado hayajawekwa.") + "</p>"
+    + (l.responsibilities ? '<p style="color:var(--muted);line-height:1.75;margin-top:var(--sp-3)"><strong>Majukumu:</strong> ' + esc(l.responsibilities) + "</p>" : "")
     + '<div class="btnrow" style="margin-top:var(--sp-4);justify-content:flex-start">' + contact + "</div>",
     l.ministry || "Uongozi wa RUCUSO");
 }

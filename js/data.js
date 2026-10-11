@@ -557,16 +557,17 @@
     DB.announcements = rows.map(mapAnnouncement);
   }
   async function saveAnnouncement(a) {
-    const payload = {
+    // Goes through the validated publish_announcement() RPC (migration 015),
+    // which checks every field server-side and stamps the author from
+    // auth.uid(). The direct insert it replaced left validation to the browser.
+    await API.publishAnnouncement({
       title: a.title,
       description: a.description,
       category: a.category || null,
       audience: a.audience || "Wanafunzi Wote",
-      publish_date: a.publishDate || new Date().toISOString().slice(0, 10),
-      expiry_date: a.expiryDate || null,
-      author: DB.session?.uid || null,
-    };
-    await API.createAnnouncement(payload);
+      publishDate: a.publishDate || new Date().toISOString().slice(0, 10),
+      expiryDate: a.expiryDate || null,
+    });
     await audit("Announcement Published", a.title);
     await refreshAnnouncements();
   }

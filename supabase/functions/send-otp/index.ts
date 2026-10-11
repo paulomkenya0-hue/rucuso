@@ -48,10 +48,6 @@
 //   STUDENT_LOOKUP_RATE_LIMIT_SECRET  >= 32 chars, shared with lookup-student
 //                                     so this endpoint cannot be called
 //                                     directly to bypass that rate limit
-// Required, in production only:
-//   TURNSTILE_SECRET_KEY  the browser widget is checked in lookup-student; this
-//                         function is only reachable from the form, which cannot
-//                         be used at all without it
 // Development only, never in production:
 //   OTP_LOG_CODE=1  log the code to function logs so it can be read on a phone
 //                  that cannot receive the real SMS

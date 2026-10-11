@@ -1473,6 +1473,17 @@ input[type="checkbox"] {
     border-color var(--dur) var(--ease);
 }
 .leadercard:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); border-color: var(--gold-soft); }
+/* Tap / click feedback. The hover lift above only answers a mouse, so on a
+   touch device — where there is no hover — a press gave no visible response
+   until the modal appeared. This gives every press an immediate, smooth
+   answer: the card settles back a touch and its shadow tightens, so the tap
+   reads as a physical press rather than a dead click. */
+.leadercard:active {
+  transform: translateY(0) scale(0.97);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--gold-soft);
+  transition: transform 90ms ease, box-shadow 90ms ease, border-color 90ms ease;
+}
 .avatar {
   width: 92px; height: 92px;
   border-radius: 50%;
