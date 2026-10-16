@@ -1,0 +1,134 @@
+/* ==========================================================================
+   RUCUSO — modern overrides for the legacy admin consoles
+   (ai, announcements, documents, feedback, settings)
+
+   These five pages predate css/portal.css and carry a self-contained Arial /
+   #0b1f3a stylesheet of their own. Rather than rewrite their markup, this file
+   is loaded immediately after their inline <style>, so equal-specificity
+   selectors here win and lift them onto the shared design language: the same
+   navy/gold brand colours, the same type scale and the same soft elevation.
+   Nothing structural changes — layout, IDs and class names are untouched, so
+   the page scripts keep working exactly as before.
+   ========================================================================== */
+
+:root {
+  --navy: #152d7a;
+  --navy-700: #012758;
+  --navy2: #24409b;
+  --gold: #d6b161;
+  --bg: #fdfcf9;
+  --surface: #ffffff;
+  --border: #e9e2d6;
+  --text: #1e2330;
+  --muted: #5a6272;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --shadow-sm: 0 1px 2px rgba(21, 45, 122, 0.06), 0 1px 1px rgba(15, 18, 25, 0.04);
+  --shadow-md: 0 4px 14px rgba(21, 45, 122, 0.08), 0 2px 4px rgba(15, 18, 25, 0.05);
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Sidebar: brand navy instead of the flat near-black blue. */
+.sidebar {
+  background: linear-gradient(180deg, var(--navy) 0%, var(--navy-700) 100%);
+}
+
+.brand {
+  letter-spacing: 0.2px;
+}
+
+/* Cards and panels: lighter, softer elevation than the old grey shadow. */
+.card,
+.panel {
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+}
+
+.panel {
+  box-shadow: var(--shadow-md);
+}
+
+/* Buttons: brand colours, subtle lift on hover. */
+button {
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease),
+    background 0.2s var(--ease), border-color 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.btn-primary {
+  background: var(--navy);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--navy2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(21, 45, 122, 0.18);
+}
+
+.btn-secondary:hover:not(:disabled),
+.btn-danger:hover:not(:disabled),
+.btn-success:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* Inputs: brand focus ring. */
+input,
+select,
+textarea {
+  border-radius: var(--radius-sm);
+  border-color: var(--border);
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px rgba(21, 45, 122, 0.08);
+}
+
+/* Tables: warmer header, cleaner hover. */
+th {
+  background: #f6f3ec;
+  color: var(--muted);
+}
+
+tr:hover td {
+  background: #faf8f3;
+}
+
+/* Scrollbars match the public site. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb {
+  background: #d8cdb8;
+  border-radius: 6px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover { background: #b9ad95; }
+
+@media (prefers-reduced-motion: reduce) {
+  button,
+  input,
+  select,
+  textarea {
+    transition-duration: 0.01ms !important;
+  }
+  .btn-primary:hover:not(:disabled),
+  .btn-secondary:hover:not(:disabled),
+  .btn-danger:hover:not(:disabled),
+  .btn-success:hover:not(:disabled) {
+    transform: none;
+  }
+}

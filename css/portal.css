@@ -2644,6 +2644,78 @@ body.modal-open { overflow: hidden; }
 .utilitybar time { font-variant-numeric:tabular-nums; white-space:nowrap; }
 
 /* --------------------------------------------------------------------------
+   26b. Modern refinements (2026)
+   Subtle polish: button/card micro-interactions, glass header, modal easing
+   -------------------------------------------------------------------------- */
+.btn {
+  transition: transform 0.2s cubic-bezier(0.3,0,0.2,1), box-shadow 0.2s, background 0.2s, border-color 0.2s, color 0.2s;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn--primary:hover { box-shadow: 0 4px 16px rgba(21,45,122,0.18); }
+.btn--gold:hover { box-shadow: 0 4px 16px rgba(214,177,97,0.25); }
+
+.leadercard,
+.servicecard,
+.annitem,
+.quickaction {
+  transition: transform 0.25s cubic-bezier(0.3,0,0.2,1), box-shadow 0.25s;
+}
+.leadercard:hover,
+.servicecard:hover,
+.annitem:hover,
+.quickaction:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(21,45,122,0.10);
+}
+
+.hero__panel {
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+}
+
+.modal {
+  transition: transform 0.25s cubic-bezier(0.3,0,0.2,1), opacity 0.25s;
+}
+.modal-bg:not(.active) .modal {
+  transform: scale(0.96) translateY(8px);
+  opacity: 0;
+}
+.modal-bg.active .modal {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px rgba(21,45,122,0.08);
+}
+
+.siteheader {
+  /* Solid fallback first: browsers without color-mix() keep a readable header,
+     then the translucent glass takes over where it is supported. */
+  background: var(--surface);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+}
+
+.annitemwrap {
+  animation: ann-in 0.4s cubic-bezier(0.3,0,0.2,1) both;
+  animation-delay: var(--i, 0ms);
+}
+@keyframes ann-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-alt); }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 6px; border: 2px solid var(--bg-alt); }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* --------------------------------------------------------------------------
    27. Reduced motion
    -------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
