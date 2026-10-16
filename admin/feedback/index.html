@@ -14,9 +14,9 @@
 
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f4f7fb;
-      color: #172033;
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
     }
 
     .layout {
@@ -198,6 +198,40 @@
 
     .table-wrap {
       overflow-x: auto;
+    }
+
+    @media (max-width: 700px) {
+      .table-wrap { overflow: visible; }
+      .table-wrap table { display: block; min-width: 0; }
+      .table-wrap thead { display: none; }
+      .table-wrap tbody { display: grid; gap: 10px; }
+      .table-wrap tbody tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        background: #fff;
+        border: 1px solid #e7ebf0;
+        border-radius: 8px;
+        padding: 6px;
+      }
+      .table-wrap tbody td {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        padding: 8px;
+        border: 0;
+        overflow-wrap: anywhere;
+      }
+      .table-wrap tbody td::before {
+        content: attr(data-label);
+        margin-bottom: 4px;
+        color: #687386;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .table-wrap tbody td.title-cell,
+      .table-wrap tbody td:last-child { grid-column: 1 / -1; }
+      .table-wrap .actions button { width: 100%; }
     }
 
     table {
@@ -682,7 +716,7 @@
       <a href="../reports/">Ripoti</a>
       <a href="../ai/">RUCUSO AI</a>
       <a href="../settings/">Mipangilio</a>
-      <a href="../audit-logs/">Audit Logs</a>
+      <a href="../audit-logs/">Kumbukumbu za ukaguzi</a>
     </nav>
   </aside>
 
@@ -697,7 +731,7 @@
       <div class="user">
         <div id="userName">RUCUSO Administrator</div>
         <div id="userRole">Administrator</div>
-        <button class="logout" id="logoutBtn">Logout</button>
+        <button class="logout" id="logoutBtn">Toka</button>
       </div>
     </div>
 
@@ -1309,15 +1343,27 @@
         const priority =
           text(row.priority);
 
+        const statusLabel = ({
+          "New": "Jipya",
+          "Under Review": "Linakaguliwa",
+          "Assigned": "Limekabidhiwa",
+          "In Progress": "Linaendelea",
+          "Awaiting Information": "Linasubiri taarifa",
+          "Resolved": "Limetatuliwa",
+          "Closed": "Limefungwa",
+          "Rejected/Invalid": "Limekataliwa",
+        })[status] || status;
+        const priorityLabel = ({ Low: "Chini", Medium: "Kawaida", High: "Juu", Critical: "Dharura" })[priority] || priority;
+
         return `
           <tr>
-            <td>
+            <td data-label="Namba ya rejea">
               <span class="ref">
                 ${escapeHtml(text(row.reference_number))}
               </span>
             </td>
 
-            <td class="title-cell">
+            <td class="title-cell" data-label="Kichwa">
               <div class="title-main">
                 ${escapeHtml(text(row.title))}
               </div>
@@ -1327,33 +1373,33 @@
               </div>
             </td>
 
-            <td>
+            <td data-label="Aina">
               <span class="type">
                 ${escapeHtml(text(row.submission_type))}
               </span>
             </td>
 
-            <td>${escapeHtml(category)}</td>
+            <td data-label="Kundi">${escapeHtml(category)}</td>
 
-            <td>${escapeHtml(ministry)}</td>
+            <td data-label="Wizara">${escapeHtml(ministry)}</td>
 
-            <td>
+            <td data-label="Kipaumbele">
               <span class="priority ${priorityClass(priority)}">
-                ${escapeHtml(priority)}
+                ${escapeHtml(priorityLabel)}
               </span>
             </td>
 
-            <td>
+            <td data-label="Hali">
               <span class="status ${statusClass(status)}">
-                ${escapeHtml(status)}
+                ${escapeHtml(statusLabel)}
               </span>
             </td>
 
-            <td>
+            <td data-label="Tarehe">
               ${escapeHtml(formatDate(row.created_at))}
             </td>
 
-            <td>
+            <td data-label="Vitendo">
               <div class="actions">
                 <button
                   class="btn-primary action-btn"

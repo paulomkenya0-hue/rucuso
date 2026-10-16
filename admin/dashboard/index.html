@@ -12,10 +12,10 @@
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="crest">R</span><b>RUCUSO</b><span>Super Admin Portal</span></div>
+  <div class="brand"><span class="crest">R</span><b>RUCUSO</b><span>Portal ya Msimamizi Mkuu</span></div>
   <div>
     <span id="whoami" class="muted" style="color:#cdd9ee;font-size:12px;margin-right:10px;"></span>
-    <button class="sec" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Logout</button>
+    <button class="sec" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Toka</button>
   </div>
 </header>
 <div class="layout">
@@ -26,7 +26,7 @@
     <a href="/admin/sms/" data-perm="__heslb_manager">SMS kwa Wanufaika</a>
     <a href="/admin/leaders/" data-perm="__super_admin_only">Viongozi</a>
     <a href="/admin/ministries/" data-perm="manage_ministries">Wizara</a>
-    <a href="/admin/categories/" data-perm="manage_categories">Categories</a>
+    <a href="/admin/categories/" data-perm="manage_categories">Makundi</a>
     <a href="/admin/feedback/" data-perm="view_feedback">Maoni &amp; Malalamiko</a>
     <a href="/admin/services/" data-perm="manage_services">Huduma</a>
     <a href="/admin/announcements/" data-perm="manage_announcements">Matangazo</a>
@@ -34,7 +34,7 @@
     <a href="/admin/reports/" data-perm="manage_reports">Ripoti</a>
     <a href="/admin/ai/" data-perm="__super_admin_only">RUCUSO AI</a>
     <a href="/admin/admins/" data-perm="__super_admin_only">Msimamizi</a>
-    <a href="/admin/audit-logs/" data-perm="view_audit_logs">Audit Logs</a>
+    <a href="/admin/audit-logs/" data-perm="view_audit_logs">Kumbukumbu za ukaguzi</a>
     <a href="/admin/settings/" data-perm="__super_admin_only">Mipangilio</a>
   </nav>
   <main class="content">
@@ -51,10 +51,20 @@
         <div class="card"><b id="s_ministries">–</b><span>Jumla ya Wizara</span></div>
         <div class="card"><b id="s_feedback">–</b><span>Maoni</span></div>
         <div class="card"><b id="s_complaints">–</b><span>Malalamiko</span></div>
-        <div class="card"><b id="s_critical">–</b><span>Critical Issues</span></div>
+        <div class="card"><b id="s_critical">–</b><span>Malalamiko ya dharura</span></div>
         <div class="card"><b id="s_pending">–</b><span>Yanayosubiri</span></div>
         <div class="card"><b id="s_resolved">–</b><span>Yaliyotatuliwa</span></div>
       </div>
+      <section class="card dashboard-summary" aria-labelledby="feedbackStatusHeading">
+        <div class="dashboard-summary__head">
+          <div>
+            <h3 id="feedbackStatusHeading">Maoni kwa hali</h3>
+            <p>Muhtasari wa maoni na malalamiko yanayoonekana kwenye akaunti yako.</p>
+          </div>
+          <a href="/admin/feedback/">Fungua orodha</a>
+        </div>
+        <div id="feedbackStatusList" class="dashboard-status-list" aria-live="polite"></div>
+      </section>
       <section class="card hidden" id="heslbModule" aria-labelledby="heslbHeading">
         <h3 id="heslbHeading" style="margin-top:0">HESLB — Wanufaika wa Mikopo</h3>
         <div class="statgrid">
@@ -65,13 +75,6 @@
         <div id="heslbFacultySummary" class="heslb-faculty-summary" aria-label="Mgawanyo kwa vitivo"></div>
         <a class="btn btn--primary" href="/admin/heslb/">Fungua Wanufaika wa HESLB</a>
       </section>
-      <div class="card">
-        <p class="muted" style="margin:0">
-          Charts (Issues by Ministry / Category / Status, Feedback by Month, Satisfaction Rating) na
-          moduli za Wanafunzi, Viongozi, Wizara n.k. zinakuja katika hatua zifuatazo — sehemu hii tayari
-          inaonyesha idadi halisi kutoka Supabase, si namba zilizowekwa kwa mkono.
-        </p>
-      </div>
     </div>
   </main>
 </div>
@@ -135,6 +138,31 @@
   document.getElementById("s_critical").textContent = rows.filter(r => r.priority === "Critical" && isOpen(r.status)).length;
   document.getElementById("s_pending").textContent = rows.filter(r => isOpen(r.status)).length;
   document.getElementById("s_resolved").textContent = rows.filter(r => ["Resolved", "Closed"].includes(r.status)).length;
+
+  const statusLabels = [
+    ["New", "Jipya"],
+    ["Under Review", "Linakaguliwa"],
+    ["Assigned", "Limekabidhiwa"],
+    ["In Progress", "Linaendelea"],
+    ["Awaiting Information", "Linasubiri taarifa"],
+    ["Resolved", "Limetatuliwa"],
+    ["Closed", "Limefungwa"],
+    ["Rejected/Invalid", "Limekataliwa"],
+  ];
+  const statusCounts = statusLabels.map(([status, label]) => ({
+    label,
+    count: rows.filter(row => row.status === status).length,
+  }));
+  const largestStatusCount = Math.max(1, ...statusCounts.map(item => item.count));
+  document.getElementById("feedbackStatusList").innerHTML = statusCounts.map(item => `
+    <div class="dashboard-status-row">
+      <span class="dashboard-status-row__label">${item.label}</span>
+      <span class="dashboard-status-row__track" role="progressbar" aria-label="${item.label}" aria-valuemin="0" aria-valuemax="${largestStatusCount}" aria-valuenow="${item.count}">
+        <span style="width:${Math.round(item.count / largestStatusCount * 100)}%"></span>
+      </span>
+      <b>${item.count}</b>
+    </div>
+  `).join("");
 })();
 </script>
 </body>
