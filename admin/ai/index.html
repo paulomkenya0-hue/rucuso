@@ -139,11 +139,14 @@
 
     .message {
       display: flex;
+      flex-direction: column;
+      align-items: flex-start;
       margin-bottom: 16px;
     }
 
     .message.user {
       justify-content: flex-end;
+      align-items: flex-end;
     }
 
     .bubble {
@@ -274,6 +277,107 @@
       background: white;
     }
 
+    .source-list {
+      margin: 5px 0 16px 8px;
+      color: #536174;
+      font-size: 12px;
+    }
+
+    .source-list strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .source-list a {
+      color: #1261a0;
+    }
+
+    .source-list small {
+      display: block;
+      color: #687386;
+    }
+
+    .knowledge-admin {
+      margin-top: 22px;
+      padding: 20px;
+    }
+
+    .knowledge-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .knowledge-grid label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      color: #344054;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .knowledge-grid label.full {
+      grid-column: 1 / -1;
+    }
+
+    .knowledge-grid input,
+    .knowledge-grid select,
+    .knowledge-grid textarea {
+      width: 100%;
+      border: 1px solid #ccd4df;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font: inherit;
+      font-weight: 400;
+    }
+
+    .knowledge-grid textarea {
+      min-height: 180px;
+      resize: vertical;
+    }
+
+    .knowledge-help {
+      color: #687386;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .knowledge-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 14px;
+    }
+
+    .knowledge-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .knowledge-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid #e4e9f0;
+      border-radius: 9px;
+    }
+
+    .knowledge-row__meta {
+      color: #687386;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .knowledge-row__actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
     @media (max-width: 900px) {
       .sidebar {
         width: 200px;
@@ -314,6 +418,19 @@
 
       .main {
         padding: 16px;
+      }
+
+      .knowledge-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .knowledge-grid label.full {
+        grid-column: auto;
+      }
+
+      .knowledge-row {
+        align-items: flex-start;
+        flex-direction: column;
       }
 
       .topbar {
@@ -428,6 +545,11 @@
         </div>
 
         <div class="side-card">
+          <h3>Matumizi ya AI</h3>
+          <p id="usageStats">Inapakia takwimu za majibu yaliyofanikiwa...</p>
+        </div>
+
+        <div class="side-card">
           <h3>Maswali ya haraka</h3>
 
           <button
@@ -460,6 +582,20 @@
 
           <button
             class="quick-question"
+            data-question="Kuna viongozi wangapi kwenye mfumo na nafasi zipi hazijajazwa?"
+          >
+            Takwimu za viongozi na nafasi wazi
+          </button>
+
+          <button
+            class="quick-question"
+            data-question="Nitajie viongozi wote wa Uongozi wa Juu."
+          >
+            Viongozi wa juu
+          </button>
+
+          <button
+            class="quick-question"
             data-question="Niambie takwimu za maoni na malalamiko."
           >
             Takwimu za maoni
@@ -478,6 +614,75 @@
       </aside>
 
     </div>
+
+    <section class="panel knowledge-admin" id="knowledgeAdmin" hidden>
+      <div class="panel-head">
+        <div>
+          <h2>Nyaraka za Maarifa ya AI</h2>
+          <p>Ingiza maandishi kutoka chanzo kilichothibitishwa. AI hupokea nyaraka za umma zilizoidhinishwa pekee; nyaraka za ndani hazitumwi kwa mtoa huduma wa AI.</p>
+        </div>
+      </div>
+      <div style="padding:20px;">
+        <div class="knowledge-help" id="knowledgeNotice" role="status" aria-live="polite"></div>
+        <form id="knowledgeForm">
+          <input id="knowledgeId" type="hidden">
+          <input id="knowledgeFileName" type="hidden">
+          <div class="knowledge-grid">
+            <label>
+              Kichwa *
+              <input id="knowledgeTitle" maxlength="180" required>
+            </label>
+            <label>
+              Kategoria
+              <input id="knowledgeCategory" maxlength="100" placeholder="Katiba, sera, huduma...">
+            </label>
+            <label>
+              Tarehe ya kuchapishwa/kusasishwa
+              <input id="knowledgeDate" type="date">
+            </label>
+            <label>
+              Chanzo
+              <input id="knowledgeSource" maxlength="300" placeholder="Mfano: Katiba ya RUCUSO">
+            </label>
+            <label class="full">
+              Kiungo cha chanzo (hiari)
+              <input id="knowledgeUrl" type="url" maxlength="2048" placeholder="https://...">
+            </label>
+            <label class="full">
+              Pakia maandishi (.txt)
+              <input id="knowledgeFile" type="file" accept=".txt,text/plain">
+              <span class="knowledge-help">TXT pekee, hadi 100 KB. PDF/DOCX hazitoiwi maandishi kiotomatiki; nakili maandishi yake hapa baada ya kuyathibitisha.</span>
+            </label>
+            <label class="full">
+              Maudhui *
+              <textarea id="knowledgeContent" maxlength="100000" required></textarea>
+            </label>
+            <label>
+              Hali ya idhini
+              <select id="knowledgeStatus">
+                <option value="pending">Inasubiri idhini</option>
+                <option value="approved">Imeidhinishwa — AI inaweza kuitumia</option>
+                <option value="inactive">Haifanyi kazi</option>
+              </select>
+            </label>
+            <label>
+              Hadhira ya nyaraka
+              <select id="knowledgeVisibility">
+                <option value="staff">Ndani ya RUCUSO — AI haitaitumia</option>
+                <option value="public">Umma — inaweza kutumika baada ya kuidhinishwa</option>
+              </select>
+            </label>
+          </div>
+          <div class="knowledge-actions">
+            <button class="btn-secondary" id="knowledgeCancel" type="button" hidden>Ghairi kuhariri</button>
+            <button class="btn-primary" id="knowledgeSave" type="submit">Hifadhi nyaraka</button>
+          </div>
+        </form>
+        <div class="knowledge-list" id="knowledgeList" aria-live="polite">
+          Nyaraka za maarifa zitapakiwa baada ya uthibitisho wa akaunti.
+        </div>
+      </div>
+    </section>
 
   </main>
 
@@ -510,11 +715,18 @@
   const userName = document.getElementById("userName");
   const userRole = document.getElementById("userRole");
   const logoutBtn = document.getElementById("logoutBtn");
+  const knowledgeAdmin = document.getElementById("knowledgeAdmin");
+  const knowledgeForm = document.getElementById("knowledgeForm");
+  const knowledgeList = document.getElementById("knowledgeList");
+  const knowledgeNotice = document.getElementById("knowledgeNotice");
+  const knowledgeSave = document.getElementById("knowledgeSave");
+  const knowledgeCancel = document.getElementById("knowledgeCancel");
 
   let history = [];
   let sending = false;
+  let knowledgeRows = [];
 
-  function addMessage(role, text, error) {
+  function addMessage(role, text, error, sources) {
     const wrapper = document.createElement("div");
     wrapper.className =
       "message " +
@@ -526,6 +738,38 @@
     bubble.textContent = text;
 
     wrapper.appendChild(bubble);
+    if (role !== "user" && Array.isArray(sources) && sources.length) {
+      const sourceList = document.createElement("div");
+      sourceList.className = "source-list";
+      const heading = document.createElement("strong");
+      heading.textContent = "Vyanzo vilivyoidhinishwa:";
+      sourceList.appendChild(heading);
+      sources.forEach(function (source) {
+        const item = document.createElement("div");
+        const label = `${source.id || ""} ${source.title || "Nyaraka"}`
+          .trim();
+        if (/^https?:\/\//i.test(String(source.source_url || ""))) {
+          const link = document.createElement("a");
+          link.href = source.source_url;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = label;
+          item.appendChild(link);
+        } else {
+          item.textContent = label;
+        }
+        const detail = [source.category, source.publication_date, source.source]
+          .filter(Boolean)
+          .join(" · ");
+        if (detail) {
+          const small = document.createElement("small");
+          small.textContent = detail;
+          item.appendChild(small);
+        }
+        sourceList.appendChild(item);
+      });
+      wrapper.appendChild(sourceList);
+    }
     messages.appendChild(wrapper);
 
     messages.scrollTop = messages.scrollHeight;
@@ -565,6 +809,9 @@
       userRole.textContent =
         session.profile.role || "Msimamizi";
 
+      knowledgeAdmin.hidden = false;
+      await loadKnowledge();
+      await loadUsageStats();
       aiStatus.textContent = "Tayari";
     } catch (err) {
       console.error(err);
@@ -598,7 +845,7 @@
           ? result.answer
           : "RUCUSO AI haijarudisha jibu.";
 
-      addMessage("assistant", answer);
+      addMessage("assistant", answer, false, result && result.sources);
 
       history.push({
         role: "user",
@@ -668,6 +915,212 @@
     }
 
     window.location.href = "../login/index.html";
+  });
+
+  function showKnowledgeNotice(text, isError) {
+    knowledgeNotice.textContent = text;
+    knowledgeNotice.style.color = isError ? "#b42318" : "#18794e";
+  }
+
+  async function loadUsageStats() {
+    const usageStats = document.getElementById("usageStats");
+    try {
+      const { data, error } = await api.client.rpc("rucuso_ai_usage_stats", { p_days: 30 });
+      if (error) throw error;
+      const byRole = Object.entries(data.by_role || {})
+        .map(([role, count]) => `${role}: ${count}`)
+        .join(" · ") || "Hakuna majibu yaliyorekodiwa";
+      usageStats.textContent =
+        `Siku 30: ${data.successful_queries} majibu · ` +
+        `Saa 24: ${data.successful_queries_24h} majibu · ${byRole}`;
+    } catch (error) {
+      console.error("AI usage stats unavailable:", error);
+      usageStats.textContent = "Takwimu hazipatikani. Hakiki kuwa migration 017 imetekelezwa.";
+    }
+  }
+
+  function statusLabel(status) {
+    return {
+      approved: "Imeidhinishwa",
+      pending: "Inasubiri idhini",
+      inactive: "Haifanyi kazi",
+    }[status] || "Hali isiyojulikana";
+  }
+
+  async function loadKnowledge() {
+    knowledgeList.textContent = "Inapakia nyaraka...";
+    try {
+      const { data, error } = await api.client
+        .from("ai_knowledge_documents")
+        .select("id, title, category, publication_date, source, source_url, file_name, approval_status, visibility, updated_at")
+        .order("updated_at", { ascending: false })
+        .limit(50);
+      if (error) throw api.friendlyError(error);
+      knowledgeRows = data || [];
+      knowledgeList.replaceChildren();
+      if (!knowledgeRows.length) {
+        knowledgeList.textContent = "Bado hakuna nyaraka za maarifa.";
+        return;
+      }
+      knowledgeRows.forEach(function (row) {
+        const item = document.createElement("div");
+        item.className = "knowledge-row";
+        const info = document.createElement("div");
+        const title = document.createElement("strong");
+        title.textContent = row.title;
+        const detail = document.createElement("div");
+        detail.className = "knowledge-row__meta";
+        detail.textContent = [
+          row.category,
+          statusLabel(row.approval_status),
+          row.visibility === "public" ? "Umma" : "Ndani",
+          row.publication_date,
+          row.source,
+        ].filter(Boolean).join(" · ");
+        info.append(title, detail);
+        const actions = document.createElement("div");
+        actions.className = "knowledge-row__actions";
+        const edit = document.createElement("button");
+        edit.type = "button";
+        edit.className = "btn-secondary";
+        edit.dataset.action = "edit";
+        edit.dataset.id = row.id;
+        edit.textContent = "Hariri";
+        actions.appendChild(edit);
+        if (row.approval_status !== "inactive") {
+          const deactivate = document.createElement("button");
+          deactivate.type = "button";
+          deactivate.className = "btn-secondary";
+          deactivate.dataset.action = "deactivate";
+          deactivate.dataset.id = row.id;
+          deactivate.textContent = "Sitisha";
+          actions.appendChild(deactivate);
+        }
+        item.append(info, actions);
+        knowledgeList.appendChild(item);
+      });
+    } catch (error) {
+      console.error("AI knowledge list failed:", error);
+      knowledgeRows = [];
+      knowledgeList.textContent = error.message || "Imeshindikana kupakia nyaraka za maarifa.";
+      showKnowledgeNotice(knowledgeList.textContent, true);
+    }
+  }
+
+  function resetKnowledgeForm() {
+    knowledgeForm.reset();
+    document.getElementById("knowledgeId").value = "";
+    document.getElementById("knowledgeFileName").value = "";
+    knowledgeCancel.hidden = true;
+    knowledgeSave.textContent = "Hifadhi nyaraka";
+  }
+
+  document.getElementById("knowledgeFile").addEventListener("change", async function () {
+    const file = this.files && this.files[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".txt") || file.size > 100 * 1024) {
+      this.value = "";
+      showKnowledgeNotice("Chagua faili la TXT lisilozidi 100 KB.", true);
+      return;
+    }
+    try {
+      const content = await file.text();
+      if (content.length > 100000) throw new Error("Maudhui yanazidi herufi 100,000.");
+      document.getElementById("knowledgeContent").value = content;
+      document.getElementById("knowledgeFileName").value = file.name.slice(0, 255);
+      if (!document.getElementById("knowledgeSource").value.trim()) {
+        document.getElementById("knowledgeSource").value = file.name.slice(0, 300);
+      }
+      showKnowledgeNotice("Maandishi ya TXT yameingizwa. Kagua chanzo na maudhui kabla ya kuidhinisha.", false);
+    } catch (error) {
+      showKnowledgeNotice(error.message || "Imeshindikana kusoma faili la TXT.", true);
+    }
+  });
+
+  knowledgeForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    const id = document.getElementById("knowledgeId").value;
+    const content = document.getElementById("knowledgeContent").value.trim();
+    const status = document.getElementById("knowledgeStatus").value;
+    if (!content || content.length > 100000) {
+      showKnowledgeNotice("Maudhui yanahitajika na yasizidi herufi 100,000.", true);
+      return;
+    }
+    knowledgeSave.disabled = true;
+    knowledgeSave.textContent = "Inahifadhi...";
+    try {
+      const { data: { user }, error: authError } = await api.client.auth.getUser();
+      if (authError || !user) throw authError || new Error("Ingia tena kabla ya kuhifadhi.");
+      const payload = {
+        title: document.getElementById("knowledgeTitle").value.trim(),
+        category: document.getElementById("knowledgeCategory").value.trim() || null,
+        publication_date: document.getElementById("knowledgeDate").value || null,
+        source: document.getElementById("knowledgeSource").value.trim() || null,
+        source_url: document.getElementById("knowledgeUrl").value.trim() || null,
+        file_name: document.getElementById("knowledgeFileName").value || null,
+        content,
+        approval_status: status,
+        visibility: document.getElementById("knowledgeVisibility").value,
+        approved_by: status === "approved" ? user.id : null,
+      };
+      const result = id
+        ? await api.client.from("ai_knowledge_documents").update(payload).eq("id", id)
+        : await api.client.from("ai_knowledge_documents").insert({ ...payload, created_by: user.id });
+      if (result.error) throw api.friendlyError(result.error);
+      await api.logAction("AI_KNOWLEDGE_SAVED", payload.title, user.email);
+      resetKnowledgeForm();
+      showKnowledgeNotice("Nyaraka imehifadhiwa. Utafutaji wa AI husasishwa kiotomatiki.", false);
+      await loadKnowledge();
+    } catch (error) {
+      console.error("AI knowledge save failed:", error);
+      showKnowledgeNotice(error.message || "Imeshindikana kuhifadhi nyaraka.", true);
+    } finally {
+      knowledgeSave.disabled = false;
+      knowledgeSave.textContent = document.getElementById("knowledgeId").value
+        ? "Hifadhi mabadiliko"
+        : "Hifadhi nyaraka";
+    }
+  });
+
+  knowledgeCancel.addEventListener("click", resetKnowledgeForm);
+
+  knowledgeList.addEventListener("click", async function (event) {
+    const button = event.target.closest("button[data-action]");
+    if (!button) return;
+    const record = knowledgeRows.find((row) => row.id === button.dataset.id);
+    if (!record) return;
+    button.disabled = true;
+    try {
+      if (button.dataset.action === "edit") {
+        const { data, error } = await api.client.from("ai_knowledge_documents")
+          .select("*").eq("id", record.id).single();
+        if (error) throw api.friendlyError(error);
+        document.getElementById("knowledgeId").value = data.id;
+        document.getElementById("knowledgeTitle").value = data.title || "";
+        document.getElementById("knowledgeCategory").value = data.category || "";
+        document.getElementById("knowledgeDate").value = data.publication_date || "";
+        document.getElementById("knowledgeSource").value = data.source || "";
+        document.getElementById("knowledgeUrl").value = data.source_url || "";
+        document.getElementById("knowledgeFileName").value = data.file_name || "";
+        document.getElementById("knowledgeContent").value = data.content || "";
+        document.getElementById("knowledgeStatus").value = data.approval_status;
+        document.getElementById("knowledgeVisibility").value = data.visibility || "staff";
+        knowledgeCancel.hidden = false;
+        knowledgeSave.textContent = "Hifadhi mabadiliko";
+        document.getElementById("knowledgeTitle").focus();
+      } else if (button.dataset.action === "deactivate") {
+        const { error } = await api.client.from("ai_knowledge_documents")
+          .update({ approval_status: "inactive", approved_by: null })
+          .eq("id", record.id);
+        if (error) throw api.friendlyError(error);
+        showKnowledgeNotice("Nyaraka imesitishwa na haitatumika tena kwenye majibu ya AI.", false);
+        await loadKnowledge();
+      }
+    } catch (error) {
+      console.error("AI knowledge action failed:", error);
+      showKnowledgeNotice(error.message || "Kitendo cha nyaraka kimeshindwa.", true);
+      button.disabled = false;
+    }
   });
 
   loadSession();

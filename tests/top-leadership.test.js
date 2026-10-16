@@ -15,6 +15,17 @@ test('top leadership positions include the full executive set and speaker', () =
   assert.match(sql, /sees_all_ministries.*true/i);
 });
 
+test('speaker and deputy speaker are visible in the top-leadership dropdown group', () => {
+  const page = read('admin/leaders/index.html');
+  const topLeadership = page.match(/<optgroup label="Viongozi wa Juu">([\s\S]*?)<\/optgroup>/);
+  assert.ok(topLeadership, 'top leadership dropdown group is missing');
+  assert.match(topLeadership[1], /<option value="speaker">Spika<\/option>/);
+  assert.match(topLeadership[1], /<option value="deputy_speaker">Naibu Spika<\/option>/);
+
+  const migration = read('supabase/migrations/016_leadership_row_bands.sql');
+  assert.match(migration, /'deputy_speaker',\s*'Naibu Spika',\s*'Deputy Speaker',\s*'executive'/);
+});
+
 test('authorization treats speaker as top leadership', () => {
   const sql = read('supabase/migrations/013_leadership_hierarchy.sql');
   const edge = read('supabase/functions/leader-admin/index.ts');
