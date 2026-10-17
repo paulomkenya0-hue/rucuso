@@ -73,7 +73,7 @@
         errBox.innerHTML = '<p class="err">Akaunti hii si ya kiongozi. Tumia ukurasa sahihi wa kuingia.</p>';
         return;
       }
-      location.href = profile.must_change_password ? "/change-password/" : "/leader/dashboard/";
+      location.replace(profile.must_change_password ? "/change-password/" : "/leader/dashboard/");
     } catch (e) {
       errBox.innerHTML = `<p class="err">${(e && e.message) || "Imeshindikana kuingia."}</p>`;
     } finally {

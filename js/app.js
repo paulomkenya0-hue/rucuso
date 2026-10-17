@@ -426,6 +426,7 @@ function activeSection() {
 }
 
 let scrollTicking = false;
+let lastSyncedRoute = location.href;
 window.addEventListener("scroll", () => {
   if (scrollTicking) return;
   scrollTicking = true;
@@ -435,7 +436,35 @@ window.addEventListener("scroll", () => {
   });
 }, { passive: true });
 
-function goSection(id) {
+function updateRouteHistory(id, options) {
+  if (options && options.fromHistory) {
+    lastSyncedRoute = location.href;
+    return;
+  }
+  const nextUrl = new URL(location.href);
+  nextUrl.hash = id === "home" ? "" : id;
+  if (nextUrl.href !== location.href && history.pushState) {
+    history.pushState({ rucusoView: id }, "", nextUrl.pathname + nextUrl.search + nextUrl.hash);
+  }
+  lastSyncedRoute = location.href;
+}
+
+function restoreRouteFromHistory() {
+  if (location.href === lastSyncedRoute) return;
+  lastSyncedRoute = location.href;
+  const id = location.hash.slice(1);
+  if (!id) {
+    go("home", null, { fromHistory: true });
+  } else if (PUBLIC_NAV.some(([sectionId]) => sectionId === id)) {
+    goSection(id, { fromHistory: true });
+  } else if (document.getElementById("view-" + id)) {
+    go(id, null, { fromHistory: true });
+  } else {
+    go("home", null, { fromHistory: true });
+  }
+}
+
+function goSection(id, options) {
   closeDrawer(false);
   const el = document.getElementById(id);
   if (!el) return;
@@ -449,7 +478,7 @@ function goSection(id) {
     renderTabs();
   }
   el.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
-  if (history.replaceState) history.replaceState(null, "", "#" + id);
+  updateRouteHistory(id, options);
   // move focus so keyboard and screen-reader users land where the page did
   el.setAttribute("tabindex", "-1");
   setTimeout(() => el.focus({ preventScroll: true }), prefersReducedMotion() ? 0 : 420);
@@ -459,7 +488,7 @@ function prefersReducedMotion() {
   return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-function go(id, presetType) {
+function go(id, presetType, options) {
   navigationVersion++;
   if (STAFF_NAV.some(([s]) => s === id) && !DB.session) {
     // The legacy staff views have no in-page login form — send an
@@ -497,7 +526,7 @@ function go(id, presetType) {
   onEnterView(id, presetType);
 
   window.scrollTo({ top: 0, behavior: "instant" });
-  if (history.replaceState) history.replaceState(null, "", id === "home" ? location.pathname : "#" + id);
+  updateRouteHistory(id, options);
 }
 
 // Per-view initialisation, split out of go() so a section scroll never has to
@@ -2858,23 +2887,30 @@ async function boot() {
   // Paint the page from whatever is cached, then let each renderer swap its
   // own placeholder for real content as the read lands. A visitor never sees a
   // blank page because one table was slow.
-  if (navigationVersion === startupNavigationVersion) go("home");
-  else renderHomeSections();
-
-  // A deep link like /#sec-services or /#sec-contact should land on the right
-  // section, and the browser's own back button should work from there.
-  if (location.hash) {
-    const want = location.hash.slice(1);
-    if (PUBLIC_NAV.some(([id]) => id === want)) goSection(want);
+  if (navigationVersion === startupNavigationVersion) {
+    const initialRoute = location.hash.slice(1);
+    if (!initialRoute) {
+      go("home", null, { fromHistory: true });
+    } else {
+      renderHomeSections();
+      if (PUBLIC_NAV.some(([id]) => id === initialRoute)) {
+        goSection(initialRoute, { fromHistory: true });
+      } else if (document.getElementById("view-" + initialRoute)) {
+        go(initialRoute, null, { fromHistory: true });
+      } else {
+        go("home", null, { fromHistory: true });
+      }
+    }
+  } else {
+    renderHomeSections();
   }
-  window.addEventListener("hashchange", () => {
-    const want = location.hash.slice(1);
-    if (want && PUBLIC_NAV.some(([id]) => id === want)) goSection(want);
-  });
 
   if (DB.session) {
     try { await D.loadAdmin(); } catch (e) { D.toast(D.errText(e), "err"); }
   }
 }
+
+window.addEventListener("popstate", restoreRouteFromHistory);
+window.addEventListener("hashchange", restoreRouteFromHistory);
 
 boot();
