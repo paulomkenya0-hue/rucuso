@@ -1,0 +1,128 @@
+/* Public portal only; administration keeps its own design system. */
+.public-milk {
+  --navy: #262925;
+  --navy-700: #20231f;
+  --navy2: #41453f;
+  --gold: #d9d6cc;
+  --gold-soft: #eeece5;
+  --gold-ink: #272923;
+  --gold-text: #55594f;
+  --bg: #faf9f6;
+  --bg-alt: #f3f2ed;
+  --cream: #f3f2ed;
+  --cream-soft: #eeece6;
+  --surface: #fff;
+  --card: #fff;
+  --border: #e5e4de;
+  --border-strong: #d2d2c9;
+  --text: #30332e;
+  --text-strong: #20231f;
+  --muted: #62665d;
+  --muted-2: #686c63;
+  --font-display: var(--font-sans);
+}
+.public-milk .utilitybar {
+  background: var(--bg-alt);
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.public-milk .utilitybar a { color: inherit; }
+.public-milk .hero {
+  background: var(--bg);
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+.public-milk .hero::before,
+.public-milk .hero::after,
+.public-milk .glow::before,
+.public-milk .glow::after,
+.public-milk .tilt::after { display: none; }
+.public-milk .hero__inner { padding-block: clamp(3rem, 7vw, 6rem); }
+.public-milk .hero__title {
+  color: var(--text-strong);
+  font-size: clamp(3rem, 8vw, 5.25rem);
+  letter-spacing: -0.055em;
+}
+.public-milk .hero__title em {
+  color: var(--text);
+  font-size: clamp(1.2rem, 2.5vw, 1.65rem);
+  letter-spacing: -0.025em;
+  max-width: 25ch;
+  line-height: 1.45;
+}
+.public-milk .hero__eyebrow,
+.public-milk .hero__panel h2 { color: var(--muted); }
+.public-milk .hero__eyebrow::before { background: var(--muted); }
+.public-milk .hero__lede,
+.public-milk .hero__stat span { color: var(--muted); }
+.public-milk .hero__panel {
+  background: var(--surface);
+  border-color: var(--border);
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  box-shadow: 0 12px 40px rgb(30 33 27 / 4%);
+  backdrop-filter: none;
+}
+.public-milk .hero__stat { border-color: var(--border); padding-block: 1rem; }
+.public-milk .hero__stat b { color: var(--text-strong); font-weight: 600; }
+.public-milk .btn--primary {
+  background: var(--text-strong);
+  border-color: var(--text-strong);
+  color: var(--surface);
+}
+.public-milk .btn--primary:hover:not(:disabled) {
+  background: var(--text);
+  border-color: var(--text);
+  box-shadow: 0 4px 12px rgb(30 33 27 / 12%);
+}
+.public-milk .btn--onDark {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.public-milk .btn--onDark:hover:not(:disabled) {
+  background: var(--bg-alt);
+  border-color: var(--muted);
+}
+.public-milk .quickcard__icon,
+.public-milk .quickcard--primary .quickcard__icon,
+.public-milk .quickcard--ok .quickcard__icon,
+.public-milk .linkcard__icon {
+  background: var(--bg-alt);
+  color: var(--text);
+}
+.public-milk .announcement-ticker { background: var(--bg-alt); border-bottom: 1px solid var(--border); }
+.public-milk .announcement-ticker__label { color: var(--text); }
+.public-milk .sitefooter {
+  background: var(--bg-alt);
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  --on-dark-muted: var(--muted);
+}
+.public-milk .footerbrand__name,
+.public-milk .footercol h3,
+.public-milk .footercontact__row svg,
+.public-milk .footercol a:hover,
+.public-milk .footercol button.link:hover,
+.public-milk .footercontact__row a:hover { color: var(--text-strong); }
+.public-milk .footerbrand__acad {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--muted);
+}
+.public-milk .sitefooter__base { border-color: var(--border); }
+/* Preserve the visitor's explicit dark-mode preference in neutral tones. */
+:root[data-theme="dark"] .public-milk {
+  --bg: #191b18;
+  --bg-alt: #20231f;
+  --surface: #272a25;
+  --card: #272a25;
+  --cream: #20231f;
+  --cream-soft: #30332d;
+  --border: #3c4037;
+  --border-strong: #565c50;
+  --text: #e3e5dc;
+  --text-strong: #f5f5ee;
+  --muted: #b6bcad;
+  --muted-2: #aeb4a5;
+  --gold-text: #c4c8b9;
+}
