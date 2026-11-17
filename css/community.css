@@ -1,0 +1,21 @@
+.community-nav { display:flex; flex-wrap:wrap; gap:8px; position:sticky; top:0; z-index:10; padding:16px 0; background:var(--bg); border-bottom:1px solid var(--border); }
+.community-nav a { padding:10px 14px; border:1px solid var(--border); border-radius:24px; color:var(--text); text-decoration:none; background:var(--surface); font-size:.875rem; }
+.community-nav a:hover,.community-nav a:focus-visible { border-color:var(--text); }
+.community-section { padding-block:36px; border-bottom:1px solid var(--border); scroll-margin-top:90px; }
+.community-section h1 { font-size:clamp(2rem,6vw,3rem); letter-spacing:-.045em; line-height:1.15; }
+.community-section h2 { font-size:1.6rem; letter-spacing:-.025em; }
+.community-section>p { max-width:78ch; }
+.community-section[hidden],.community-section form[hidden],#chat-room[hidden],#chat-session[hidden],#hostel-label[hidden] { display:none; }
+.community-section textarea { width:100%; padding:12px; border:1px solid var(--border-strong); border-radius:10px; font:inherit; color:var(--text); background:var(--surface); }
+.community-section select { max-width:100%; padding:10px; font:inherit; border:1px solid var(--border-strong); border-radius:8px; color:var(--text); background:var(--surface); }
+.notice { padding:16px; border:1px solid var(--border); background:var(--bg-alt); border-radius:10px; font-size:.875rem; }
+.case-secret { display:block; font:600 .9rem var(--font-mono); overflow-wrap:anywhere; user-select:all; padding:12px; border:1px dashed var(--border-strong); margin-block:8px; }
+.chat-messages { list-style:none; padding:16px; margin-block:20px; max-height:560px; overflow-y:auto; border:1px solid var(--border); border-radius:16px; background:var(--bg-alt); }
+.chat-message { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:12px; max-width:90%; }
+.chat-message--mine { margin-left:auto; border-color:var(--border-strong); }
+.chat-message p { white-space:pre-wrap; overflow-wrap:anywhere; margin-block:8px; }
+.chat-message button { padding:4px 8px; min-height:32px; font-size:.75rem; }
+.case-card p { white-space:pre-wrap; overflow-wrap:anywhere; }
+.case-card form { display:grid; gap:12px; }
+.case-card .study-actions { margin-top:8px; }
+@media(max-width:640px) { .community-nav a { padding:8px 10px; font-size:.8125rem; } .chat-message { max-width:96%; } }

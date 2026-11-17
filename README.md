@@ -505,3 +505,84 @@ Public search is by title/subject, with course/type filters and pages of 24.
 Start content collection with one volunteer per course/year: ask for notes they
 own or have permission to share and released past papers, then review before
 publication. Avoid live or confidential examinations and personal information.
+
+
+## Student Community (migration 020)
+
+Run `supabase/migrations/020_student_community.sql` after the previous migrations.
+The public entry is `/community/`; staff use `/staff/student-services/`.
+
+### Security intake and staff accounts
+
+The migration reuses a ministry whose active name contains `ulinzi` or `security`
+(or adds `Wizara ya Ulinzi`) and adds the `ministry_secretary` leadership position.
+In `/staff/student-services/`, a super admin must confirm the intended security
+ministry, especially if more than one matching ministry exists. Under
+`/admin/leaders/`, create or update the three real leaders with unique usernames:
+`minister`, `deputy_minister`, and `ministry_secretary`, all assigned to that same
+ministry. Existing leader account creation issues a temporary password and forces
+its change. No placeholder people, passwords or real accounts are created by SQL.
+The existing `leader-admin` Edge Function must already be deployed.
+
+Security reports are PRIVATE: only those active security leaders and super admins
+can read them. Other leaders, normal admins and students cannot read the table.
+Each report gets an unguessable tracking token in addition to a reference; both
+are required to read its status and public replies. Save both at submission time:
+they are not automatically retained on the student's device. The hostel list is
+Nkembo/Katikaza (boys), NMB line/Kamzora/Sisters/Elizabeth (girls), Lugalo, or a
+manually entered off-campus/external-hostel location. Confirm hostel spelling
+before launch. Reports collect self-reported names, course, year and contact data.
+They enter the security team's shared inbox immediately; its new-report counter
+refreshes every 30 seconds while the staff page is open. There are no SMS, email
+or background push notifications. The 24-hour indicator is a FIRST RESPONSE
+TARGET, not a resolution guarantee or automatic closure. Every staff response
+records a history entry with the acting account.
+
+### First-year feedback
+
+The feedback entry asks for year. Year 1 gets a manual, explicitly unverified
+form; years 2–4 are sent to the existing registration/last-name flow using
+`/?feedback_year=<year>#submit`. Existing homepage feedback buttons also use the
+year gate. Self-declaring year 1 is not proof of enrolment; this manual feedback
+never creates a verified student identity or grants access to chat. First-year
+feedback can be read and answered by super admins, admins with `manage_feedback`,
+and authorized executive leaders. The existing verified feedback table is unchanged.
+
+### Student group chat
+
+Chat uses **Continue with Google**; students do not enter email/password on this
+page. In Google Auth Platform create a Web OAuth client with origin
+`https://rucuso.online` and the exact callback URI shown by the Supabase Google
+provider (normally `https://<project-ref>.supabase.co/auth/v1/callback`). Enable
+Google in Supabase Auth and paste its Client ID and Client Secret into that
+provider's dashboard settings. Never put the Client Secret in the repository.
+Allow `https://rucuso.online/community/` in Supabase Auth redirect URLs. Configure
+Google Audience as External, add testers during testing and publish for students
+when ready. Request only the standard identity scopes (openid/email/profile).
+Google identity proves access to a Google account, not university membership.
+Keep the Email provider enabled if existing leaders/admins use passwords; the
+student chat page no longer offers password registration or login. Existing
+membership records and staff logins do not need a database migration for this change.
+Students submit separate community membership applications. Every application
+starts pending; admins with `manage_feedback` (including super admins) must check
+identity/registration themselves before approval. First-year members need manual
+checking because no first-year register is available. Students never get rows in
+staff `profiles` and cannot promote themselves. Approved members can read and send
+text messages; suspended/pending users cannot. Other members see the chosen display
+name, text and time, not account UUIDs, email, phone or registration numbers.
+There is one shared group, not direct messages, calls or end-to-end encryption.
+New messages are checked every 8 seconds in an open, visible page. Moderators can
+remove messages, review reports and suspend memberships. Browser text rendering
+escapes untrusted content by using textContent. Server-side message limits are
+one per 3 seconds and 120 per member/hour. Anonymous intake and membership each
+have shared daily caps of 200: these are bounded starter queues, not per-IP limits.
+
+### Deployment checks
+
+After applying SQL, create/assign the actual leader accounts and check routing.
+Test a private security report as a student; verify that only the three assigned
+leaders and super admin can see it, and test tracking with a wrong token. Check
+first-year feedback and the year 2–4 redirects. Use two student auth accounts to
+check pending/approved/suspended chat access and moderation. No production data or
+leader credentials are needed for the bundled local tests. This migration has to
+be applied and live RLS/Auth behavior verified on the target Supabase project.

@@ -307,10 +307,11 @@ const PUBLIC_NAV = [
   ["home", "Nyumbani"],
   ["sec-about", "Kuhusu RUCUSO"],
   ["sec-services", "Huduma"],
+  ["sec-study", "Study Hub"],
+  ["sec-community", "Jumuiya"],
+  ["sec-announcements", "Matangazo"],
   ["sec-leadership", "Uongozi"],
   ["sec-parliament", "Bunge"],
-  ["sec-announcements", "Matangazo"],
-  ["sec-study", "Study Hub"],
   ["sec-documents", "Nyaraka"],
   ["sec-contact", "Mawasiliano"],
 ];
@@ -491,6 +492,10 @@ function prefersReducedMotion() {
 }
 
 function go(id, presetType, options) {
+  if (id === "submit" && !["2", "3", "4"].includes(new URLSearchParams(location.search).get("feedback_year"))) {
+    location.href = "/community/#feedback";
+    return;
+  }
   navigationVersion++;
   if (STAFF_NAV.some(([s]) => s === id) && !DB.session) {
     // The legacy staff views have no in-page login form — send an
