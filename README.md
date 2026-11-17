@@ -482,3 +482,26 @@ view (phone/email are public only when `contact_public` is ticked), the `announc
 and `parliament-photos` buckets, and a MIME allow-list (JPG/PNG/WebP, no SVG) on the public
 `leader-photos` and `rucu-documents` buckets. Admins need the `manage_parliament` permission
 to manage Parliament; super_admin has it implicitly.
+
+
+## Study Hub (migration 019)
+
+Run `supabase/migrations/019_study_hub.sql` in the same Supabase project before
+opening `/study/`. It adds a moderated catalogue of HTTPS material links and
+material requests; no sample records, file uploads or paid storage are required.
+
+Students can browse without signing in and submit a material link or request.
+All submissions start pending. `/admin/study/` lets active staff with the existing
+`manage_documents` permission (including super admins) publish, reject or return
+items to review. Review the link, sharing permission, subject and source manually.
+An approved request can be returned to review once the material has been supplied.
+Only approved records can be read publicly; no contact information is collected.
+The anonymous submission RPC has a shared limit of 200 submissions per database
+calendar day, so one abusive caller can exhaust it. This is a starter queue cap,
+not a per-student rate limit; authenticated or verified submissions can replace
+it if traffic warrants it. External file owners control availability and access.
+Public search is by title/subject, with course/type filters and pages of 24.
+
+Start content collection with one volunteer per course/year: ask for notes they
+own or have permission to share and released past papers, then review before
+publication. Avoid live or confidential examinations and personal information.

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="sw"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co; img-src 'self' data: https:; style-src 'self'; base-uri 'self'; form-action 'self'">
+<title>RUCU Study Hub | RUCUSO</title><meta name="description" content="Tafuta na changia notes, past papers na mazoezi. Omba material inayokosekana.">
+<link rel="icon" href="/assets/favicon-32.png"><link rel="stylesheet" href="/css/portal.css"><link rel="stylesheet" href="/css/public-milk.css"><link rel="stylesheet" href="/css/study.css"></head>
+<body class="public-milk"><a class="skip-link" href="#study-main">Rukia maudhui</a><div class="study-shell">
+<header class="study-header"><a href="/" class="brand__name">RUCUSO</a><a href="/">Rudi nyumbani →</a></header>
+<main id="study-main"><div class="study-intro"><span class="eyebrow">Kwa wanafunzi, kutoka kwa wanafunzi</span><h1>RUCU Study Hub</h1><p>Notes, past papers na mazoezi sehemu moja. Changia material uliyo na ruhusa ya kushiriki, au omba inayokosekana.</p></div>
+<div class="study-filters"><label>Tafuta somo au material<input id="study-search" type="search" maxlength="160" placeholder="Mfano: Cost Accounting"></label><label>Kozi<input id="study-course" type="search" maxlength="100" placeholder="Mfano: BAFIT"></label><label>Aina<select id="study-kind"><option value="">Aina zote</option><option value="notes">Notes</option><option value="past_paper">Past papers</option><option value="practice">Mazoezi</option><option value="request">Maombi ya materials</option></select></label><label>Mwaka<select id="study-year"><option value="">Miaka yote</option><option value="1">Mwaka 1</option><option value="2">Mwaka 2</option><option value="3">Mwaka 3</option><option value="4">Mwaka 4</option><option value="5">Mwaka 5</option><option value="6">Mwaka 6</option><option value="7">Mwaka 7</option></select></label><label>Semester<select id="study-semester"><option value="">Semester zote</option><option value="1">Semester 1</option><option value="2">Semester 2</option></select></label></div>
+<div id="study-status" role="status" aria-live="polite"></div><div id="study-list" class="study-grid"></div>
+<button id="study-more" class="btn btn--ghost" hidden>Pakia zaidi</button>
+<details class="study-form" id="contribute"><summary>Changia material au omba unayohitaji</summary>
+<p>Tumia kiungo cha Google Drive, OneDrive au chanzo kingine cha HTTPS. Hakikisha kinafunguka kwa wengine bila kuomba access. Hatuhifadhi faili hapa kwa sasa.</p>
+<form id="study-submit"><div class="study-fields">
+<label>Aina<select name="kind" required><option value="notes">Notes</option><option value="past_paper">Past paper</option><option value="practice">Mazoezi</option><option value="request">Naomba material</option></select></label>
+<label>Jina la material<input name="title" required minlength="3" maxlength="160" placeholder="Mfano: Cost Accounting — Past paper 2025"></label>
+<label>Kozi<input name="course" required minlength="2" maxlength="100" placeholder="Mfano: BAFIT"></label>
+<label>Somo<input name="subject" required minlength="2" maxlength="100" placeholder="Mfano: Cost Accounting"></label>
+<label>Mwaka wa masomo<select name="study_year"><option value="1">Mwaka 1</option><option value="2">Mwaka 2</option><option value="3">Mwaka 3</option><option value="4">Mwaka 4</option><option value="5">Mwaka 5</option><option value="6">Mwaka 6</option><option value="7">Mwaka 7</option></select></label>
+<label>Semester<select name="semester"><option value="1">Semester 1</option><option value="2">Semester 2</option></select></label>
+<label class="study-wide" id="study-url-label">Kiungo cha material<input name="resource_url" type="url" required maxlength="1500" placeholder="https://..."></label>
+<label class="study-wide">Chanzo / mwandishi<input name="source" required minlength="2" maxlength="160" placeholder="Kwa ombi, andika: Ombi la mwanafunzi"></label>
+<label class="study-wide">Maelezo<textarea name="description" maxlength="1000" rows="3" placeholder="Taja mada au mwaka wa mtihani. Usiweke namba ya simu, email au taarifa binafsi."></textarea></label>
+<label class="study-wide"><span><input type="checkbox" required name="consent"> Nina ruhusa ya kushiriki material hii, au ninatuma ombi la material. Sitaweka mitihani ya siri au taarifa binafsi.</span></label>
+</div><p class="study-meta">Kila mchango na ombi hupitiwa kabla ya kuonekana kwa wengine. Majibu ya mazoezi si lazima yawe marking scheme rasmi.</p>
+<button class="btn btn--primary" type="submit">Tuma kwa ukaguzi</button><p id="study-form-status" role="status" aria-live="polite"></p></form></details>
+</main></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="/supabase/config.js"></script><script src="/supabase/supabase-client.js"></script><script src="/js/study.js"></script></body></html>

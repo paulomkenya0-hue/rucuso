@@ -310,6 +310,7 @@ const PUBLIC_NAV = [
   ["sec-leadership", "Uongozi"],
   ["sec-parliament", "Bunge"],
   ["sec-announcements", "Matangazo"],
+  ["sec-study", "Study Hub"],
   ["sec-documents", "Nyaraka"],
   ["sec-contact", "Mawasiliano"],
 ];
