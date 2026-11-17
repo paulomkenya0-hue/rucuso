@@ -311,6 +311,34 @@
       color: #a15c00;
     }
 
+    .status.draft {
+      background: #eef0f4;
+      color: #4a5262;
+    }
+
+    .badge-feat {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #fcf0dc;
+      color: #7a5710;
+      font-size: 11px;
+      font-weight: 700;
+      vertical-align: middle;
+    }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .check-row input {
+      width: auto;
+    }
+
     .status.expired {
       background: #f1f3f5;
       color: #697386;
@@ -569,6 +597,7 @@
       <a href="../students/">Wanafunzi</a>
       <a href="../ministries/">Ministries</a>
       <a href="../leaders/">Viongozi</a>
+      <a href="../parliament/">Bunge (Wabunge)</a>
       <a href="../services/">Huduma</a>
       <a href="./" class="active">Announcements</a>
       <a href="../documents/">Documents</a>
@@ -656,6 +685,7 @@
           <option value="live">Zinazoonekana</option>
           <option value="scheduled">Zilizopangwa</option>
           <option value="expired">Zilizoisha</option>
+          <option value="draft">Rasimu (hazionekani)</option>
         </select>
 
         <select id="audienceFilter">
@@ -814,10 +844,54 @@
 
         </div>
 
+        <div class="field">
+
+          <label for="announcementStatus">
+            Hali ya kuchapisha
+          </label>
+
+          <select id="announcementStatus">
+            <option value="published">Chapisha (au panga kwa tarehe)</option>
+            <option value="draft">Rasimu (usionyeshe umma)</option>
+          </select>
+
+          <div class="help">
+            Tarehe ya baadaye = imepangwa (scheduled). Rasimu haionekani kwenye homepage.
+          </div>
+
+        </div>
+
+        <div class="field">
+
+          <label>Muhimu</label>
+
+          <label class="check-row" for="announcementFeatured">
+            <input id="announcementFeatured" type="checkbox">
+            Weka kama Featured (inaonekana kwanza)
+          </label>
+
+        </div>
+
         <div class="field full">
 
-          <label for="imageUrl">
-            Image URL
+          <label for="imageFile">
+            Picha ya Announcement
+          </label>
+
+          <input
+            id="imageFile"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+          >
+
+          <div class="help">
+            JPG, PNG au WebP, isizidi 3MB. Faili hukaguliwa kabla ya kuhifadhiwa.
+          </div>
+
+          <input type="hidden" id="imagePath">
+
+          <label for="imageUrl" style="margin-top:10px;">
+            Au Image URL (https)
           </label>
 
           <input
@@ -827,9 +901,10 @@
             placeholder="https://..."
           >
 
-          <div class="help">
-            Kwa sasa tuna-save public image URL kwenye image_url.
-          </div>
+          <label class="check-row" for="removeImage" style="margin-top:8px;">
+            <input id="removeImage" type="checkbox">
+            Ondoa picha iliyopo
+          </label>
 
           <div id="imagePreview" class="image-preview">
             <img id="previewImage" alt="Announcement preview">
@@ -978,6 +1053,10 @@
     const publish = item.publish_date;
     const expiry = item.expiry_date;
 
+    if (item.status === "draft") {
+      return "draft";
+    }
+
     if (publish && publish > today) {
       return "scheduled";
     }
@@ -990,6 +1069,10 @@
   }
 
   function statusLabel(status) {
+
+    if (status === "draft") {
+      return "Rasimu";
+    }
 
     if (status === "scheduled") {
       return "Imeandaliwa";
@@ -1141,7 +1224,7 @@
 
             <td>
               <div class="announcement-title">
-                ${escapeHtml(item.title)}
+                ${escapeHtml(item.title)}${item.featured ? '<span class="badge-feat">★ Featured</span>' : ""}
               </div>
 
               <div class="announcement-description">
@@ -1258,6 +1341,12 @@
         return false;
       }
 
+      if (!window.RucusoGuard.hasPermission(session.profile, "manage_announcements")) {
+        setError("Huna ruhusa ya kusimamia matangazo. Wasiliana na Msimamizi Mkuu.");
+        $("addBtn").disabled = true;
+        return false;
+      }
+
       $("userName").textContent =
         session.profile.full_name ||
         session.user.email ||
@@ -1286,6 +1375,11 @@
     $("publishDate").value = todayString();
     $("expiryDate").value = "";
     $("imageUrl").value = "";
+    $("imagePath").value = "";
+    $("imageFile").value = "";
+    $("removeImage").checked = false;
+    $("announcementStatus").value = "published";
+    $("announcementFeatured").checked = false;
 
     hideImagePreview();
 
@@ -1320,6 +1414,13 @@
       item.expiry_date || "";
     $("imageUrl").value =
       item.image_url || "";
+    $("imagePath").value =
+      item.image_path || "";
+    $("imageFile").value = "";
+    $("removeImage").checked = false;
+    $("announcementStatus").value =
+      item.status === "draft" ? "draft" : "published";
+    $("announcementFeatured").checked = !!item.featured;
 
     $("modalTitle").textContent =
       "Hariri Announcement";
@@ -1384,8 +1485,16 @@
     const expiryDate =
       $("expiryDate").value;
 
-    const imageUrl =
+    let imageUrl =
       $("imageUrl").value.trim();
+
+    let imagePath =
+      $("imagePath").value.trim();
+
+    const status = $("announcementStatus").value;
+    const featured = $("announcementFeatured").checked;
+    const file = $("imageFile").files && $("imageFile").files[0];
+    const removeImage = $("removeImage").checked;
 
     if (!title) {
       showNotice(
@@ -1431,17 +1540,45 @@
     saveBtn.disabled = true;
     saveBtn.textContent = "Inahifadhi...";
 
-    const payload = {
-      title,
-      description,
-      category: category || null,
-      publish_date: publishDate,
-      expiry_date: expiryDate || null,
-      audience: audience || "All Students",
-      image_url: imageUrl || null
-    };
-
     try {
+
+      // 1. Image: a newly chosen file is validated (type, size, real file
+      //    signature) and uploaded to the announcement-images bucket under a
+      //    random name. The file it replaces is removed only AFTER the save
+      //    succeeds, so a failed save never loses the old image.
+      const oldPath = imagePath;
+      let staleToRemove = null;
+
+      if (removeImage && !file) {
+        staleToRemove = oldPath;
+        imageUrl = "";
+        imagePath = "";
+      }
+
+      if (file) {
+        const up = await window.RucusoAPI.uploadImage(
+          window.RucusoAPI.BUCKETS.announcements,
+          "announcements",
+          file,
+          3 * 1024 * 1024
+        );
+        staleToRemove = oldPath || null;
+        imageUrl = up.url;
+        imagePath = up.path;
+      }
+
+      const payload = {
+        title,
+        description,
+        category: category || null,
+        publish_date: publishDate,
+        expiry_date: expiryDate || null,
+        audience: audience || "All Students",
+        image_url: imageUrl || null,
+        image_path: imagePath || null,
+        status,
+        featured
+      };
 
       // Both writes go through the validated RPCs (migration 015), which
       // check every field server-side and take the author from auth.uid().
@@ -1449,10 +1586,12 @@
       // RPC is the real boundary.
       if (id) {
 
-        await window.RucusoAPI.updateAnnouncementValidated(
+        await window.RucusoAPI.saveAnnouncementFull(
           id,
           payload
         );
+
+        logAction("Announcement Updated", title);
 
         showNotice(
           "Announcement imehaririwa kikamilifu."
@@ -1460,14 +1599,27 @@
 
       } else {
 
-        await window.RucusoAPI.publishAnnouncement(
+        await window.RucusoAPI.saveAnnouncementFull(
+          null,
           payload
+        );
+
+        logAction(
+          status === "draft" ? "Announcement Draft Saved" : "Announcement Published",
+          title
         );
 
         showNotice(
           "Announcement imeongezwa kikamilifu."
         );
 
+      }
+
+      if (staleToRemove) {
+        window.RucusoAPI.removeFile(
+          window.RucusoAPI.BUCKETS.announcements,
+          staleToRemove
+        ).catch(() => {});
       }
 
       closeModal();
@@ -1507,9 +1659,20 @@
 
     try {
 
+      const doomed = announcements.find(a => a.id === deleteId);
+
       await window.RucusoAPI.deleteAnnouncement(
         deleteId
       );
+
+      logAction("Announcement Deleted", doomed ? doomed.title : deleteId);
+
+      if (doomed && doomed.image_path) {
+        window.RucusoAPI.removeFile(
+          window.RucusoAPI.BUCKETS.announcements,
+          doomed.image_path
+        ).catch(() => {});
+      }
 
       closeDeleteModal();
 
@@ -1581,6 +1744,12 @@
 
   }
 
+  function logAction(action, details) {
+    try {
+      window.RucusoAPI.logAction(action, details).catch(() => {});
+    } catch (e) { /* audit is best-effort */ }
+  }
+
   function hideImagePreview() {
 
     $("imagePreview").classList.remove("show");
@@ -1606,6 +1775,19 @@
   }
 
   function initEvents() {
+
+    $("imageFile").addEventListener("change", () => {
+      const f = $("imageFile").files && $("imageFile").files[0];
+      if (!f) { updateImagePreview(); return; }
+      if (!["image/jpeg", "image/png", "image/webp"].includes(f.type) || f.size > 3 * 1024 * 1024) {
+        showNotice("Chagua JPG, PNG au WebP isiyozidi 3MB.", "error");
+        $("imageFile").value = "";
+        updateImagePreview();
+        return;
+      }
+      $("previewImage").src = URL.createObjectURL(f);
+      $("imagePreview").classList.add("show");
+    });
 
     $("addBtn").addEventListener(
       "click",

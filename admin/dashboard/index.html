@@ -25,6 +25,7 @@
     <a href="/admin/heslb/" data-perm="__heslb_manager">Wanufaika wa HESLB</a>
     <a href="/admin/sms/" data-perm="__heslb_manager">SMS kwa Wanufaika</a>
     <a href="/admin/leaders/" data-perm="__super_admin_only">Viongozi</a>
+    <a href="/admin/parliament/" data-perm="manage_parliament">Bunge (Wabunge)</a>
     <a href="/admin/ministries/" data-perm="manage_ministries">Wizara</a>
     <a href="/admin/categories/" data-perm="manage_categories">Makundi</a>
     <a href="/admin/feedback/" data-perm="view_feedback">Maoni &amp; Malalamiko</a>
@@ -55,6 +56,31 @@
         <div class="card"><b id="s_pending">–</b><span>Yanayosubiri</span></div>
         <div class="card"><b id="s_resolved">–</b><span>Yaliyotatuliwa</span></div>
       </div>
+      <section class="card" aria-labelledby="mgmtHeading">
+        <h3 id="mgmtHeading" style="margin-top:0">Usimamizi wa Maudhui</h3>
+        <div class="statgrid">
+          <div class="card"><b id="c_live">–</b><span>Matangazo yanayoonekana</span></div>
+          <div class="card"><b id="c_sched">–</b><span>Yaliyopangwa / rasimu</span></div>
+          <div class="card"><b id="c_parl">–</b><span>Wabunge amilifu</span></div>
+          <div class="card"><b id="c_docs">–</b><span>Nyaraka</span></div>
+          <div class="card"><b id="c_admins">–</b><span>Wasimamizi</span></div>
+          <div class="card"><b id="c_services">–</b><span>Huduma amilifu</span></div>
+        </div>
+        <p style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:0">
+          <a class="btn btn--primary" href="/admin/announcements/">Matangazo</a>
+          <a class="btn btn--primary" href="/admin/parliament/">Bunge</a>
+          <a class="btn btn--primary" href="/admin/leaders/">Viongozi</a>
+          <a class="btn btn--primary" href="/admin/documents/">Nyaraka</a>
+          <a class="btn btn--primary" href="/admin/settings/">Mipangilio</a>
+        </p>
+      </section>
+      <section class="card hidden" id="activityCard" aria-labelledby="activityHeading">
+        <div class="dashboard-summary__head">
+          <h3 id="activityHeading" style="margin:0">Shughuli za hivi karibuni</h3>
+          <a href="/admin/audit-logs/">Zote</a>
+        </div>
+        <div id="activityList" class="dashboard-status-list" aria-live="polite"></div>
+      </section>
       <section class="card dashboard-summary" aria-labelledby="feedbackStatusHeading">
         <div class="dashboard-summary__head">
           <div>
@@ -120,6 +146,28 @@
   }
 
   const client = window.RucusoAPI.client;
+  const esc = (v) => String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+  // Content counts (aggregate numbers only) and the recent activity log.
+  // Both are RLS/RPC-gated server-side; failures just leave the tiles blank.
+  window.RucusoAPI.contentCounts().then((c) => {
+    const set = (id, v) => { document.getElementById(id).textContent = v ?? 0; };
+    set("c_live", c.announcements_live);
+    set("c_sched", (c.announcements_scheduled || 0) + " / " + (c.announcements_draft || 0));
+    set("c_parl", c.parliament_active);
+    set("c_docs", c.documents);
+    set("c_admins", c.admins);
+    set("c_services", c.services);
+  }).catch(() => {});
+  if (window.RucusoGuard.hasPermission(profile, "view_audit_logs")) {
+    window.RucusoAPI.listAudit(8).then((rows) => {
+      document.getElementById("activityList").innerHTML = rows.length ? rows.map((r) =>
+        `<div class="dashboard-status-row"><span class="dashboard-status-row__label">${esc(r.action)}</span><span>${esc((r.details || "").slice(0, 80))}</span><b style="font-weight:500;font-size:12px">${esc(new Date(r.created_at).toLocaleString("sw-TZ"))}</b></div>`).join("")
+        : '<p class="muted">Hakuna shughuli bado.</p>';
+      document.getElementById("activityCard").classList.remove("hidden");
+    }).catch(() => {});
+  }
+
   const [{ count: leaderCount }, { count: ministryCount }, { data: feedbackRows }, studentCountRes] = await Promise.all([
     client.from("leaders").select("id", { count: "exact", head: true }),
     client.from("ministries").select("id", { count: "exact", head: true }),

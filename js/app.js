@@ -308,6 +308,7 @@ const PUBLIC_NAV = [
   ["sec-about", "Kuhusu RUCUSO"],
   ["sec-services", "Huduma"],
   ["sec-leadership", "Uongozi"],
+  ["sec-parliament", "Bunge"],
   ["sec-announcements", "Matangazo"],
   ["sec-documents", "Nyaraka"],
   ["sec-contact", "Mawasiliano"],
@@ -596,6 +597,7 @@ function renderHomeSections() {
   renderServices();
   renderAnnouncements();
   renderLeadership();
+  renderParliament();
   renderDocuments();
   homeRendered = true;
 }
@@ -1934,6 +1936,61 @@ function openService(i) {
     "Huduma ya RUCUSO");
 }
 
+// Only https image URLs are ever placed in an <img src>.
+function safeHttps(url) { return /^https:\/\//i.test(url || "") ? url : ""; }
+
+// ---------- Parliament (Wabunge) ----------
+let parliamentRows = [];
+async function renderParliament() {
+  const grid = document.getElementById("parliamentGrid");
+  if (!grid) return;
+  grid.innerHTML = skeleton(3);
+  try {
+    await D.refreshParliament();
+  } catch (e) {
+    grid.innerHTML = stateBox("error", "Imeshindikana kupakia wabunge", esc(D.errText(e)));
+    return;
+  }
+  parliamentRows = DB.parliament;
+  const count = document.getElementById("parliamentCount");
+  if (count) count.textContent = parliamentRows.length;
+  drawParliament();
+}
+function drawParliament() {
+  const grid = document.getElementById("parliamentGrid");
+  const input = document.getElementById("parliamentSearch");
+  if (!grid) return;
+  const q = input ? input.value.trim().toLowerCase() : "";
+  const rows = parliamentRows.filter((m) => !q ||
+    [m.name, m.faculty, m.constituency, m.position, m.academicYear].join(" ").toLowerCase().includes(q));
+  if (!rows.length) {
+    grid.innerHTML = '<p class="muted">' + (parliamentRows.length ? "Hakuna mbunge anayelingana na utafutaji." : "Orodha ya wabunge itaonekana hapa hivi karibuni.") + "</p>";
+    return;
+  }
+  const initials = (n) => String(n).trim().split(/\s+/).slice(0, 2).map((w) => w[0] || "").join("").toUpperCase();
+  grid.innerHTML = rows.map((m, i) => `
+    <button type="button" class="parlcard" onclick="openParliamentMember('${m.id}')">
+      <span class="avatar parlcard__avatar">${safeHttps(m.photo) ? `<img src="${esc(safeHttps(m.photo))}" alt="" loading="lazy">` : esc(initials(m.name))}</span>
+      <span class="parlcard__name">${esc(m.name)}</span>
+      <span class="parlcard__role">${esc(m.position || "Mbunge")}</span>
+      ${m.constituency ? `<span class="parlcard__meta">${esc(m.constituency)}</span>` : ""}
+      ${m.faculty || m.academicYear ? `<span class="parlcard__meta">${esc([m.faculty, m.academicYear].filter(Boolean).join(" · "))}</span>` : ""}
+    </button>`).join("");
+}
+function openParliamentMember(id) {
+  const m = parliamentRows.find((x) => x.id === id);
+  if (!m) return;
+  const line = (label, v) => v ? '<p style="margin:.2rem 0"><b>' + label + ":</b> " + esc(v) + "</p>" : "";
+  modalShell("parlModalBg", m.name,
+    (safeHttps(m.photo) ? '<img class="annmodal__img parlmodal__img" src="' + esc(safeHttps(m.photo)) + '" alt="">' : "")
+    + line("Wadhifa", m.position) + line("Jimbo / Eneo", m.constituency) + line("Kitivo", m.faculty) + line("Mwaka", m.academicYear)
+    + (m.bio ? '<p style="white-space:pre-wrap;line-height:1.75;margin-top:var(--sp-3)">' + esc(m.bio) + "</p>" : "")
+    + (m.phone ? '<p><b>Simu:</b> <a href="tel:' + esc(m.phone.replace(/[^+\d]/g, "")) + '">' + esc(m.phone) + "</a></p>" : "")
+    + (m.email ? '<p><b>Barua pepe:</b> <a href="mailto:' + esc(m.email) + '">' + esc(m.email) + "</a></p>" : ""),
+    "Mbunge wa RUCUSO");
+}
+document.addEventListener("input", (e) => { if (e.target && e.target.id === "parliamentSearch") drawParliament(); });
+
 function openAnnouncement(i) {
   const a = visibleAnns[i];
   if (!a) return;
@@ -1941,6 +1998,7 @@ function openAnnouncement(i) {
     '<p class="muted" style="margin-top:0;font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--info)">'
     + esc(a.category || "Tangazo") + " · " + esc(a.audience || "Wanafunzi Wote") + "</p>"
     + '<p class="muted" style="font-size:var(--fs-xs)">Imetolewa: ' + new Date(a.createdAt).toLocaleDateString() + "</p>"
+    + (safeHttps(a.image) ? '<img class="annmodal__img" src="' + esc(safeHttps(a.image)) + '" alt="">' : "")
     + '<div style="white-space:pre-wrap;line-height:1.8">' + esc(a.description) + "</div>"
     + (a.expiryDate ? '<p class="muted" style="margin-top:var(--sp-4);font-size:var(--fs-xs)">Inaisha tarehe ' + new Date(a.expiryDate).toLocaleDateString() + "</p>" : ""),
     "Tangazo la RUCUSO");
@@ -2043,7 +2101,7 @@ async function renderAnnouncements() {
   const today = todayISO();
   const visible = DB.announcements
     .filter((a) => (!a.publishDate || a.publishDate <= today) && (!a.expiryDate || a.expiryDate >= today))
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    .sort((a, b) => (Number(b.featured) - Number(a.featured)) || (new Date(b.createdAt) - new Date(a.createdAt)));
   visibleAnns = visible;
   const ticker = document.getElementById("announcementTicker");
   const tickerButton = document.getElementById("tickerAnnouncement");
@@ -2073,7 +2131,8 @@ async function renderAnnouncements() {
   const [first, ...rest] = visible;
   feat.innerHTML = `
     <button type="button" class="annfeature" onclick="openAnnouncement(0)">
-      <span class="annfeature__label">${esc(first.category || "Tangazo la RUCUSO")}</span>
+      ${safeHttps(first.image) ? `<img class="annfeature__img" src="${esc(safeHttps(first.image))}" alt="" loading="lazy">` : ""}
+      <span class="annfeature__label">${first.featured ? "★ Muhimu · " : ""}${esc(first.category || "Tangazo la RUCUSO")}</span>
       <span class="annfeature__title">${esc(first.title)}</span>
       <span class="annfeature__body">${esc(first.description)}</span>
       <span class="annfeature__foot">
@@ -2085,7 +2144,8 @@ async function renderAnnouncements() {
   list.innerHTML = rest.map((a, i) => `
     <div class="annitemwrap">
       <button type="button" class="annitem" onclick="openAnnouncement(${i + 1})">
-        <span class="annitem__title">${esc(a.title)}</span>
+        ${safeHttps(a.image) ? `<img class="annitem__img" src="${esc(safeHttps(a.image))}" alt="" loading="lazy">` : ""}
+        <span class="annitem__title">${a.featured ? "★ " : ""}${esc(a.title)}</span>
         <span class="annitem__excerpt">${esc(a.description)}</span>
         <span class="muted" style="font-size:var(--fs-xs)">${a.category ? esc(a.category) + " · " : ""}${esc(a.audience || "Wanafunzi Wote")} · ${new Date(a.createdAt).toLocaleDateString()}</span>
       </button>

@@ -14,7 +14,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
+const read = (file) => fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n');
 
 const page = read('admin/leaders/index.html');
 const edge = read('supabase/functions/leader-admin/index.ts');
@@ -252,8 +252,9 @@ test('the admin announcements page writes through the validated RPCs', () => {
   const page = read('admin/announcements/index.html');
   const client = read('supabase/supabase-client.js');
   // The page must call the validated RPCs, not a bare insert/update.
-  assert.match(page, /publishAnnouncement/);
-  assert.match(page, /updateAnnouncementValidated/);
+  // Migration 018: one validated save_announcement() RPC supersedes the pair.
+  assert.match(page, /saveAnnouncementFull/);
+  assert.match(client, /rpc\("save_announcement"/);
   assert.doesNotMatch(page, /RucusoAPI\.createAnnouncement|RucusoAPI\.updateAnnouncement\b/);
   // The client must expose them.
   assert.match(client, /async publishAnnouncement\(payload\)/);

@@ -69,7 +69,27 @@
     documents: "rucu-documents",
     photos: "leader-photos",
     attachments: "feedback-attachments",
+    announcements: "announcement-images",
+    parliament: "parliament-photos",
   };
+
+  // Images accepted for announcements and parliament photos. The bucket also
+  // enforces this list server-side (migration 018); this check just gives the
+  // operator an immediate, readable error. SVG is deliberately NOT allowed:
+  // an SVG served from a public bucket can carry script.
+  const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+  const IMAGE_EXT = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+
+  // Reads the first bytes so a renamed .exe / .html cannot pass as a photo
+  // just because the browser reported an image MIME type.
+  async function sniffImageType(file) {
+    const buf = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+    const hex = (a, b) => Array.from(buf.slice(a, b)).map((x) => x.toString(16).padStart(2, "0")).join("");
+    if (hex(0, 3) === "ffd8ff") return "image/jpeg";
+    if (hex(0, 8) === "89504e470d0a1a0a") return "image/png";
+    if (String.fromCharCode(...buf.slice(0, 4)) === "RIFF" && String.fromCharCode(...buf.slice(8, 12)) === "WEBP") return "image/webp";
+    return null;
+  }
 
   function pathFromPublicUrl(url) {
     if (!url) return null;
@@ -627,6 +647,24 @@
         .select("*, author:profiles(full_name)")
         .order("created_at", { ascending: false }));
     },
+    // Full-featured validated save (migration 018): create when `id` is
+    // empty, otherwise update. Can clear expiry/image; supports draft status
+    // and the featured flag.
+    async saveAnnouncementFull(id, p) {
+      return ok(await client.rpc("save_announcement", {
+        p_id: id || null,
+        p_title: p.title,
+        p_description: p.description,
+        p_category: p.category || null,
+        p_audience: p.audience || "All Students",
+        p_publish_date: p.publish_date || null,
+        p_expiry_date: p.expiry_date || null,
+        p_image_url: p.image_url || null,
+        p_image_path: p.image_path || null,
+        p_status: p.status || "published",
+        p_featured: !!p.featured,
+      }));
+    },
     async createAnnouncement(payload) {
       return ok(await client.from("announcements").insert(payload).select());
     },
@@ -693,6 +731,33 @@
         .upsert({ key, value }, { onConflict: "key" }).select());
     },
 
+    // ---------------- Parliament (Wabunge) ----------------
+    // Public: the view hides inactive members and any contact detail that
+    // has not been explicitly marked public.
+    async listParliament() {
+      return ok(await client.from("public_parliament_members").select("*")
+        .order("display_order", { ascending: true })
+        .order("full_name", { ascending: true }));
+    },
+    // Admin only (RLS: manage_parliament): the base table, every column.
+    async listAllParliament() {
+      return ok(await client.from("parliament_members").select("*")
+        .order("display_order", { ascending: true })
+        .order("full_name", { ascending: true }));
+    },
+    async createParliamentMember(payload) {
+      return ok(await client.from("parliament_members").insert(payload).select());
+    },
+    async updateParliamentMember(id, patch) {
+      return ok(await client.from("parliament_members").update(patch).eq("id", id).select());
+    },
+    async deleteParliamentMember(id) {
+      return ok(await client.from("parliament_members").delete().eq("id", id));
+    },
+    async contentCounts() {
+      return ok(await client.rpc("admin_content_counts"));
+    },
+
     // ---------------- Programmes ----------------
     async listProgrammes() {
       return ok(await client.from("programmes").select("*").order("name"));
@@ -712,6 +777,24 @@
       const { data: pub } = client.storage.from(bucket).getPublicUrl(path);
       return pub.publicUrl;
     },
+    // Validated image upload for announcements / parliament photos. Checks
+    // size, declared type and the file's real signature, then stores it under
+    // a random name (the original filename is never trusted or kept).
+    // Returns { url, path } — keep `path` so the file can be removed later.
+    async uploadImage(bucket, folder, file, maxBytes) {
+      const limit = maxBytes || 3 * 1024 * 1024;
+      if (!file) throw new Error("Chagua picha kwanza.");
+      if (!IMAGE_TYPES.includes(file.type)) throw new Error("Aina ya faili hairuhusiwi. Tumia JPG, PNG au WebP.");
+      if (file.size > limit) throw new Error("Picha ni kubwa mno. Kikomo ni " + Math.round(limit / 1048576) + "MB.");
+      const real = await sniffImageType(file);
+      if (!real) throw new Error("Faili hili si picha halali (JPG, PNG au WebP).");
+      const rand = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + "-" + Math.random().toString(36).slice(2));
+      const path = folder + "/" + rand + "." + IMAGE_EXT[real];
+      const { error } = await client.storage.from(bucket).upload(path, file, { upsert: false, contentType: real });
+      if (error) throw friendlyError(error);
+      const { data: pub } = client.storage.from(bucket).getPublicUrl(path);
+      return { url: pub.publicUrl, path };
+    },
     // Private bucket (feedback evidence): returns a path, read it with
     // signedUrl() — only staff can.
     async uploadPrivateFile(bucket, path, file) {
@@ -725,8 +808,13 @@
       return data.signedUrl;
     },
     async removeFile(bucket, pathOrUrl) {
-      const path = pathOrUrl.startsWith("http") ? pathFromPublicUrl(pathOrUrl) : pathOrUrl;
+      if (!pathOrUrl) return;
+      let path = pathOrUrl.startsWith("http") ? pathFromPublicUrl(pathOrUrl) : pathOrUrl;
       if (!path) return;
+      // pathFromPublicUrl() returns "<bucket>/<object path>", but remove() on
+      // a bucket wants only the object path. Without this strip the call
+      // silently deleted nothing and orphaned the file.
+      if (path.startsWith(bucket + "/")) path = path.slice(bucket.length + 1);
       const { error } = await client.storage.from(bucket).remove([path]);
       if (error) console.warn("storage remove failed:", error.message);
     },

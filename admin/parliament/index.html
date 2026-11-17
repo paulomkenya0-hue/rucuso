@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; base-uri 'self'; form-action 'self';">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bunge la RUCUSO (Wabunge) | RUCUSO</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="/css/portal.css">
+<link rel="icon" type="image/png" sizes="32x32" href="../../assets/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="../../assets/apple-touch-icon.png">
+<style>
+  .pm-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+  .pm-form-grid .full { grid-column: 1 / -1; }
+  @media (max-width: 640px) { .pm-form-grid { grid-template-columns: 1fr; } }
+  .pm-check { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-weight: 500; }
+  .pm-check input { width: auto; margin: 0; }
+  .pm-photo { display: flex; align-items: center; gap: 14px; margin: 6px 0 4px; }
+  .pm-photo .avatar { width: 72px; height: 72px; }
+  .pm-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+  .pm-toolbar input, .pm-toolbar select { max-width: 260px; margin: 0; }
+  .pm-row { display: flex; gap: 14px; align-items: center; }
+  .pm-row .avatar { width: 52px; height: 52px; font-size: 18px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="crest">R</span><b>RUCUSO</b><span>Portal ya Msimamizi Mkuu</span></div>
+  <div>
+    <span id="whoami" class="muted" style="color:#cdd9ee;font-size:12px;margin-right:10px;"></span>
+    <button class="sec" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Toka</button>
+  </div>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <a href="/admin/dashboard/">Dashibodi</a>
+    <a href="/admin/students/" data-perm="manage_students">Wanafunzi</a>
+    <a href="/admin/leaders/" data-perm="__super_admin_only">Viongozi</a>
+    <a href="/admin/parliament/" class="active" data-perm="manage_parliament">Bunge (Wabunge)</a>
+    <a href="/admin/ministries/" data-perm="manage_ministries">Wizara</a>
+    <a href="/admin/categories/" data-perm="manage_categories">Makundi</a>
+    <a href="/admin/feedback/" data-perm="view_feedback">Maoni &amp; Malalamiko</a>
+    <a href="/admin/services/" data-perm="manage_services">Huduma</a>
+    <a href="/admin/announcements/" data-perm="manage_announcements">Matangazo</a>
+    <a href="/admin/documents/" data-perm="manage_documents">Nyaraka</a>
+    <a href="/admin/reports/" data-perm="manage_reports">Ripoti</a>
+    <a href="/admin/audit-logs/" data-perm="view_audit_logs">Kumbukumbu za ukaguzi</a>
+  </nav>
+  <main class="content">
+    <div id="gate" class="card"><p class="muted">Inathibitisha akaunti...</p></div>
+    <div id="denied" class="card hidden"><p class="err">Huna ruhusa ya kufikia moduli hii. Wasiliana na Msimamizi Mkuu.</p></div>
+
+    <div id="body" class="hidden">
+      <div class="pagehead">
+        <div class="accent"></div>
+        <h2>Bunge la RUCUSO (Wabunge)</h2>
+        <p>Ongeza, hariri, zima au futa wabunge. Wabunge amilifu huonekana kwenye ukurasa wa umma.</p>
+      </div>
+
+      <div class="statgrid">
+        <div class="card"><b id="pm_total">–</b><span>Jumla ya Wabunge</span></div>
+        <div class="card"><b id="pm_active">–</b><span>Amilifu</span></div>
+        <div class="card"><b id="pm_inactive">–</b><span>Wasio amilifu</span></div>
+      </div>
+
+      <div class="card hidden" id="formCard">
+        <h3 style="margin-top:0" id="formTitle">Ongeza Mbunge</h3>
+        <form id="pmForm" novalidate>
+          <input type="hidden" id="pm_id">
+          <input type="hidden" id="pm_photo_url">
+          <input type="hidden" id="pm_photo_path">
+          <div class="pm-form-grid">
+            <div class="full"><label for="pm_name">Jina kamili *</label><input id="pm_name" maxlength="120" autocomplete="off"></div>
+
+            <div class="full">
+              <label for="pm_photo">Picha ya wasifu</label>
+              <div class="pm-photo">
+                <div class="avatar" id="pm_preview" aria-hidden="true"></div>
+                <div>
+                  <input id="pm_photo" type="file" accept="image/jpeg,image/png,image/webp">
+                  <div class="muted" style="font-size:12px">JPG, PNG au WebP, isizidi 2MB.</div>
+                  <label class="pm-check" for="pm_removephoto"><input id="pm_removephoto" type="checkbox"> Ondoa picha iliyopo</label>
+                </div>
+              </div>
+            </div>
+
+            <div><label for="pm_constituency">Eneo analowakilisha (Jimbo)</label><input id="pm_constituency" maxlength="150" placeholder="mfano: Kitivo cha Sheria"></div>
+            <div><label for="pm_faculty">Kitivo</label><input id="pm_faculty" maxlength="150"></div>
+            <div><label for="pm_year">Mwaka wa masomo</label><input id="pm_year" maxlength="40" placeholder="mfano: Mwaka wa 3"></div>
+            <div><label for="pm_position">Nafasi / Wadhifa</label><input id="pm_position" maxlength="100" placeholder="mfano: Mbunge, Spika Msaidizi"></div>
+            <div class="full"><label for="pm_bio">Wasifu mfupi</label><textarea id="pm_bio" maxlength="1500" rows="4"></textarea></div>
+            <div><label for="pm_phone">Simu</label><input id="pm_phone" maxlength="30" inputmode="tel"></div>
+            <div><label for="pm_email">Barua pepe</label><input id="pm_email" type="email" maxlength="150"></div>
+            <div class="full">
+              <label class="pm-check" for="pm_contact_public"><input id="pm_contact_public" type="checkbox"> Onyesha simu/barua pepe hadharani kwenye ukurasa wa umma</label>
+              <div class="muted" style="font-size:12px">Ikiwa haijachaguliwa, mawasiliano yanaonekana kwa wasimamizi pekee.</div>
+            </div>
+            <div><label for="pm_order">Mpangilio (namba ndogo hutangulia)</label><input id="pm_order" type="number" min="0" max="9999" value="100"></div>
+            <div><label class="pm-check" for="pm_active_cb"><input id="pm_active_cb" type="checkbox" checked> Amilifu (aonekane hadharani)</label></div>
+          </div>
+          <div id="pm_msg"></div>
+          <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+            <button class="pri" type="submit" id="pm_saveBtn">HIFADHI</button>
+            <button class="sec" type="button" id="pm_cancelBtn">Ghairi</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="pm-toolbar">
+          <button class="pri" id="pm_addBtn" type="button">+ ONGEZA MBUNGE</button>
+          <input id="pm_search" type="search" placeholder="Tafuta jina, kitivo, jimbo..." autocomplete="off">
+          <select id="pm_filter">
+            <option value="all">Wote</option>
+            <option value="active">Amilifu</option>
+            <option value="inactive">Wasio amilifu</option>
+          </select>
+        </div>
+        <div id="pmList" class="rowlist"><p class="muted">Inapakia...</p></div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase/config.js" onerror="console.warn('supabase/config.js haipo.')"></script>
+<script src="/supabase/supabase-client.js"></script>
+<script src="/js/auth-guard.js"></script>
+<script>
+(async function () {
+  const $ = (id) => document.getElementById(id);
+  const session = await window.RucusoGuard.requireRole(["super_admin", "admin"], { loginUrl: "/admin/login/" });
+  if (!session) return;
+  const profile = session.profile;
+  const API = window.RucusoAPI;
+
+  $("gate").classList.add("hidden");
+  $("whoami").textContent = profile.full_name + " (" + profile.role + ")";
+  $("logoutBtn").addEventListener("click", () => window.RucusoGuard.logout("/"));
+  document.querySelectorAll("#sidebar a[data-perm]").forEach((a) => {
+    const perm = a.dataset.perm;
+    const allowed = perm === "__super_admin_only" ? profile.role === "super_admin" : window.RucusoGuard.hasPermission(profile, perm);
+    if (!allowed) a.remove();
+  });
+  // UI convenience only: RLS (has_permission('manage_parliament')) is the real gate.
+  if (!window.RucusoGuard.hasPermission(profile, "manage_parliament")) { $("denied").classList.remove("hidden"); return; }
+  $("body").classList.remove("hidden");
+
+  const MAX_PHOTO = 2 * 1024 * 1024;
+  let members = [];
+
+  function esc(v) {
+    return String(v == null ? "" : v)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+  function initials(name) {
+    return String(name || "?").trim().split(/\s+/).slice(0, 2).map((w) => w[0] || "").join("").toUpperCase();
+  }
+  function safeImg(url) { return /^https:\/\//i.test(url || "") ? url : ""; }
+  function audit(action, details) { try { API.logAction(action, details).catch(() => {}); } catch (e) { /* best effort */ } }
+  function msg(html) { $("pm_msg").innerHTML = html; }
+
+  function setPreview(url, name) {
+    const box = $("pm_preview");
+    const u = safeImg(url);
+    box.textContent = "";
+    if (u) {
+      const img = document.createElement("img");
+      img.alt = "";
+      img.src = u;
+      box.appendChild(img);
+    } else {
+      box.textContent = initials(name);
+    }
+  }
+
+  function updateStats() {
+    const active = members.filter((m) => m.active).length;
+    $("pm_total").textContent = members.length;
+    $("pm_active").textContent = active;
+    $("pm_inactive").textContent = members.length - active;
+  }
+
+  function render() {
+    const q = $("pm_search").value.trim().toLowerCase();
+    const f = $("pm_filter").value;
+    const rows = members.filter((m) => {
+      if (f === "active" && !m.active) return false;
+      if (f === "inactive" && m.active) return false;
+      if (!q) return true;
+      return [m.full_name, m.faculty, m.constituency, m.position, m.academic_year].join(" ").toLowerCase().includes(q);
+    });
+    const el = $("pmList");
+    if (!rows.length) {
+      el.innerHTML = '<div class="emptystate"><div class="glyph">🏛️</div><p>' +
+        (members.length ? "Hakuna mbunge anayelingana na utafutaji wako." : "Hakuna mbunge bado. Bonyeza “Ongeza Mbunge”.") + "</p></div>";
+      return;
+    }
+    el.innerHTML = rows.map((m) => {
+      const u = safeImg(m.photo_url);
+      return `
+      <div class="rowitem">
+        <div class="rowmain pm-row">
+          <div class="avatar">${u ? `<img data-photo="${esc(u)}" alt="">` : esc(initials(m.full_name))}</div>
+          <div>
+            <b>${esc(m.full_name)} <span class="pill ${m.active ? "ok" : "crit"}">${m.active ? "Amilifu" : "Si amilifu"}</span></b>
+            <span class="desc">${esc(m.position || "Mbunge")}${m.constituency ? " · " + esc(m.constituency) : ""}${m.faculty ? " · " + esc(m.faculty) : ""}${m.academic_year ? " · " + esc(m.academic_year) : ""}</span>
+          </div>
+        </div>
+        <div class="rowacts">
+          <a class="link" href="#" data-act="edit" data-id="${esc(m.id)}">Hariri</a>
+          <a class="link" href="#" data-act="toggle" data-id="${esc(m.id)}">${m.active ? "Zima" : "Washa"}</a>
+          <a class="link" href="#" data-act="remove" data-id="${esc(m.id)}">Futa</a>
+        </div>
+      </div>`;
+    }).join("");
+    el.querySelectorAll("img[data-photo]").forEach((i) => { i.src = i.dataset.photo; });
+  }
+
+  async function load() {
+    $("pmList").innerHTML = '<p class="muted">Inapakia...</p>';
+    try {
+      members = await API.listAllParliament();
+      updateStats();
+      render();
+    } catch (e) {
+      $("pmList").innerHTML = '<p class="err">' + esc(e.message || "Imeshindikana kupakia wabunge.") + "</p>";
+    }
+  }
+
+  function openForm(m) {
+    msg("");
+    $("pmForm").reset();
+    $("pm_id").value = m ? m.id : "";
+    $("pm_photo_url").value = m ? (m.photo_url || "") : "";
+    $("pm_photo_path").value = m ? (m.photo_path || "") : "";
+    $("pm_name").value = m ? m.full_name : "";
+    $("pm_constituency").value = m ? (m.constituency || "") : "";
+    $("pm_faculty").value = m ? (m.faculty || "") : "";
+    $("pm_year").value = m ? (m.academic_year || "") : "";
+    $("pm_position").value = m ? (m.position || "") : "";
+    $("pm_bio").value = m ? (m.biography || "") : "";
+    $("pm_phone").value = m ? (m.phone || "") : "";
+    $("pm_email").value = m ? (m.email || "") : "";
+    $("pm_contact_public").checked = m ? !!m.contact_public : false;
+    $("pm_order").value = m ? m.display_order : 100;
+    $("pm_active_cb").checked = m ? !!m.active : true;
+    $("formTitle").textContent = m ? "Hariri Mbunge" : "Ongeza Mbunge";
+    setPreview(m ? m.photo_url : "", m ? m.full_name : "");
+    $("formCard").classList.remove("hidden");
+    $("pm_name").focus();
+    $("formCard").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  function closeForm() { $("formCard").classList.add("hidden"); }
+
+  $("pm_addBtn").addEventListener("click", () => openForm(null));
+  $("pm_cancelBtn").addEventListener("click", closeForm);
+  $("pm_search").addEventListener("input", render);
+  $("pm_filter").addEventListener("change", render);
+
+  $("pm_photo").addEventListener("change", () => {
+    const f = $("pm_photo").files && $("pm_photo").files[0];
+    if (!f) { setPreview($("pm_photo_url").value, $("pm_name").value); return; }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(f.type) || f.size > MAX_PHOTO) {
+      msg('<p class="err">Chagua JPG, PNG au WebP isiyozidi 2MB.</p>');
+      $("pm_photo").value = "";
+      return;
+    }
+    msg("");
+    const box = $("pm_preview");
+    box.textContent = "";
+    const img = document.createElement("img");
+    img.alt = "";
+    img.src = URL.createObjectURL(f);
+    box.appendChild(img);
+  });
+
+  $("pmForm").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const btn = $("pm_saveBtn");
+    const id = $("pm_id").value;
+    const name = $("pm_name").value.trim();
+    const email = $("pm_email").value.trim();
+    if (name.length < 2) { msg('<p class="err">Weka jina kamili la mbunge.</p>'); $("pm_name").focus(); return; }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { msg('<p class="err">Barua pepe si sahihi.</p>'); $("pm_email").focus(); return; }
+    const order = parseInt($("pm_order").value, 10);
+
+    btn.disabled = true; btn.textContent = "Inahifadhi...";
+    msg("");
+    let uploaded = null;
+    try {
+      let photoUrl = $("pm_photo_url").value || null;
+      let photoPath = $("pm_photo_path").value || null;
+      const oldPath = photoPath;
+      let stale = null;
+      const file = $("pm_photo").files && $("pm_photo").files[0];
+
+      if ($("pm_removephoto").checked && !file) { stale = oldPath; photoUrl = null; photoPath = null; }
+      if (file) {
+        uploaded = await API.uploadImage(API.BUCKETS.parliament, "members", file, MAX_PHOTO);
+        stale = oldPath;
+        photoUrl = uploaded.url;
+        photoPath = uploaded.path;
+      }
+
+      const payload = {
+        full_name: name,
+        photo_url: photoUrl,
+        photo_path: photoPath,
+        constituency: $("pm_constituency").value.trim() || null,
+        faculty: $("pm_faculty").value.trim() || null,
+        academic_year: $("pm_year").value.trim() || null,
+        position: $("pm_position").value.trim() || null,
+        biography: $("pm_bio").value.trim() || null,
+        phone: $("pm_phone").value.trim() || null,
+        email: email || null,
+        contact_public: $("pm_contact_public").checked,
+        display_order: Number.isFinite(order) ? Math.max(0, Math.min(9999, order)) : 100,
+        active: $("pm_active_cb").checked,
+      };
+
+      if (id) {
+        await API.updateParliamentMember(id, payload);
+        audit("Parliament Member Updated", name);
+      } else {
+        payload.created_by = profile.id || null;
+        await API.createParliamentMember(payload);
+        audit("Parliament Member Added", name);
+      }
+      uploaded = null; // saved: the new file is now referenced
+      if (stale) API.removeFile(API.BUCKETS.parliament, stale).catch(() => {});
+      closeForm();
+      await load();
+    } catch (e) {
+      // Save failed after the photo was uploaded: do not leave an orphan.
+      if (uploaded) API.removeFile(API.BUCKETS.parliament, uploaded.path).catch(() => {});
+      msg('<p class="err">' + esc(e.message || "Imeshindikana kuhifadhi.") + "</p>");
+    } finally {
+      btn.disabled = false; btn.textContent = "HIFADHI";
+    }
+  });
+
+  $("pmList").addEventListener("click", async (ev) => {
+    const a = ev.target.closest("a[data-act]");
+    if (!a) return;
+    ev.preventDefault();
+    const m = members.find((x) => x.id === a.dataset.id);
+    if (!m) return;
+    try {
+      if (a.dataset.act === "edit") { openForm(m); return; }
+      if (a.dataset.act === "toggle") {
+        await API.updateParliamentMember(m.id, { active: !m.active });
+        audit(m.active ? "Parliament Member Deactivated" : "Parliament Member Activated", m.full_name);
+        await load();
+        return;
+      }
+      if (a.dataset.act === "remove") {
+        if (!confirm('Futa "' + m.full_name + '" kabisa kutoka Bunge? Kitendo hiki hakiwezi kutenduliwa.')) return;
+        await API.deleteParliamentMember(m.id);
+        audit("Parliament Member Deleted", m.full_name);
+        if (m.photo_path) API.removeFile(API.BUCKETS.parliament, m.photo_path).catch(() => {});
+        await load();
+      }
+    } catch (e) {
+      alert(e.message || "Imeshindikana.");
+    }
+  });
+
+  await load();
+})();
+</script>
+</body>
+</html>

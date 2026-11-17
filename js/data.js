@@ -109,6 +109,7 @@
     positions: [],        // flat tier+position rows from leadership_hierarchy()
     services: [],
     announcements: [],
+    parliament: [],
     documents: [],
     programmes: [],
     feedback: [],         // staff only
@@ -244,7 +245,24 @@
       author: r.author?.full_name || "",
       author_id: r.author || null,
       image: r.image_url || "",
+      imagePath: r.image_path || "",
+      status: r.status || "published",
+      featured: !!r.featured,
       createdAt: r.created_at,
+    };
+  }
+  function mapParliament(r) {
+    return {
+      id: r.id,
+      name: r.full_name,
+      photo: r.photo_url || "",
+      constituency: r.constituency || "",
+      faculty: r.faculty || "",
+      academicYear: r.academic_year || "",
+      position: r.position || "",
+      bio: r.biography || "",
+      phone: r.phone || "",
+      email: r.email || "",
     };
   }
   function mapDocument(r) {
@@ -551,6 +569,11 @@
     await refreshServices();
   }
 
+  // ---------- parliament (public, read-only) ----------
+  async function refreshParliament() {
+    DB.parliament = (await API.listParliament()).map(mapParliament);
+  }
+
   // ---------- announcements ----------
   async function refreshAnnouncements() {
     const rows = DB.session ? await API.listAllAnnouncements() : await API.listAnnouncements();
@@ -712,7 +735,7 @@
     refreshHierarchy, positionLabel, positionsByTier,
     refreshMinistries, saveMinistry, updateMinistryDetails, toggleMinistry, removeMinistry,
     refreshServices, saveService, toggleService, removeService,
-    refreshAnnouncements, saveAnnouncement, removeAnnouncement,
+    refreshAnnouncements, saveAnnouncement, removeAnnouncement, refreshParliament,
     refreshDocuments, saveDocument, removeDocument,
     refreshStudents, saveStudent, importStudents, clearStudents,
     refreshStudentsFull, saveStudentFull, setStudentStatus, deleteStudentRow,

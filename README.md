@@ -30,7 +30,8 @@ device is visible on every other device immediately.
 | `/admin/login/` | Sign in | public |
 | `/admin/dashboard/` | Totals and breakdowns | super_admin, admin |
 | `/admin/feedback/` | Manage feedback/maoni | super_admin, admin |
-| `/admin/announcements/` | Publish and expire announcements | super_admin, admin |
+| `/admin/announcements/` | Create/edit/delete announcements, image upload, draft/schedule/publish, featured | super_admin, admin (manage_announcements) |
+| `/admin/parliament/` | Parliament (Wabunge) members: photo, constituency, faculty, year, role, bio, contact, active | super_admin, admin (manage_parliament) |
 | `/admin/documents/` | Upload and manage documents | super_admin, admin |
 | `/admin/students/` | Student records | super_admin, admin |
 | `/admin/ministries/` | Ministries (Wizara) | super_admin, admin |
@@ -469,3 +470,15 @@ toast. Nothing is ever written to `localStorage`.
 
 - Built for Ruaha Catholic University Students' Organization (RUCUSO).
 - Vanilla HTML/CSS/JS and Supabase (Postgres, Auth, Storage, Edge Functions).
+
+
+## Migration 018 — announcements + Parliament
+
+Run `supabase/migrations/018_announcement_management_and_parliament.sql` once in the
+Supabase SQL editor. It is additive: existing announcements keep showing (status defaults to
+`published`). It adds announcement `status`/`featured`/`image_path`, the validated
+`save_announcement()` RPC, the `parliament_members` table with the `public_parliament_members`
+view (phone/email are public only when `contact_public` is ticked), the `announcement-images`
+and `parliament-photos` buckets, and a MIME allow-list (JPG/PNG/WebP, no SVG) on the public
+`leader-photos` and `rucu-documents` buckets. Admins need the `manage_parliament` permission
+to manage Parliament; super_admin has it implicitly.
