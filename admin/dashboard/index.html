@@ -22,6 +22,7 @@
   <nav class="sidebar" id="sidebar">
     <a href="/admin/dashboard/" class="active">Dashibodi</a>
     <a href="/admin/students/" data-perm="manage_students">Wanafunzi</a>
+    <a href="/admin/chat/" data-perm="manage_feedback">Maombi ya Chat</a>
     <a href="/admin/heslb/" data-perm="__heslb_manager">Wanufaika wa HESLB</a>
     <a href="/admin/sms/" data-perm="__heslb_manager">SMS kwa Wanufaika</a>
     <a href="/admin/leaders/" data-perm="__super_admin_only">Viongozi</a>
@@ -56,6 +57,11 @@
         <div class="card"><b id="s_pending">–</b><span>Yanayosubiri</span></div>
         <div class="card"><b id="s_resolved">–</b><span>Yaliyotatuliwa</span></div>
       </div>
+      <section class="card" id="chatApprovalShortcut" aria-labelledby="chatApprovalHeading" hidden>
+        <h3 id="chatApprovalHeading">Wanafunzi wanaosubiri kuingia kwenye chat</h3>
+        <p id="chatPendingCount" role="status" aria-live="polite">Inapakia maombi…</p>
+        <p><a class="btn btn--primary" href="/admin/chat/">Approve / Idhinisha wanafunzi wa chat →</a></p>
+      </section>
       <section class="card" aria-labelledby="mgmtHeading">
         <h3 id="mgmtHeading" style="margin-top:0">Usimamizi wa Maudhui</h3>
         <div class="statgrid">
@@ -109,6 +115,7 @@
 <script src="/supabase/config.js" onerror="console.warn('supabase/config.js haipo.')"></script>
 <script src="/supabase/supabase-client.js"></script>
 <script src="/js/auth-guard.js"></script>
+<script src="/js/admin-chat-shortcut.js"></script>
 <script>
 (async function () {
   const session = await window.RucusoGuard.requireRole(["super_admin", "admin"], { loginUrl: "/admin/login/" });
