@@ -1,0 +1,15 @@
+.sports-fieldset { border:1px solid var(--border); border-radius:12px; padding:20px; margin-block:28px; }
+.sports-fieldset legend { font-weight:700; padding-inline:8px; }
+.sports-options { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; }
+.sports-choice,.sports-count { display:flex; align-items:center; gap:12px; padding:14px; border:1px solid var(--border); border-radius:10px; background:var(--surface); }
+.sports-choice { cursor:pointer; }
+.sports-choice input { width:18px; height:18px; flex-shrink:0; accent-color:var(--text-strong); }
+.sports-choice:has(input:checked) { border-color:var(--text-strong); background:var(--bg-alt); }
+.sports-count { justify-content:space-between; }
+.sports-table-wrap { overflow-x:auto; margin-block:20px; }
+.sports-table { border-collapse:collapse; width:100%; font-size:.8125rem; }
+.sports-table th,.sports-table td { border-bottom:1px solid var(--border); padding:12px; text-align:left; vertical-align:top; }
+.sports-table th { background:var(--bg-alt); }
+.sports-table td { min-width:90px; overflow-wrap:anywhere; }
+.sports-table td:first-child { min-width:180px; }
+#sports-form[hidden],#sports-admin-panel[hidden],#sports-settings-panel[hidden] { display:none; }

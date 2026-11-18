@@ -309,6 +309,7 @@ const PUBLIC_NAV = [
   ["sec-services", "Huduma"],
   ["sec-study", "Study Hub"],
   ["sec-community", "Jumuiya"],
+  ["sec-sports", "Michezo"],
   ["sec-announcements", "Matangazo"],
   ["sec-leadership", "Uongozi"],
   ["sec-parliament", "Bunge"],

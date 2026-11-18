@@ -586,3 +586,43 @@ first-year feedback and the year 2–4 redirects. Use two student auth accounts 
 check pending/approved/suspended chat access and moderation. No production data or
 leader credentials are needed for the bundled local tests. This migration has to
 be applied and live RLS/Auth behavior verified on the target Supabase project.
+
+
+## Current-event sports registration (migration 021)
+
+Apply `supabase/migrations/021_sports_registration.sql` to enable `/sports/` and
+`/admin/sports/`. This is one current event, not a permanent talent registry.
+No sports approval or Google sign-in is required for student registration.
+
+The form collects first/middle/last name, a normalized RU/ registration number,
+phone, course, year 1–4, gender and one or more of the ten supplied sports. A
+unique registration number prevents duplicate entries. The RU/ shape check is
+not an enrolment database check. Each student is one registration, with multiple
+sports selections; the total student count does not add those selections twice.
+All student data is private under RLS and the roster RPC. Only an active leader
+with `position=minister` in the configured sports ministry, or a super admin,
+can see or export students. Deputies, secretaries and ordinary admins are denied,
+even if they have permissions for other modules. Public RPC returns only event
+metadata, sport labels and aggregate counts.
+
+The migration reuses an active ministry containing `michezo`/`sport`, or creates
+Wizara ya Michezo. Super admin must verify the routing ministry on `/admin/sports/`
+and assign the real sports minister's existing leader account to that ministry.
+Only super admin can change the title, open/close registration or set a deadline.
+Deadline input is interpreted in Africa/Dar_es_Salaam (UTC+03:00); leave blank to
+close manually. Registration starts open with no invented deadline. The event row
+is locked during submission so closure/duplicates cannot be bypassed by races.
+The shared daily queue cap is 5,000 sign-ups; it is not per-IP throttling.
+
+The minister and super admin can filter by sport, gender, course substring and
+year. Both exports fetch ALL matching rows in pages of 250, rather than exporting
+only the visible page. Excel is a real .xlsx OOXML workbook with text cells, so
+phone zeros and registration numbers survive, and values cannot become formulas.
+PDF uses jsPDF 4.2.1, A4 landscape, wrapped rows, repeated headers and page numbers.
+The PDF library loads from jsDelivr; Excel generation has no external library.
+Keep exported student lists private and use them only for organizing this event.
+
+Local checks cover intake/duplicates/closure, multi-sport selection, restricted
+roster access, multi-page filtered export, XLSX parsing (openpyxl), and PDF page
+layout. Apply SQL and verify real roles/exports against the target project before
+sharing the public registration link.

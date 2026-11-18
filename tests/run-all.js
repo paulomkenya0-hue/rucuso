@@ -38,7 +38,7 @@ console.log("=".repeat(60));
 // index.html, so they have to parse as scripts. They are NOT ES modules and
 // must not be added to a module list if one is ever introduced — the site has
 // no bundler and no import map, so `export` would fail to resolve at runtime.
-const standalone = ["js/admin-chat.js", "js/admin-chat-shortcut.js", "js/community-common.js", "js/community.js", "js/student-services-staff.js", "js/study.js", "js/app.js", "js/data.js", "supabase/supabase-client.js", "js/auth-guard.js", "js/config.js", "js/verify-ux.js", "js/tilt.js", "js/map.js"];
+const standalone = ["js/sports.js", "js/sports-admin.js", "js/sports-exports.js", "js/admin-chat.js", "js/admin-chat-shortcut.js", "js/community-common.js", "js/community.js", "js/student-services-staff.js", "js/study.js", "js/app.js", "js/data.js", "supabase/supabase-client.js", "js/auth-guard.js", "js/config.js", "js/verify-ux.js", "js/tilt.js", "js/map.js"];
 const os = require("os");
 let syntaxFailures = 0;
 
