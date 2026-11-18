@@ -626,3 +626,38 @@ Local checks cover intake/duplicates/closure, multi-sport selection, restricted
 roster access, multi-page filtered export, XLSX parsing (openpyxl), and PDF page
 layout. Apply SQL and verify real roles/exports against the target project before
 sharing the public registration link.
+
+
+## Education feedback
+
+Apply `supabase/migrations/023_education_feedback.sql` in the Supabase SQL editor,
+then deploy the frontend. Public intake and secret-code tracking are at
+`/education/`; the private inbox is at `/admin/education/`.
+
+Only an active super admin and the active Education minister (leader role,
+minister position, configured Education ministry) can read and respond. Deputies,
+secretaries, ordinary admins and other ministries cannot access the inbox.
+Super admin must verify the Education ministry routing in the inbox settings and
+assign the real minister's existing leader account to that ministry.
+
+Anyone may submit manually as Student, CR, MP or Minister. A selected role is
+self-declared until verified against the signed-in account. Super admin can link
+an existing auth account UUID to a checked CR or an existing active Parliament
+member. The public page displays the signed-in user's account ID for this setup.
+Minister verification uses the active staff profile. A verified role does not
+verify enrollment or every contact field; previous submissions retain their
+original verification snapshot. No role selection grants inbox privileges.
+
+Optional Google sign-in requires `https://rucuso.online/education/` in the
+Supabase Auth redirect allowlist. Submission itself does not require Google or
+chat membership. Evidence is an optional HTTPS link, not a file upload. Keep
+reference and secret token together to track status and replies. The shared
+submission cap is 500 per day, not per-IP throttling or a response-time promise.
+
+Run `node tests/run-all.js` for frontend/contract checks. The optional isolated
+PostgreSQL test uses fabricated data only: set `RUCUSO_PGLITE_PATH` to an installed
+`@electric-sql/pglite` package and run
+`node tests/education-postgres.integration.js`. It checks migration repeatability,
+real database roles/RLS, restricted RPCs, forged role claims, account links,
+secret tracking, replies and closure. Production SQL and accounts must still be
+configured in the target project.

@@ -1,0 +1,7 @@
+.education-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-block:24px; }
+.education-tabs button[aria-pressed="true"] { background:var(--text-strong); color:var(--surface); border-color:var(--text-strong); }
+.education-entry p { white-space:pre-wrap; overflow-wrap:anywhere; }
+.education-badge { display:inline-block; padding:5px 10px; border:1px solid var(--border-strong); border-radius:20px; font-size:.75rem; margin-block:8px; }
+.education-entry form { display:grid; gap:12px; margin-top:20px; }
+.education-entry select { width:100%; padding:10px; color:var(--text); background:var(--surface); border:1px solid var(--border-strong); border-radius:8px; font:inherit; }
+#education-inbox[hidden],#education-settings-panel[hidden],#education-registry-panel[hidden],#education-form[hidden] { display:none; }
