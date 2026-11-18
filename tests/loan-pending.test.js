@@ -19,8 +19,8 @@ async function setup({admin=false,allowed=true,open=true,role='leader',settingsF
 (async()=>{
  const s=await setup(),f=s.$('loan-form'),common=s.window.RucusoLoanPending;assert.equal(f.hidden,false);assert.equal(s.$('loan-other-label').hidden,true);
  await f.events.submit({preventDefault(){}});const p=s.calls.find(c=>c.name==='submit_loan_pending_sample').args.p_payload;
- assert.equal(p.account_number,'0152000000001');assert.equal(p.full_name,'Sample Student Name');assert.equal(p.registration_number,'RU/BAFIT/2024/007');assert.equal(p.index_number,'S1234.0001.2024');assert.deepEqual(Object.keys(p).sort(),['account_number','bank','bank_other','consent','full_name','index_number','registration_number']);
- assert.equal(common.validate({...p,index_number:'P1234.0001.2024'}),'');assert(common.validate({...p,index_number:'S/P1234.0001.2024'}));assert(common.validate({...p,full_name:'Two Names'}));assert(common.validate({...p,account_number:'012X'}));
+ assert.equal(p.account_number,'0152000000001');assert.equal(common.validate({...p,account_number:'015000AHGJ500'}),'');assert.equal(common.validate({...p,account_number:'015000ahgj500'}),'');assert.equal(p.full_name,'Sample Student Name');assert.equal(p.registration_number,'RU/BAFIT/2024/007');assert.equal(p.index_number,'S1234.0001.2024');assert.deepEqual(Object.keys(p).sort(),['account_number','bank','bank_other','consent','full_name','index_number','registration_number']);
+ assert.equal(common.validate({...p,index_number:'P1234.0001.2024'}),'');assert(common.validate({...p,index_number:'S/P1234.0001.2024'}));assert(common.validate({...p,full_name:'Two Names'}));assert(common.validate({...p,account_number:'012@ABC'}));
  f.elements.bank.value='OTHER';f.elements.bank.events.change();assert.equal(s.$('loan-other-label').hidden,false);assert.equal(f.elements.bank_other.required,true);assert.equal(f.elements.bank_other.disabled,false);
  const closed=await setup({open:false});await closed.$('loan-form').events.submit({preventDefault(){}});assert(!closed.calls.some(c=>c.name==='submit_loan_pending_sample'));
  const denied=await setup({admin:true,allowed:false});assert.equal(denied.$('loan-inbox').hidden,true);assert(!denied.calls.some(c=>c.name==='list_loan_pending_samples'));
@@ -30,11 +30,11 @@ async function setup({admin=false,allowed=true,open=true,role='leader',settingsF
  for(const[html,js]of [['loan-pending/index.html','js/loan-pending.js'],['admin/loan-pending/index.html','js/loan-pending-admin.js']]){const h=fs.readFileSync(html,'utf8'),j=fs.readFileSync(js,'utf8');const ids=[...h.matchAll(/id="([^"]+)"/g)].map(m=>m[1]);assert.equal(ids.length,new Set(ids).size);for(const m of j.matchAll(/\$\('([^']+)'\)/g))assert(ids.includes(m[1]),html+' missing '+m[1]);assert(!j.includes('innerHTML'));assert(!j.includes('localStorage'));}
  // Verify real XLSX text cells preserve leading zeros and prevent formula execution.
  const w={};vm.runInNewContext(fs.readFileSync('js/loan-pending-exports.js','utf8'),{window:w,TextEncoder,Uint8Array,DataView});
- const bytes=w.RucusoLoanPendingExports.xlsx([{full_name:'=Sample Student Name',registration_number:'RU/TEST/2024/007',index_number:'P1234.0001.2024',bank:'OTHER',bank_other:'Other Bank',account_number:'0152000000001'}],'Samples','All');
+ const bytes=w.RucusoLoanPendingExports.xlsx([{full_name:'=Sample Student Name',registration_number:'RU/TEST/2024/007',index_number:'P1234.0001.2024',bank:'OTHER',bank_other:'Other Bank',account_number:'015000AHGJ500'}],'Samples','All');
  const parsed=cp.spawnSync(process.env.PYTHON||'python',['-c',`import io,sys,zipfile,xml.etree.ElementTree as E
 z=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read()));r=E.fromstring(z.read('xl/worksheets/sheet1.xml'));ns={'s':'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
 cells={c.attrib['r']:c for c in r.findall('.//s:c',ns)}
-assert cells['F4'].find('s:is/s:t',ns).text=='0152000000001'
+assert cells['F4'].find('s:is/s:t',ns).text=='015000AHGJ500'
 assert cells['B4'].find('s:is/s:t',ns).text=='=Sample Student Name'
 assert all(c.attrib['t']=='inlineStr' and c.find('s:f',ns) is None for c in cells.values())`],{input:Buffer.from(bytes),encoding:'utf8'});assert.equal(parsed.status,0,parsed.stderr);
  console.log('Pending samples: exact intake fields, S/P validation, bank selection, account zeros, closure, access gate, safe text, masked/revealed accounts, independent settings, multi-page export and real XLSX checks passed.');

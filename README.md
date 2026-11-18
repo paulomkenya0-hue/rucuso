@@ -706,3 +706,11 @@ It tests direct-table and RPC denial, exact roles, validation, S/P formats,
 duplicate non-overwrite, account zeros, reveal/export logs, multi-page exports,
 closure, active ministry checks and idempotent migration. Apply production SQL
 and configure accounts in the target project before distributing the link.
+
+### Alphanumeric bank accounts
+
+Apply `025_loan_account_alphanumeric.sql` after migration 024. Account identifiers
+accept 6–30 ASCII letters/digits, including `015000AHGJ500`; numeric-only accounts
+remain supported. Input and exports keep text values and leading zeros. The fix
+updates the database CHECK and intake RPC as well as browser validation; it does
+not overwrite existing reports or change who can read them.
