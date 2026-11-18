@@ -2090,10 +2090,6 @@ async function renderAnnouncements() {
   const feat = document.getElementById("annFeatured");
   const list = document.getElementById("annList");
   if (!feat || !list) return;
-  const create = document.getElementById("annCreateCard");
-  if (create) create.classList.toggle("hidden", !DB.session);
-  const pub = document.getElementById("an_publish");
-  if (pub && !pub.value) pub.value = todayISO();
   feat.innerHTML = '<div class="skeleton skel-card" style="height:100%"></div>';
   list.innerHTML = skeleton(3);
   try {
@@ -2107,7 +2103,7 @@ async function renderAnnouncements() {
   }
   const today = todayISO();
   const visible = DB.announcements
-    .filter((a) => (!a.publishDate || a.publishDate <= today) && (!a.expiryDate || a.expiryDate >= today))
+    .filter((a) => a.status === "published" && (!a.publishDate || a.publishDate <= today) && (!a.expiryDate || a.expiryDate >= today))
     .sort((a, b) => (Number(b.featured) - Number(a.featured)) || (new Date(b.createdAt) - new Date(a.createdAt)));
   visibleAnns = visible;
   const ticker = document.getElementById("announcementTicker");
@@ -2116,16 +2112,6 @@ async function renderAnnouncements() {
     ticker.hidden = visible.length === 0;
     if (visible.length) tickerButton.textContent = `${visible[0].title} · ${new Date(visible[0].createdAt).toLocaleDateString("sw-TZ")}`;
   }
-
-  // A remove control for every announcement, and only for a signed-in admin.
-  // It sits *beside* the card rather than inside it: the cards are <button>
-  // elements, and a button cannot legally contain another button. The delete
-  // itself still goes through D.removeAnnouncement, so Supabase RLS remains
-  // the real gate even if this markup is tampered with.
-  const adminRow = (a) => DB.session
-    ? '<div class="annadmin"><span class="annadmin__label">Msimamizi</span>'
-      + '<button class="link link--danger" type="button" onclick="removeAnnouncement(\'' + a.id + '\')">Ondoa</button></div>'
-    : "";
 
   if (!visible.length) {
     feat.innerHTML = '<div class="annfeature"><span class="annfeature__label">Matangazo</span>'
@@ -2146,7 +2132,7 @@ async function renderAnnouncements() {
         <span class="muted" style="font-size:var(--fs-xs)">${esc(first.audience || "Wanafunzi Wote")} · ${new Date(first.createdAt).toLocaleDateString()}</span>
         <span class="servicecard__cta">Soma zaidi ${navIcon("M5 12h14M13 6l6 6-6 6")}</span>
       </span>
-    </button>` + adminRow(first);
+    </button>`;
 
   list.innerHTML = rest.map((a, i) => `
     <div class="annitemwrap">
@@ -2156,35 +2142,7 @@ async function renderAnnouncements() {
         <span class="annitem__excerpt">${esc(a.description)}</span>
         <span class="muted" style="font-size:var(--fs-xs)">${a.category ? esc(a.category) + " · " : ""}${esc(a.audience || "Wanafunzi Wote")} · ${new Date(a.createdAt).toLocaleDateString()}</span>
       </button>
-      ${adminRow(a)}
     </div>`).join("");
-}
-
-async function addAnnouncement(ev) {
-  const btn = ev && ev.currentTarget;
-  const title = document.getElementById("an_title").value.trim();
-  const desc = document.getElementById("an_desc").value.trim();
-  if (!title || !desc) { D.toast("Weka kichwa na maelezo.", "err"); return; }
-  busy(btn, true, "Inachapisha...");
-  try {
-    await D.saveAnnouncement({
-      title, description: desc,
-      category: document.getElementById("an_cat").value.trim(),
-      audience: document.getElementById("an_audience").value.trim() || "Wanafunzi Wote",
-      publishDate: document.getElementById("an_publish").value || todayISO(),
-      expiryDate: document.getElementById("an_expiry").value || null,
-    });
-    ["an_title", "an_desc", "an_cat", "an_publish", "an_expiry"].forEach((id) => { document.getElementById(id).value = ""; });
-    document.getElementById("an_audience").value = "Wanafunzi Wote";
-    document.getElementById("an_publish").value = todayISO();
-    await renderAnnouncements();
-    D.toast("Tangazo limechapishwa.");
-  } catch (e) { D.toast(D.errText(e), "err"); } finally { busy(btn, false); }
-}
-
-async function removeAnnouncement(id) {
-  if (!confirm("Ondoa tangazo hili?")) return;
-  try { await D.removeAnnouncement(id); await renderAnnouncements(); } catch (e) { D.toast(D.errText(e), "err"); }
 }
 
 // ---------- Ministries ----------
@@ -2972,9 +2930,8 @@ async function boot() {
     renderHomeSections();
   }
 
-  if (DB.session) {
-    try { await D.loadAdmin(); } catch (e) { D.toast(D.errText(e), "err"); }
-  }
+  // Public startup never preloads private staff records. Protected legacy
+  // views load their own records only when an authorized user opens them.
 }
 
 window.addEventListener("popstate", restoreRouteFromHistory);

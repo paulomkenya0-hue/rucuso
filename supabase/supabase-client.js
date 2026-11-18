@@ -150,10 +150,13 @@
     },
 
     async currentSession() {
-      const { data: { session } } = await client.auth.getSession();
+      const { data, error: sessionError } = await client.auth.getSession();
+      if (sessionError) throw friendlyError(sessionError);
+      const session = data.session;
       if (!session) return null;
-      const { data: profile } = await client
+      const { data: profile, error: profileError } = await client
         .from("profiles").select("*").eq("id", session.user.id).maybeSingle();
+      if (profileError) throw friendlyError(profileError);
       return { user: session.user, profile };
     },
 
@@ -633,12 +636,14 @@
     },
 
     // ---------------- Announcements ----------------
-    // RLS already hides anything not yet published or already expired, so the
-    // public list needs no date filter here.
+    // Public homepage remains read-only, even when the visitor is staff.
     async listAnnouncements() {
-      return ok(await client
-        .from("announcements")
-        .select("*, author:profiles(full_name)")
+      const today = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Africa/Dar_es_Salaam", year: "numeric", month: "2-digit", day: "2-digit",
+      }).format(new Date());
+      return ok(await client.from("announcements")
+        .select("*, author:profiles(full_name)").eq("status", "published")
+        .lte("publish_date", today).or(`expiry_date.is.null,expiry_date.gte.${today}`)
         .order("created_at", { ascending: false }));
     },
     async listAllAnnouncements() {

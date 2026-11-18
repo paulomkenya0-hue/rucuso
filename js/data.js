@@ -333,15 +333,23 @@
 
   // ---------- session ----------
   async function setSession(session) {
-    DB.session = session
-      ? {
-          uid: session.user.id,
-          email: session.user.email,
-          name: session.profile?.full_name || session.user.email,
-          role: session.profile?.role || "officer",
-        }
-      : null;
-    if (DB.session) await audit("Login", DB.session.email);
+    const profile = session?.profile;
+    const staff = !!(session?.user?.id && profile?.active === true &&
+      ["super_admin", "admin", "leader"].includes(profile.role) && !profile.must_change_password);
+    DB.session = staff ? {
+      uid: session.user.id, email: session.user.email,
+      name: profile.full_name || session.user.email, role: profile.role,
+      position: profile.position || null, permissions: profile.permissions || {},
+    } : null;
+    if (!staff) {
+      DB.feedback = []; DB.staff = []; DB.auditLog = []; DB.adminLoaded = false;
+      DB.studentCount = 0;
+      DB.studentsPage = { rows: [], count: 0, page: 1, pageSize: 100 };
+      DB.studentFilterOptions = { programmes: [], faculties: [], years: [] };
+    }
+    if (staff) {
+      try { await audit("Login", DB.session.email); } catch (_) { /* audit failure must not block valid staff */ }
+    }
   }
 
   // ---------- audit ----------
@@ -576,7 +584,7 @@
 
   // ---------- announcements ----------
   async function refreshAnnouncements() {
-    const rows = DB.session ? await API.listAllAnnouncements() : await API.listAnnouncements();
+    const rows = await API.listAnnouncements();
     DB.announcements = rows.map(mapAnnouncement);
   }
   async function saveAnnouncement(a) {

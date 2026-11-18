@@ -65,14 +65,18 @@
       if(!feedback)$('case-kind').querySelector('[value="first_year_feedback"]').remove();
       for(const id of ['case-kind','case-state'])$(id).addEventListener('change',()=>loadCases(true).catch(e=>notice(error(e))));
       $('case-refresh').addEventListener('click',()=>loadCases(true).catch(e=>notice(error(e))));$('case-more').addEventListener('click',()=>loadCases(false).catch(e=>notice(error(e))));
-      await loadCases(true);
+      try { await loadCases(true); } catch (e) {
+        $('case-list').replaceChildren(el('p',error(e),'notice'));
+      }
       async function unread(){const r=await client.from('student_cases').select('id',{count:'exact',head:true}).eq('status','submitted');if(!r.error)$('staff-inbox').textContent=`Ripoti mpya zinazokusubiri: ${r.count}`;}
-      await unread();const timer=setInterval(()=>{if(!document.hidden)unread();},30000);window.addEventListener('pagehide',()=>clearInterval(timer));
+      await unread().catch(()=>{});const timer=setInterval(()=>{if(!document.hidden)unread().catch(()=>{});},30000);window.addEventListener('pagehide',()=>clearInterval(timer));
     }
     if(moderator){
       $('membership-panel').hidden=false;$('moderation-panel').hidden=false;
       $('member-state').addEventListener('change',()=>loadMembers(true).catch(e=>notice(error(e))));$('member-more').addEventListener('click',()=>loadMembers(false).catch(e=>notice(error(e))));
-      $('moderation-refresh').addEventListener('click',()=>loadModeration().catch(e=>notice(error(e))));await loadMembers(true);await loadModeration();
+      $('moderation-refresh').addEventListener('click',()=>loadModeration().catch(e=>notice(error(e))));
+      try { await loadMembers(true); } catch(e) { $('member-list').replaceChildren(el('p',error(e),'notice')); }
+      try { await loadModeration(); } catch(e) { $('moderation-messages').replaceChildren(el('p',error(e),'notice')); }
     }
     if(session.profile.role==='super_admin'){
       const [settings,ministries]=await Promise.all([client.from('student_service_settings').select('security_ministry_id').single(),client.from('ministries').select('id,name').eq('active',true).order('name')]);if(settings.error)throw settings.error;if(ministries.error)throw ministries.error;

@@ -15,15 +15,15 @@ class Node{
 }
 const flush=()=>new Promise(r=>setImmediate(r));
 const one={full_name:'Paulo Mkenya Gaitirya',registration_number:'RU/BAFIT/2024/007',phone:'0712345678',course:'BAFIT',study_year:2,gender:'male',sports:['Netball','Volleyball']};
-async function setup({admin=false,allowed=true,open=true,error=null}={}){
+async function setup({admin=false,allowed=true,open=true,error=null,role="leader",settingsFail=false}={}){
  const nodes={},calls=[],blobs=[];const $=id=>nodes[id]||=new Node();
  const fields={};for(const key of ['filter_sport','filter_gender','filter_course','filter_year'])fields[key]=new Node();
  const form=$('sports-form');form.elements={};Object.entries({first_name:'Paulo',middle_name:'Mkenya',last_name:'Gaitirya',registration_number:' ru / bafit / 2024 / 007 ',phone:'0712 345 678',course:'BAFIT',study_year:'2',gender:'male'}).forEach(([k,v])=>{form.elements[k]=new Node();form.elements[k].value=v;});form.checked=[{value:'netball'},{value:'volleyball'}];
  const data=Array.from({length:305},(_,i)=>({...one,id:String(i),full_name:'Student '+i}));
  const info={title:'RUCUSO Sports',is_open:open,total_students:305,sports:[{code:'netball',label:'Netball',count:305},{code:'volleyball',label:'Volleyball',count:1}]};
- const client={rpc:async(name,args)=>{calls.push({name,args});if(name==='can_manage_sports')return{data:allowed,error:null};if(name==='sports_public_info')return{data:info,error:null};if(name==='sports_roster')return{data:{total:data.length,rows:data.slice(args.p_offset,args.p_offset+args.p_limit)},error:null};if(name==='register_sports')return{data:{reference:'SPORT-123',sports_count:2},error};return{data:null,error:null};}};
+ const client={from(table){const q={select(){return q;},eq(){return q;},single:async()=>({data:null,error:{message:'Settings unavailable'}}),order:async()=>({data:[],error:null})};return q;},rpc:async(name,args)=>{calls.push({name,args});if(name==='can_manage_sports')return{data:allowed,error:null};if(name==='sports_public_info')return{data:info,error:null};if(name==='sports_roster')return{data:{total:data.length,rows:data.slice(args.p_offset,args.p_offset+args.p_limit)},error:null};if(name==='register_sports')return{data:{reference:'SPORT-123',sports_count:2},error};return{data:null,error:null};}};
  const document={getElementById:$,createElement:t=>new Node(t),querySelector:q=>fields[q.match(/name="([^"]+)/)[1]],body:new Node('body')};
- const window={RucusoAPI:{client},RucusoGuard:{requireRole:async roles=>{calls.push({name:'roles',roles});return{profile:{role:'leader'}};}}};
+ const window={RucusoAPI:{client},RucusoGuard:{requireRole:async roles=>{calls.push({name:'roles',roles});return{profile:{role,full_name:'Test staff'}};}}};
  const ctx={window,document,TextEncoder,Uint8Array,DataView,Blob,URL:{createObjectURL:b=>{blobs.push(b);return'blob:example';},revokeObjectURL(){}},setTimeout:()=>{},console};
  vm.runInNewContext(common,ctx);vm.runInNewContext(exportsCode,ctx);vm.runInNewContext(fs.readFileSync(admin?'js/sports-admin.js':'js/sports.js','utf8'),ctx);await flush();return{$,fields,calls,form,blobs,window,ctx};
 }
@@ -35,6 +35,7 @@ async function setup({admin=false,allowed=true,open=true,error=null}={}){
  const closed=await setup({open:false});assert.equal(closed.form.hidden,true);await closed.form.events.submit({preventDefault(){}});assert(!closed.calls.some(x=>x.name==='register_sports'));
  const duplicate=await setup({error:{code:'23505'}});await duplicate.form.events.submit({preventDefault(){}});assert.match(duplicate.$('sports-result').textContent,/tayari imesajiliwa/);
  const denied=await setup({admin:true,allowed:false});assert.equal(denied.$('sports-admin-panel').hidden,true);assert(!denied.calls.some(x=>x.name==='sports_roster'));
+ const superWithBrokenSettings=await setup({admin:true,role:'super_admin',settingsFail:true});assert.equal(superWithBrokenSettings.$('sports-roster').children.length,100,'settings failure must not hide saved registrations');assert.match(superWithBrokenSettings.$('sports-admin-status').textContent,/Orodha imepakia/);
  const a=await setup({admin:true});assert.equal(a.$('sports-roster').children.length,100);
  a.fields.filter_sport.value='netball';await a.$('export-xlsx').events.click();assert.equal(a.blobs.length,1);
  const pages=a.calls.filter(x=>x.name==='sports_roster'&&x.args.p_limit===250);assert.deepEqual(pages.map(x=>x.args.p_offset),[0,250]);assert(pages.every(x=>x.args.p_sport==='netball'),'export filters must survive every page');

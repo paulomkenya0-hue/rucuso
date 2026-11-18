@@ -20,7 +20,7 @@ class Node {
   reset(){this.didReset=true;}
 }
 const flush=()=>new Promise(r=>setImmediate(r));
-async function setup({staff=false,member=null,permissions={},profile={role:'leader',full_name:'Leader'}}={}) {
+async function setup({staff=false,member=null,permissions={},profile={role:'leader',full_name:'Leader'},failCases=false}={}) {
   const nodes={},calls=[],timers=[];let rows=[],rpcReply=null,rpcError=null,oauthError=null;
   const $=id=>nodes[id]||=new Node();
   const fields={
@@ -34,7 +34,7 @@ async function setup({staff=false,member=null,permissions={},profile={role:'lead
   $('case-kind').value='security';$('member-state').value='pending';
   const client={
     auth:{getSession:async()=>({data:{session:member?{user:{id:'member-id',user_metadata:{full_name:'Google Student'}}}:null}}),signOut:async()=>{},signInWithOAuth:async(args)=>{calls.push({name:'oauth',args});return{data:{url:'https://accounts.google.com/'},error:oauthError};}},
-    from(table){calls.push({table});const q={then(resolve){resolve({data:rows,error:null,count:rows.length});},maybeSingle:async()=>({data:member,error:null})};for(const n of ['select','eq','order','range','in','limit'])q[n]=(...args)=>{calls.push({table,method:n,args});return q;};return q;},
+    from(table){calls.push({table});const q={then(resolve){resolve({data:rows,error:failCases&&table==='student_cases'?{message:'Case service unavailable'}:null,count:rows.length});},maybeSingle:async()=>({data:member,error:null})};for(const n of ['select','eq','order','range','in','limit'])q[n]=(...args)=>{calls.push({table,method:n,args});return q;};return q;},
     rpc:async(name,args)=>{calls.push({name,args});if(rpcError)throw rpcError;
       if(name.startsWith('can_'))return{data:!!permissions[name],error:null};
       if(name==='read_community_messages')return{data:rows,error:null};
@@ -106,6 +106,7 @@ async function setup({staff=false,member=null,permissions={},profile={role:'lead
   const nav=app.match(/const PUBLIC_NAV = (\[[\s\S]*?\n\]);/)[1];
   const entries=vm.runInNewContext(nav);
   assert(entries.some(x=>x[0]==='sec-community'));
+  const independent=await setup({staff:true,permissions:{can_manage_security_cases:true,can_moderate_community:true},failCases:true});independent.run();await flush();assert.equal(independent.$('membership-panel').hidden,false,'case failure must not hide chat applications');assert(independent.calls.some(c=>c.table==='community_members'));
   assert(!/innerHTML/.test(publicCode+staffCode));
   assert(sql.includes("p.position in ('minister','deputy_minister','ministry_secretary')"));
   assert(sql.includes('s.security_ministry_id=p.ministry_id'));

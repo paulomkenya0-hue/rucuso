@@ -42,6 +42,18 @@
       redirect("/change-password/");
       return null;
     }
+    // A Google student login in another tab replaces the shared Supabase
+    // session. Clear the previous staff screen immediately instead of leaving
+    // private rows visible under the new identity. RLS still protects every RPC.
+    if (typeof API.onAuthChange === "function") {
+      const guardedUser = session.user.id;
+      API.onAuthChange((next) => {
+        if (next?.user?.id !== guardedUser) {
+          document.body.replaceChildren();
+          redirect(loginUrl);
+        }
+      });
+    }
     return session;
   }
 
