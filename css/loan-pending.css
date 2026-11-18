@@ -1,0 +1,5 @@
+#loan-form[hidden],#loan-inbox[hidden],#loan-settings-panel[hidden],#loan-other-label[hidden] { display:none; }
+.loan-entry p { white-space:pre-wrap; overflow-wrap:anywhere; }
+.loan-account { font-family:monospace; user-select:all; }
+#loan-form small { display:block; font-weight:normal; line-height:1.5; margin-top:6px; }
+#loan-form input[name="registration_number"],#loan-form input[name="index_number"] { text-transform:uppercase; }

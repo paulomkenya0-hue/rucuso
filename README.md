@@ -661,3 +661,48 @@ PostgreSQL test uses fabricated data only: set `RUCUSO_PGLITE_PATH` to an instal
 real database roles/RLS, restricted RPCs, forged role claims, account links,
 secret tracking, replies and closure. Production SQL and accounts must still be
 configured in the target project.
+
+## Pending loan payment samples
+
+Apply `supabase/migrations/024_loan_pending_samples.sql` in Supabase SQL Editor,
+then deploy the frontend. Public form: `/loan-pending/`; private roster:
+`/admin/loan-pending/`. Existing HESLB beneficiary data/permissions are unchanged.
+
+The intake contains only full name (at least three name parts), RU registration
+number, Form Four Index Number (`S1234.0001.2024` or `P1234.0001.2024`), bank
+(CRDB/TCB/NMB/Other with name), bank account number and consent. There is no cheque
+number, date, description, phone or card-number field. Bank account numbers are
+text, preserving leading zeros. Format validation is not proof of enrollment,
+account ownership, bank correctness or HESLB payment state. There is no bank or
+HESLB integration and no promised payment date.
+
+Only active super admins and active leaders whose position is `minister` in the
+configured active Loans ministry can list, reveal or export. Deputies,
+secretaries, ordinary admins, executive leaders and other ministries are denied.
+Do not reuse the broader `is_heslb_manager` permission for this module. Super
+admin must verify the ministry routing in the roster settings, and assign the
+real Loans minister's existing leader account to that ministry. Only super admin
+can change routing or close/reopen intake.
+
+Anonymous/manual submission does not require Google sign-in. Repeated reg/index
+submissions return the same generic acknowledgment, without overwriting an
+existing account or disclosing the existing record. Corrections must be handled
+with the authorized ministry after verifying the student; there is no public
+edit endpoint. Intake is serialized with closure and a shared cap of 500 new
+records per Dar es Salaam day. This is not per-IP throttling or identity proof.
+
+Private lists contain masked account numbers. Authorized reveal and full-account
+export requests are logged in `loan_pending_access_log`, with no direct client
+access to the log or base tables. Excel/PDF export all matching bank-filtered
+pages, including full account numbers. Keep exported files with the authorized
+handlers. Excel uses inline text cells to preserve zeros and avoid formulas.
+PDF loads jsPDF 4.2.1 on demand from jsDelivr; Excel has no CDN dependency.
+
+`node tests/run-all.js` includes intake, access-gate, masked-account, export,
+XML/XLSX and wiring checks. The optional real PostgreSQL-engine integration test
+uses fabricated identities/data only:
+`RUCUSO_PGLITE_PATH=/path/to/@electric-sql/pglite node tests/loan-pending-postgres.integration.js`.
+It tests direct-table and RPC denial, exact roles, validation, S/P formats,
+duplicate non-overwrite, account zeros, reveal/export logs, multi-page exports,
+closure, active ministry checks and idempotent migration. Apply production SQL
+and configure accounts in the target project before distributing the link.

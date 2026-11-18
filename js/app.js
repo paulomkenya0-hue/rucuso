@@ -311,6 +311,7 @@ const PUBLIC_NAV = [
   ["sec-community", "Jumuiya"],
   ["sec-sports", "Michezo"],
   ["sec-education", "Elimu"],
+  ["sec-loan-pending", "Mkopo Pending"],
   ["sec-announcements", "Matangazo"],
   ["sec-leadership", "Uongozi"],
   ["sec-parliament", "Bunge"],
