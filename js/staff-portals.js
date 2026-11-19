@@ -9,8 +9,8 @@
   const panel=$('staff-route-panel');panel.replaceChildren();panel.hidden=false;
   for(const row of rows){const module=modules[row.key];if(!module)continue;const form=el('form',null,'study-form'),select=el('select');select.required=true;select.setAttribute('aria-label','Wizara ya '+module.label);
    for(const m of result.data.filter(m=>module.match.test(m.name))){const option=el('option',m.name);option.value=m.id;select.append(option);}select.value=row.ministry_id;
-   const save=el('button','Hifadhi wizara','btn btn--primary');save.type='submit';form.append(el('h2',module.label),el('p',`Inapokea: ${row.ministry||'Haijapangwa'} · Akaunti hai za minister: ${row.ministers}`),select,save);
-   if(!row.ministers){const a=el('a','Unda au hakiki akaunti ya Waziri','btn btn--ghost');a.href='/admin/leaders/';form.append(a);}
+   const save=el('button','Hifadhi wizara','btn btn--primary');save.type='submit';form.append(el('h2',module.label),el('p',`Inapokea: ${row.ministry||'Haijapangwa'} · Akaunti hai za Waziri/Naibu: ${row.handlers??row.ministers}`),select,save);
+   if(!(row.handlers??row.ministers)){const a=el('a','Unda au hakiki akaunti ya Waziri / Naibu','btn btn--ghost');a.href='/admin/leaders/';form.append(a);}
    form.addEventListener('submit',async e=>{e.preventDefault();if(!form.reportValidity())return;save.disabled=true;try{await rpc('set_staff_portal_route',{p_module:row.key,p_ministry:select.value});await routes();await cards();}catch(err){status(error(err));}finally{save.disabled=false;}});panel.append(form);
   }
  }

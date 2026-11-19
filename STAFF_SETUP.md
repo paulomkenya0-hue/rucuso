@@ -92,3 +92,20 @@ cross-ministry replies, child records/private storage, module permissions,
 first-year routing, secret reply tracking, super-admin routing and service-only
 profile provisioning. No live student data is read. Apply SQL, deploy functions,
 and verify configured production accounts before sharing credentials.
+
+## Updated access: migration 027
+
+Apply `027_deputy_ministry_access.sql` after 026. An active `deputy_minister`
+now has the same student inbox/reply/export access as the `minister` in that
+same active ministry. This overrides the minister-only description above;
+secretaries, ordinary admins, other ministries and students remain excluded.
+Super-admin-only settings, account administration and representative verification
+remain super-admin-only. No existing passwords are reset.
+
+The separate owner-run `supabase/admin/security_leadership_handover_2026.sql`
+applies the requested Security personnel handover using strict identity checks,
+private snapshots and an idempotency marker. It stops for ambiguous names or
+account links. It reuses Mahfudhi's existing directory/account, deactivates the
+outgoing minister, and creates or reuses Osca's directory entry without inventing
+credentials, registration numbers, contacts or images. If Osca has no account,
+create it from the directory-only section on `/admin/leaders/`.

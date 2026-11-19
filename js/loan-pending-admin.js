@@ -42,7 +42,7 @@
  $('loan-refresh').addEventListener('click',()=>load(true).catch(e=>status(error(e))));$('loan-more').addEventListener('click',()=>load(false).catch(e=>status(error(e))));
  $('loan-excel').addEventListener('click',()=>download('xlsx'));$('loan-pdf').addEventListener('click',()=>download('pdf'));
  (async()=>{const session=await window.RucusoGuard.requireRole(['super_admin','leader'],{loginUrl:'/admin/login/'});if(!session)return;
- if(!await rpc('can_manage_loan_pending')){status('Huna ruhusa. Sehemu hii ni ya Waziri wa Mikopo na super admin pekee.');return;}
+ if(!await rpc('can_manage_loan_pending')){status('Huna ruhusa. Sehemu hii ni ya Waziri na Naibu wa Mikopo na super admin pekee.');return;}
  status('Umeingia: '+session.profile.full_name+'.');$('loan-inbox').hidden=false;
  // Inbox must not depend on settings/ministries succeeding.
  try{await load(true);}catch(e){status(error(e));}

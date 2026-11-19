@@ -51,7 +51,7 @@
  }
  async function init(){
   const session=await window.RucusoGuard.requireRole(['super_admin','leader'],{loginUrl:'/admin/login/'});if(!session)return;
-  if(!await rpc('can_manage_education',{})){status('Sehemu hii ni ya Waziri wa Elimu na super admin pekee. Naibu, Katibu na wizara nyingine hawana ruhusa.');return;}
+  if(!await rpc('can_manage_education',{})){status('Sehemu hii ni ya Waziri na Naibu wa Elimu na super admin pekee. Katibu na wizara nyingine hawana ruhusa.');return;}
   $('education-inbox').hidden=false;
   for(const[role,label]of [[null,'Wote'],...Object.entries(roles)]){const b=el('button',label,'btn btn--ghost');b.type='button';b.setAttribute('aria-pressed',String(role===selectedRole));b.addEventListener('click',()=>{selectedRole=role;for(const n of $('education-tabs').children)n.setAttribute('aria-pressed',String(n===b));load(true).catch(e=>status(error(e)));});$('education-tabs').append(b);}
   for(const key of ['ed_kind','ed_status','ed_year'])field(key).addEventListener('change',()=>load(true).catch(e=>status(error(e))));

@@ -35,7 +35,7 @@
   function header(){doc.setFont('helvetica','bold');doc.setFontSize(12);const titleLines=doc.splitTextToSize('RUCUSO — '+title,270);doc.text(titleLines,12,12);y=14+titleLines.length*5;doc.setFont('helvetica','normal');doc.setFontSize(8);const lines=doc.splitTextToSize(filters+' | Wanafunzi: '+rows.length,270);doc.text(lines,12,y);y+=lines.length*4+4;doc.setFont('helvetica','bold');let x=12;columns.forEach((v,i)=>{doc.text(doc.splitTextToSize(v,widths[i]-2),x+1,y);x+=widths[i];});y+=9;doc.setFont('helvetica','normal');}
   header();
   for(const row of grid(rows)){doc.setFontSize(7.5);const wrapped=row.map((v,i)=>doc.splitTextToSize(String(v),widths[i]-2));const height=Math.max(...wrapped.map(x=>x.length))*3.5+4;if(y+height>195){doc.addPage();header();doc.setFontSize(7.5);}let x=12;wrapped.forEach((v,i)=>{doc.text(v,x+1,y+3);x+=widths[i];});doc.setDrawColor(220);doc.line(12,y+height,285,y+height);y+=height;}
-  const pages=doc.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);doc.setFontSize(7);doc.text(`Taarifa binafsi — Waziri wa Mikopo / super admin | Ukurasa ${i}/${pages}`,12,204);}return doc;
+  const pages=doc.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);doc.setFontSize(7);doc.text(`Taarifa binafsi — Waziri / Naibu wa Mikopo / super admin | Ukurasa ${i}/${pages}`,12,204);}return doc;
  }
  window.RucusoLoanPendingExports={xlsx,pdf,grid};
 })();

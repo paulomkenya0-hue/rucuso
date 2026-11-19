@@ -1,0 +1,8 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+class Node{constructor(){this.hidden=true;this.children=[];this.events={};}append(...x){this.children.push(...x);}replaceChildren(...x){this.children=x;}addEventListener(k,f){this.events[k]=f;}}
+async function inbox(position){const nodes={},calls=[],$=id=>nodes[id]||=new Node();const client={from(table){calls.push(table);const q={select(){return q;},order(){return q;},range(){return q;},then(resolve,reject){return Promise.resolve({data:[],error:null}).then(resolve,reject);}};return q;}};
+ const window={RucusoAPI:{client},RucusoGuard:{requireRole:async()=>({profile:{role:'leader',position}})}};
+ const ctx={window,document:{getElementById:$,createElement:()=>new Node()},console};for(const f of ['js/community-common.js','js/ministry-inbox.js'])vm.runInNewContext(fs.readFileSync(f,'utf8'),ctx);await new Promise(r=>setImmediate(r));return{$,calls};}
+(async()=>{for(const role of ['minister','deputy_minister']){const s=await inbox(role);assert.equal(s.$('inbox-panel').hidden,false,role);assert(s.calls.includes('feedback'));}for(const role of ['ministry_secretary','president','officer']){const s=await inbox(role);assert.equal(s.$('inbox-panel').hidden,true,role);assert.equal(s.calls.length,0);}
+ for(const file of ['js/education-admin.js','js/sports-admin.js','js/loan-pending-admin.js'])assert(!fs.readFileSync(file,'utf8').includes('Naibu na Katibu hawana ruhusa'));
+ console.log('Deputy UI: minister/deputy can open their guarded inbox; secretaries, executives and officers remain denied.');})().catch(e=>{console.error(e.message);process.exitCode=1;});

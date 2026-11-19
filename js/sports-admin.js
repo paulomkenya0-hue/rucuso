@@ -52,7 +52,7 @@
  async function init(){
   const session=await window.RucusoGuard.requireRole(['super_admin','leader'],{loginUrl:'/admin/login/'});if(!session)return;
   $('sports-viewer').textContent='Umeingia: '+session.profile.full_name+' ('+session.profile.role+').';
-  if(!await rpc('can_manage_sports',{})){message('Orodha hii inaonekana kwa Waziri wa Michezo na super admin pekee. Naibu na Katibu hawana ruhusa.');return;}
+  if(!await rpc('can_manage_sports',{})){message('Orodha hii inaonekana kwa Waziri na Naibu wa Michezo na super admin pekee. Katibu hana ruhusa.');return;}
   await summary();for(const s of info.sports){const o=el('option',s.label);o.value=s.code;fields('filter_sport').append(o);}
   $('sports-admin-panel').hidden=false;
   for(const key of ['filter_sport','filter_gender','filter_year'])fields(key).addEventListener('change',()=>load(true).catch(e=>message(error(e))));
