@@ -391,7 +391,7 @@ async function buildContext(
   }
 
   // ---------------- staff-only section ----------------
-  if (role === "staff") {
+  if (superAdmin) {
     const { data: stats, error: statsError } = await admin.rpc("rucuso_ai_feedback_stats");
     if (statsError) throw new Error(`Could not load feedback statistics: ${statsError.message}`);
 

@@ -927,7 +927,7 @@ let fbStep = 1;
 // Every field the wizard owns. Listed by prefix so a new f_* input joins the
 // reset automatically. f_anon and identBlock are the identity gate: unchecking
 // it must reveal the identity fields again, not leave them hidden.
-const FB_FIELDS = ["f_type", "f_category", "f_title", "f_desc", "f_date", "f_loc",
+const FB_FIELDS = ["f_ministry", "f_type", "f_category", "f_title", "f_desc", "f_date", "f_loc",
   "f_solution", "f_rating", "f_priority", "f_file", "f_anon", "f_reg", "f_name",
   "f_prog", "f_prog_sel", "f_year", "f_phone", "f_email"];
 
@@ -1049,6 +1049,7 @@ function fbSummary() {
   const progSel = document.getElementById("f_prog_sel");
   const rows = [
     ["Aina", v("f_type")],
+    ["Wizara", (document.getElementById("f_ministry").selectedOptions[0] || {}).textContent || "Super admin"],
     ["Kundi", (document.getElementById("f_category").selectedOptions[0] || {}).textContent],
     ["Kichwa", v("f_title")],
     ["Maelezo", v("f_desc")],
@@ -1081,6 +1082,10 @@ function initWizard() {
 
 // ---------- Categories / programmes on the submission form ----------
 function populateCategories() {
+  const ministrySelect=document.getElementById("f_ministry"),previous=ministrySelect.value;
+  ministrySelect.replaceChildren();const central=document.createElement("option");central.value="";central.textContent="Super admin — jambo la jumla";ministrySelect.append(central);
+  DB.ministries.filter(m=>m.active!==false).forEach(m=>{const o=document.createElement("option");o.value=m.id;o.textContent=m.name;ministrySelect.append(o);});ministrySelect.value=previous;
+
   const sel = document.getElementById("f_category");
   sel.innerHTML = "";
   DB.categories.filter((c) => c.active !== false).forEach((c) => {
@@ -1352,7 +1357,7 @@ async function submitFeedback(ev) {
       attachment_url = await API.uploadPrivateFile(API.BUCKETS.attachments, path, file);
       attachment_name = file.name;
     }
-    const ref = await API.submitFeedback({
+    const receipt = await API.submitFeedbackReceipt({
       p_submission_type: document.getElementById("f_type").value,
       p_title: title,
       p_description: desc,
@@ -1374,11 +1379,13 @@ async function submitFeedback(ev) {
       p_student_year: anon ? null : document.getElementById("f_year").value.trim(),
       p_student_phone: anon ? null : document.getElementById("f_phone").value.trim(),
       p_student_email: anon ? null : document.getElementById("f_email").value.trim(),
-      p_ministry_id: null,
+      p_ministry_id: document.getElementById("f_ministry").value || null,
       p_attachment_url: attachment_url,
       p_attachment_name: attachment_name,
     });
-    document.getElementById("refOut").textContent = ref;
+    document.getElementById("refOut").textContent = receipt.reference;
+    document.getElementById("feedbackSecret").textContent = receipt.tracking_token;
+    document.getElementById("trackSecret").value = receipt.tracking_token;
     document.getElementById("successCard").classList.remove("hidden");
     document.getElementById("formArea").classList.add("hidden");
     document.getElementById("privacyGate").classList.add("hidden");
@@ -1415,7 +1422,9 @@ async function doTrack(ev) {
   busy(btn, true, "Inatafuta...");
   out.innerHTML = stateBox("busy", "Inatafuta...", "Tunatafuta maoni yako kwenye mfumo.");
   try {
-    const rec = await API.trackFeedback(ref);
+    const token=document.getElementById("trackSecret").value.trim();
+    if(token&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token))throw new Error("Hakiki msimbo wa siri wa kufuatilia.");
+    const rec = await API.trackFeedback(ref,token||null);
     if (!rec) {
       out.innerHTML = stateBox("error", "Hakuna rekodi",
         "Hakuna maoni yaliyopatikana kwa reference number <b>" + esc(ref) + "</b>. "

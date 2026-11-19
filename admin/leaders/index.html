@@ -697,6 +697,12 @@
         INVALID_USERNAME: "Username si sahihi (herufi, nambari, . _ - tu, 3-32).",
         LIST_FAILED: "Imeshindikana kupakia orodha ya viongozi.",
         NOT_SUPER_ADMIN: "Unapaswa kuwa Super Admin ili kufanya kitendo hiki.",
+        LEADER_ALREADY_LINKED: "Wasifu huu tayari una akaunti. Tumia Reset Password kwenye orodha ya akaunti.",
+        EXISTING_ACCOUNT_REVIEW_REQUIRED: "Kiongozi huyu anaweza kuwa na akaunti tayari. Hakiki akaunti iliyopo; usiunde nyingine.",
+        POSITION_ACCOUNT_EXISTS: "Nafasi hii tayari ina akaunti hai. Hakiki kiongozi na wizara kabla ya kuongeza akaunti.",
+        DIRECTORY_INACTIVE: "Wasifu umezimwa. Hakiki kwanza kabla ya kuunda akaunti.",
+        DIRECTORY_INACTIVE_OR_MISSING: "Wasifu huu haupo au umezimwa.",
+        PROVISION_CLEANUP_FAILED: "Akaunti haijakamilika. Super admin ahakiki Supabase Auth kabla ya kujaribu tena.",
         UNKNOWN_ACTION: "Kitendo hakijulikani."
       };
 
@@ -888,6 +894,31 @@
       }).join("");
   }
 
+  function renderDirectoryOnly(rows) {
+    let panel = document.getElementById("directoryOnlyPanel");
+    if (!panel) {
+      panel = document.createElement("section"); panel.id = "directoryOnlyPanel"; panel.className = "card";
+      document.getElementById("leadersBody").closest("table").parentElement.after(panel);
+    }
+    panel.replaceChildren();
+    const title=document.createElement("h2");title.textContent="Wasifu ambao bado hawana akaunti";panel.append(title);
+    const note=document.createElement("p");note.textContent="Waliowekwa kwa SQL wanaonekana hapa. Weka username kisha unda akaunti kwenye wasifu huu; picha na wasifu vitabaki. Password ya muda itaoneshwa mara moja.";panel.append(note);
+    if(!Array.isArray(rows)){const warning=document.createElement("p");warning.textContent="Backend ya leader-admin inahitaji kusasishwa ili kuonesha viongozi wasio na akaunti.";panel.append(warning);return;}
+    for (const row of rows) {
+      const form=document.createElement("form");form.className="card";
+      const label=document.createElement("p");label.textContent=row.full_name+" — "+row.position_label+" · "+(row.ministry_name||"RUCUSO");form.append(label);
+      const user=document.createElement("input");user.name="username";user.placeholder="Username mpya";user.required=true;user.pattern="(?:[A-Za-z0-9._]|-){3,32}";user.maxLength=32;user.setAttribute("aria-label","Username ya "+row.full_name);user.autocomplete="off";
+      const btn=document.createElement("button");btn.type="submit";btn.className="sec";btn.textContent="Unda akaunti";btn.disabled=!row.active||row.possible_account;
+      form.append(user,btn);
+      if(!row.active||row.possible_account){const warning=document.createElement("p");warning.textContent=row.possible_account?"Jina hili linaweza kuwa na akaunti tayari. Hakiki kabla ya kuunganisha.":"Wasifu umezimwa; hakiki kwanza.";form.append(warning);}
+      form.addEventListener("submit",async(event)=>{event.preventDefault();if(!form.reportValidity())return;btn.disabled=true;
+        try{const result=await callFunction({action: "provision",leader_id:row.leader_id,username:user.value.trim()});if(result.temporary_password)showPassword(result.temporary_password);showMessage("Akaunti ya "+row.full_name+" imeundwa. Username: "+result.username+". Password lazima ibadilishwe mara ya kwanza.","success");await loadLeaders();}
+        catch(error){showMessage(error.message,"error");btn.disabled=false;}
+      });panel.append(form);
+    }
+    if(!rows.length){const empty=document.createElement("p");empty.textContent="Wasifu wote umeunganishwa na akaunti.";panel.append(empty);}
+  }
+
   async function loadLeaders() {
 
     const body =
@@ -906,6 +937,7 @@
         });
 
       renderLeaders(result.leaders || []);
+      renderDirectoryOnly(result.directory_only);
 
     } catch (error) {
 

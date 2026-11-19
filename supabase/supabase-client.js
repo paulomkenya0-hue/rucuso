@@ -455,8 +455,12 @@
       const ref = await ok(await client.rpc("submit_feedback", payload));
       return ref;
     },
-    async trackFeedback(ref) {
-      const rows = await ok(await client.rpc("track_feedback", { p_ref: ref }));
+    async submitFeedbackReceipt(payload) {
+      return ok(await client.rpc("submit_feedback_receipt", { p_payload: payload }));
+    },
+    async trackFeedback(ref, token) {
+      const args = { p_ref: ref }; if (token) args.p_token = token;
+      const rows = await ok(await client.rpc("track_feedback", args));
       return rows && rows.length ? rows[0] : null;
     },
     async listFeedback(filters = {}) {

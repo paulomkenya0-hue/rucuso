@@ -22,13 +22,13 @@
   <div class="brand"><span class="crest">R</span><b>RUCUSO</b><span>Leader Portal</span></div>
   <div>
     <span id="whoami" class="muted" style="color:#cdd9ee;font-size:12px;margin-right:10px;"></span>
-    <button class="sec" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Logout</button> <a href="/staff/student-services/" class="sec" style="color:#fff;text-decoration:none">Ripoti, Maoni na Chat</a> <a href="/admin/sports/" class="sec" style="color:#fff;text-decoration:none">Usajili wa Michezo</a> <a href="/admin/loan-pending/" class="sec" style="color:#fff;text-decoration:none">Mkopo Pending</a> <a href="/admin/education/" class="sec" style="color:#fff;text-decoration:none">Maoni ya Elimu</a>
+    <button class="sec" id="logoutBtn" style="color:#fff;border-color:rgba(255,255,255,.4);">Logout</button>
   </div>
 </header>
 <div class="layout">
   <nav class="sidebar">
     <a href="/leader/dashboard/" class="active">Dashibodi</a>
-    <a href="#" id="navIssues">Masuala ya Wizara</a>
+    <a href="/leader/inbox/" id="navIssues">Masuala ya Wizara</a>
     <a href="#" id="navStudents" class="exec-only">Wanafunzi</a>
     <a href="#" id="navAnnouncements" class="exec-only">Matangazo</a>
   </nav>
@@ -40,6 +40,7 @@
         <h2 id="dashHeading">Dashibodi ya Kiongozi</h2>
         <p>Muhtasari wa masuala yanayokuhusu, moja kwa moja kutoka Supabase.</p>
       </div>
+      <section class="card"><h2>Majukumu na Inbox Yangu</h2><p id="staff-portals-status" role="status" aria-live="polite">Inapakia huduma ninazoruhusiwa…</p><div id="staff-portals"></div></section>
       <div class="statgrid">
         <div class="card"><b id="st_total">–</b><span>Jumla ya Masuala</span></div>
         <div class="card"><b id="st_new">–</b><span>Mapya</span></div>
@@ -111,6 +112,8 @@
 <script src="/supabase/config.js" onerror="console.warn('supabase/config.js haipo.')"></script>
 <script src="/supabase/supabase-client.js"></script>
 <script src="/js/auth-guard.js"></script>
+<script src="/js/community-common.js"></script>
+<script src="/js/staff-portals.js"></script>
 <script>
 (async function () {
   function esc(v) {
@@ -127,9 +130,7 @@
   document.getElementById("logoutBtn").addEventListener("click", () => window.RucusoGuard.logout("/"));
 
   const executive = window.RucusoGuard.isExecutiveLeader(session.profile);
-  document.getElementById("scopeTitle").textContent = executive
-    ? "Masuala ya Kiutendaji (Wizara Zote)"
-    : "Masuala ya Wizara Yangu";
+  document.getElementById("scopeTitle").textContent = "Masuala ya Wizara Yangu";
 
   const client = window.RucusoAPI.client;
   try {
@@ -147,9 +148,8 @@
       }
     }
   } catch (_) { /* an unavailable HESLB migration must not break the existing leader dashboard */ }
-  // RLS (migration 004) already restricts this query to the leader's own
-  // ministry unless they hold an executive position or view_all_feedback —
-  // no client-side filtering is needed or trusted here.
+  // Migration 026 restricts private feedback to the responsible minister
+  // and super admin, including when legacy executive policies still exist.
   const { data: rows, error } = await client
     .from("feedback")
     .select("reference_number, title, submission_type, status, created_at")

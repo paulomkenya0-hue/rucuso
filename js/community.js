@@ -32,6 +32,7 @@
       try {
         const data={};for(const key of ['kind','full_name','programme','study_year','phone','title','description'])data[key]=form.elements[key].value.trim();
         data.study_year=Number(data.study_year);
+        if(data.kind==='first_year_feedback')data.ministry_id=form.elements.ministry_id?.value||null;
         if(data.kind!=='first_year_feedback') {
           for(const key of ['incident_date','incident_location','residence_type'])data[key]=form.elements[key].value.trim();
           data.residence_name=data.residence_type==='offcampus'?form.elements.residence_detail.value.trim():form.elements.hostel.value;
@@ -41,6 +42,7 @@
       }catch(e){target.textContent=error(e);}finally{b.disabled=false;}
     });
   }
+  if($('first-year-ministry'))(async()=>{const r=await client.from('ministries').select('id,name').eq('active',true).order('name');if(r.error)throw r.error;for(const m of r.data){const o=el('option',m.name);o.value=m.id;$('first-year-ministry').append(o);}})().catch(()=>{$('feedback-result').textContent='Orodha ya wizara haijapakia; jaribu tena kuchagua wizara, au tuma jambo la jumla kwa super admin.';});
   caseForm(security,'security-result');caseForm($('first-year-form'),'feedback-result');
   $('feedback-year').addEventListener('change',()=>{
     const year=$('feedback-year').value;

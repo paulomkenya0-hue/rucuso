@@ -61,6 +61,7 @@ async function handle(req: Request): Promise<Response> {
   switch (action) {
     case "list":           return await listLeaders(req, supabase);
     case "create":         return await createLeader(req, supabase, caller, body);
+    case "provision":      return await provisionLeader(req, supabase, caller, body);
     case "update":         return await updateLeader(req, supabase, caller, body);
     case "reset_password": return await resetPassword(req, supabase, caller, body);
     case "deactivate":     return await setActive(req, supabase, caller, body, false);
@@ -89,9 +90,14 @@ async function listLeaders(req: Request, supabase: any): Promise<Response> {
   // position_label and ministry_name are resolved here so the browser does not
   // have to keep its own copy of the labels (see POSITION_FALLBACK_LABELS in
   // admin/leaders/index.html, which is only a fallback for unknown keys).
-  const { data: leaderRows } = await supabase
+  const { data: leaderRows, error: directoryError } = await supabase
     .from("leaders")
-    .select("id, full_name, position, ministry_id, active, public_visible");
+    .select("id, full_name, position, ministry_id, active, public_visible, registration_number");
+
+  if (directoryError) return json(req, { error: "DIRECTORY_LIST_FAILED" }, 500);
+
+  const { data: linkedProfiles, error: linksError } = await supabase.from("profiles").select("id, leader_id, full_name, role");
+  if (linksError) return json(req, { error: "PROFILE_LINKS_FAILED" }, 500);
 
   const { data: ministries } = await supabase
     .from("ministries")
@@ -144,7 +150,53 @@ async function listLeaders(req: Request, supabase: any): Promise<Response> {
     };
   });
 
-  return json(req, { leaders });
+  // Show every directory row, including imported people without Auth accounts.
+  // A legacy same-name account is flagged for review, never silently claimed.
+  const directoryOnly = (leaderRows || []).filter((d: any) =>
+    !(linkedProfiles || []).some((p: any) => p.leader_id === d.id)
+  ).map((d: any) => ({
+    leader_id: d.id, full_name: d.full_name, position: d.position,
+    position_label: positionInfo.get(d.position)?.label_sw || d.position,
+    ministry_name: d.ministry_id ? ministryName.get(d.ministry_id) || null : null,
+    active: d.active === true,
+    possible_account: (linkedProfiles || []).some((p: any) =>
+      String(p.full_name).trim().toLowerCase() === String(d.full_name).trim().toLowerCase()),
+  }));
+  return json(req, { leaders, directory_only: directoryOnly });
+}
+
+async function provisionLeader(req: Request, supabase: any, caller: { id: string; full_name: string }, body: Record<string, unknown>) {
+  const leader_id = String(body.leader_id ?? "").trim();
+  const username = String(body.username ?? "").trim().toLowerCase();
+  if (!/^[0-9a-f-]{36}$/i.test(leader_id)) return json(req, { error: "LEADER_ID_REQUIRED" }, 400);
+  if (!/^[a-z0-9._-]{3,32}$/.test(username)) return json(req, { error: "INVALID_USERNAME" }, 400);
+  const { data: directory, error: directoryError } = await supabase.from("leaders")
+    .select("id, full_name, position, ministry_id, active").eq("id", leader_id).maybeSingle();
+  if (directoryError || !directory) return json(req, { error: "LEADER_NOT_FOUND" }, 404);
+  if (!directory.active) return json(req, { error: "DIRECTORY_INACTIVE" }, 409);
+  const { data: linked, error: linkedError } = await supabase.from("profiles").select("id").eq("leader_id", leader_id);
+  if (linkedError) return json(req, { error: "PROFILE_LOOKUP_FAILED" }, 500);
+  if (linked?.length) return json(req, { error: "LEADER_ALREADY_LINKED" }, 409);
+  const { data: sameName, error: sameNameError } = await supabase.from("profiles")
+    .select("id").ilike("full_name", directory.full_name.replace(/[\\%_]/g, "\\$&"));
+  if (sameNameError) return json(req, { error: "PROFILE_LOOKUP_FAILED" }, 500);
+  if (sameName?.length) return json(req, { error: "EXISTING_ACCOUNT_REVIEW_REQUIRED" }, 409);
+  const password = generateTempPassword();
+  // Random internal email stays independent of a mutable username.
+  const email = `leader-${crypto.randomUUID()}@rucuso.local`;
+  const { data: auth, error: authError } = await supabase.auth.admin.createUser({ email, password, email_confirm: true });
+  if (authError || !auth?.user) return json(req, { error: "AUTH_CREATE_FAILED" }, 500);
+  const userId = auth.user.id;
+  const { error: profileError } = await supabase.rpc("provision_directory_leader", {
+    p_auth_id: userId, p_leader_id: leader_id, p_username: username,
+  });
+  if (profileError) {
+    const { error: cleanupError } = await supabase.auth.admin.deleteUser(userId);
+    return json(req, { error: cleanupError ? "PROVISION_CLEANUP_FAILED" : "PROVISION_FAILED",
+      detail: cleanupError ? "Akaunti haijakamilika. Msimamizi ahakiki Auth users." : profileError.message }, 409);
+  }
+  await logAudit(supabase, caller.id, caller.full_name, "Leader Account Provision", `Aliunganisha akaunti na wasifu ${leader_id}; username: ${username}`);
+  return json(req, { ok: true, leader_id, profile_id: userId, username, temporary_password: password });
 }
 
 async function createLeader(req: Request, supabase: any, caller: { id: string; full_name: string }, body: Record<string, unknown>) {
@@ -259,6 +311,10 @@ const { data: created, error: createErr } =
 async function updateLeader(req: Request, supabase: any, caller: { id: string; full_name: string }, body: Record<string, unknown>) {
   const profile_id = String(body.profile_id ?? "").trim();
   if (!profile_id) return json(req, { error: "PROFILE_ID_REQUIRED" }, 400);
+  const { data: targetAccount, error: targetError } = await supabase.from("profiles")
+    .select("id, role").eq("id", profile_id).eq("role", "leader").maybeSingle();
+  if (targetError || !targetAccount) return json(req, { error: "LEADER_ACCOUNT_NOT_FOUND" }, 404);
+
 
   const { data: profile, error: profileErr } = await supabase
     .from("profiles")
@@ -382,12 +438,17 @@ async function updateLeader(req: Request, supabase: any, caller: { id: string; f
 async function resetPassword(req: Request, supabase: any, caller: { id: string; full_name: string }, body: Record<string, unknown>) {
   const profile_id = String(body.profile_id ?? "");
   if (!profile_id) return json(req, { error: "PROFILE_ID_REQUIRED" }, 400);
+  const { data: targetAccount, error: targetError } = await supabase.from("profiles")
+    .select("id, role").eq("id", profile_id).eq("role", "leader").maybeSingle();
+  if (targetError || !targetAccount) return json(req, { error: "LEADER_ACCOUNT_NOT_FOUND" }, 404);
+
 
   const tempPassword = generateTempPassword();
   const { error } = await supabase.auth.admin.updateUserById(profile_id, { password: tempPassword });
   if (error) return json(req, { error: "RESET_FAILED", detail: error.message }, 500);
 
-  await supabase.from("profiles").update({ must_change_password: true }).eq("id", profile_id);
+  const { error: flagError } = await supabase.from("profiles").update({ must_change_password: true }).eq("id", profile_id);
+  if (flagError) return json(req, { error: "RESET_PROFILE_FAILED" }, 500);
 
   const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", profile_id).maybeSingle();
   await logAudit(supabase, caller.id, caller.full_name, "Password Reset",
@@ -399,6 +460,10 @@ async function resetPassword(req: Request, supabase: any, caller: { id: string; 
 async function setActive(req: Request, supabase: any, caller: { id: string; full_name: string }, body: Record<string, unknown>, active: boolean) {
   const profile_id = String(body.profile_id ?? "");
   if (!profile_id) return json(req, { error: "PROFILE_ID_REQUIRED" }, 400);
+  const { data: targetAccount, error: targetError } = await supabase.from("profiles")
+    .select("id, role").eq("id", profile_id).eq("role", "leader").maybeSingle();
+  if (targetError || !targetAccount) return json(req, { error: "LEADER_ACCOUNT_NOT_FOUND" }, 404);
+
 
   const { data: profile, error } = await supabase
     .from("profiles")
@@ -422,6 +487,10 @@ async function setActive(req: Request, supabase: any, caller: { id: string; full
 async function deleteLeader(req: Request, supabase: any, caller: { id: string; full_name: string }, body: Record<string, unknown>) {
   const profile_id = String(body.profile_id ?? "");
   if (!profile_id) return json(req, { error: "PROFILE_ID_REQUIRED" }, 400);
+  const { data: targetAccount, error: targetError } = await supabase.from("profiles")
+    .select("id, role").eq("id", profile_id).eq("role", "leader").maybeSingle();
+  if (targetError || !targetAccount) return json(req, { error: "LEADER_ACCOUNT_NOT_FOUND" }, 404);
+
 
   const { data: profile } = await supabase.from("profiles").select("full_name, leader_id").eq("id", profile_id).maybeSingle();
 

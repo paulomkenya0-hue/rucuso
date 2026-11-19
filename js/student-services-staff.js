@@ -80,8 +80,8 @@
     }
     if(session.profile.role==='super_admin'){
       const [settings,ministries]=await Promise.all([client.from('student_service_settings').select('security_ministry_id').single(),client.from('ministries').select('id,name').eq('active',true).order('name')]);if(settings.error)throw settings.error;if(ministries.error)throw ministries.error;
-      const choose=el('select');choose.setAttribute('aria-label','Wizara ya Ulinzi');for(const m of ministries.data){const o=el('option',m.name);o.value=m.id;choose.append(o);}choose.value=settings.data.security_ministry_id;
-      $('settings-controls').append(choose,button('Hifadhi wizara inayopokea ripoti',async()=>{const r=await client.from('student_service_settings').update({security_ministry_id:choose.value}).eq('id',true).select('id');if(r.error)throw r.error;if(!r.data.length)throw new Error('NOT_AUTHORIZED');notice('Wizara inayopokea ripoti imehifadhiwa.');}));$('settings-panel').hidden=false;
+      const choose=el('select');choose.setAttribute('aria-label','Wizara ya Ulinzi');for(const m of ministries.data.filter(m=>/ulinzi|security|defen[cs]e/i.test(m.name))){const o=el('option',m.name);o.value=m.id;choose.append(o);}choose.value=settings.data.security_ministry_id;
+      $('settings-controls').append(choose,button('Hifadhi wizara inayopokea ripoti',async()=>{await rpc('set_staff_portal_route',{p_module:'security',p_ministry:choose.value});notice('Wizara inayopokea ripoti imehifadhiwa.');}));$('settings-panel').hidden=false;
     }
   }
   init().catch(e=>notice(error(e)));

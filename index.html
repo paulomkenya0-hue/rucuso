@@ -768,6 +768,7 @@
         <div class="fstep" id="fstep-2" data-step="2">
           <h3 class="fstep__q">Ni kundi gani linalofaa?</h3>
           <p class="fstep__hint">Hii inatusaidia kupeleka maoni yako kwa wizara inayofaa.</p>
+          <label for="f_ministry">Wizara inayopokea</label><select id="f_ministry"><option value="">Super admin — jambo la jumla</option></select><small>Ukichagua wizara, taarifa itaonekana kwa Waziri wa wizara hiyo na super admin pekee.</small>
           <label for="f_category">Kundi la maoni</label>
           <select id="f_category"></select>
           <div class="err" id="fbErr2" role="alert" aria-live="polite"></div>
@@ -868,7 +869,7 @@
         <p class="muted" style="text-align:center;">Asante. Hapa kuna namba yako ya kumbukumbu:</p>
         <div class="refbox">
           <p class="refbox__label">Namba ya kumbukumbu</p>
-          <p class="refbox__code" id="refOut"></p>
+          <p class="refbox__code" id="refOut"></p><p>Msimbo wa siri wa kuona majibu — hifadhi pamoja na kumbukumbu:</p><p id="feedbackSecret" class="refbox__code"></p>
           <p class="refbox__hint">Iweke kumbukumbu ili kuweza kufuatilia baadaye.</p>
         </div>
         <div class="btnrow btnrow--center">
@@ -898,7 +899,7 @@
       </div>
 
       <div class="card">
-        <label for="trackRef">Namba ya kumbukumbu</label>
+        <label for="trackSecret">Msimbo wa siri (kuona jibu)</label><input id="trackSecret" maxlength="36" autocomplete="off" placeholder="Msimbo uliopewa baada ya kutuma"><small>Kumbukumbu ya zamani bila msimbo itaonesha hali tu, bila ujumbe wa jibu.</small><label for="trackRef">Namba ya kumbukumbu</label>
         <input id="trackRef" placeholder="RUCU-2026-000001" autocomplete="off" autocapitalize="characters" spellcheck="false" style="font-family:var(--font-mono);letter-spacing:.04em;">
         <button class="pri" onclick="doTrack(event)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
