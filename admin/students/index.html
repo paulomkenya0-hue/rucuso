@@ -116,6 +116,7 @@
             (kwa Namba ya Usajili sawa) <b>hawataandikwa upya</b> na uagizaji huu — tumia "Hariri" kwenye orodha
             kubadilisha taarifa za mtu mmoja.</p>
           <button class="sec" id="downloadTemplateBtn">Pakua Fomu Mfano ya CSV</button>
+          <button class="pri" id="downloadAllStudentsBtn">Pakua Wanafunzi Wote (CSV)</button>
           <div id="csvDrop" class="dropzone" style="margin-top:12px;">
             Bofya hapa au buruta faili la .csv hapa
             <input id="csv_file" type="file" accept=".csv" class="hidden">
@@ -392,6 +393,77 @@
     a.download = "rucuso_wanafunzi_template.csv";
     a.click();
     URL.revokeObjectURL(a.href);
+  });
+
+
+  // ---------- Export all students, not just the current page ----------
+  document.getElementById("downloadAllStudentsBtn").addEventListener("click", async () => {
+    const btn = document.getElementById("downloadAllStudentsBtn");
+    btn.disabled = true;
+    btn.textContent = "Inapakua wanafunzi...";
+
+    try {
+      if (!window.RucusoGuard.hasPermission(profile, "manage_students")) {
+        throw new Error("Huna ruhusa ya kupakua taarifa za wanafunzi.");
+      }
+
+      const all = [];
+      const pageSize = 500;
+      let page = 1;
+      let expected = null;
+
+      while (true) {
+        const result = await window.RucusoAPI.listStudentsFull({ page, pageSize });
+        if (expected === null) expected = result.count;
+
+        all.push(...result.data);
+        btn.textContent = `Inapakua ${all.length}/${expected}...`;
+
+        if (all.length >= expected) break;
+        if (result.data.length === 0) {
+          throw new Error("Export haijakamilika. Jaribu tena.");
+        }
+        page++;
+      }
+
+      const headers = [
+        "registration_number", "first_name", "middle_name",
+        "last_name", "full_name", "programme", "faculty",
+        "department", "year_of_study", "academic_year",
+        "phone_number", "email", "gender", "student_status"
+      ];
+
+      const csvCell = (value) => {
+        let text = String(value ?? "");
+        if (/^[\s]*[=+\-@]/.test(text)) text = "'" + text;
+        return '"' + text.replace(/"/g, '""') + '"';
+      };
+
+      const csv = "\uFEFF" + [
+        headers.join(","),
+        ...all.map(student =>
+          headers.map(key => csvCell(student[key])).join(",")
+        )
+      ].join("\r\n");
+
+      const url = URL.createObjectURL(
+        new Blob([csv], { type: "text/csv;charset=utf-8" })
+      );
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "rucuso_wanafunzi_wote.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+      alert(`CSV imeandaliwa: wanafunzi ${all.length}.`);
+    } catch (error) {
+      alert("Export imeshindikana: " + (error.message || error));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Pakua Wanafunzi Wote (CSV)";
+    }
   });
 
   // ---------- CSV dropzone ----------
